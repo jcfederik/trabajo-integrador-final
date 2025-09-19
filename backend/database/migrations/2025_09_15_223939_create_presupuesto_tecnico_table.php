@@ -8,8 +8,8 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('presupuesto_tecnico', function (Blueprint $table) {
             $table->foreignId('presupuesto_id')->constrained('presupuesto')->cascadeOnDelete();
-            $table->foreignId('tecnico_id')->constrained('usuario')->cascadeOnDelete(); // <- cambiado
-            $table->primary(['presupuesto_id', 'tecnico_id']);
+            $table->foreignId('usuario_id')->constrained('usuario')->cascadeOnDelete(); // <- cambiado
+            $table->primary(['presupuesto_id', 'usuario_id']);
         });
     }
 
