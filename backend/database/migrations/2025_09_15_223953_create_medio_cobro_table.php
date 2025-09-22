@@ -9,6 +9,8 @@ return new class extends Migration {
         Schema::create('medio_cobro', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 100);
+            $table->timestamps(); // <-- Reemplaza la línea de created_at con esta
+
         });
     }
 
