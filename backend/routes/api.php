@@ -8,4 +8,5 @@ use App\Http\Controllers\MedioCobroController;
 Route::apiResource('clientes', ClienteController::class);
 Route::apiResource('equipo', EquipoController::class);
 Route::apiResource('mediocobro', MedioCobroController::class);
+Route::apiResource('facturas', FacturaController::class);
 

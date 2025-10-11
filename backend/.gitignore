@@ -1,24 +1,49 @@
-*.log
-.DS_Store
+# ========================================
+# 🧱 ARCHIVOS DE ENTORNO Y CONFIGURACIÓN
+# ========================================
 .env
 .env.backup
 .env.production
+Homestead.json
+Homestead.yaml
+auth.json
+
+# ========================================
+# ⚙️ EDITORES Y ENTORNOS DE DESARROLLO
+# ========================================
+.idea/
+.vscode/
+.fleet/
+.zed/
 .phpactor.json
 .phpunit.result.cache
-/.fleet
-/.idea
-/.nova
 /.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/node_modules
+
+# ========================================
+# 📦 DEPENDENCIAS Y COMPILADOS
+# ========================================
+/vendor/
+/node_modules/
 /public/build
 /public/hot
 /public/storage
+
+# ========================================
+# 🧾 LOGS Y ARCHIVOS TEMPORALES
+# ========================================
+*.log
+Thumbs.db
+.DS_Store
+
+# ========================================
+# 🔐 CLAVES Y ARCHIVOS DE SEGURIDAD
+# ========================================
 /storage/*.key
 /storage/pail
-/vendor
-Homestead.json
-Homestead.yaml
-Thumbs.db
+
+# ========================================
+# 📘 L5-SWAGGER / OPENAPI
+# ========================================
+/storage/api-docs
+/public/docs
+/public/vendor/l5-swagger
