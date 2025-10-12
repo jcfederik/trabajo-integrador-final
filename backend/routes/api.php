@@ -7,6 +7,7 @@ use App\Http\Controllers\MedioCobroController;
 
 Route::apiResource('clientes', ClienteController::class);
 Route::apiResource('equipo', EquipoController::class);
-Route::apiResource('mediocobro', MedioCobroController::class);
+Route::apiResource('medios-cobro', MedioCobroController::class);
 Route::apiResource('facturas', FacturaController::class);
+Route::apiResource('reparaciones', ReparacionController::class);
 
