@@ -14,7 +14,7 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
+        'guard' => env('AUTH_GUARD', 'api'), // Cambié a 'api'
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
@@ -38,6 +38,12 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
+            'provider' => 'users',
+        ],
+        
+        // AGREGAR ESTE GUARD PARA API CON JWT
+        'api' => [
+            'driver' => 'jwt',
             'provider' => 'users',
         ],
     ],
