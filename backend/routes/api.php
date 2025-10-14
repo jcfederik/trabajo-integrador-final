@@ -7,9 +7,16 @@ use App\Http\Controllers\MedioCobroController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\FacturaController;
+use App\Http\Controllers\ReparacionController;
 
 // Rutas públicas
 Route::post('/login', [AuthController::class, 'login']);
+Route::apiResource('clientes', ClienteController::class);
+Route::apiResource('equipo', EquipoController::class);
+Route::apiResource('medios-cobro', MedioCobroController::class);
+Route::apiResource('facturas', FacturaController::class);
+Route::apiResource('reparaciones', ReparacionController::class);
 
 // Rutas protegidas con JWT
 Route::middleware('auth:api')->group(function () {
@@ -20,11 +27,6 @@ Route::middleware('auth:api')->group(function () {
     
     // User profile routes (usando apiResource para consistencia)
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
-    
-    // Tus rutas existentes (igual que antes)
-    Route::apiResource('clientes', ClienteController::class);
-    Route::apiResource('equipo', EquipoController::class);
-    Route::apiResource('mediocobro', MedioCobroController::class);
     
     // Rutas de administrador (usando apiResource)
     Route::middleware('admin') ->group(function () {
