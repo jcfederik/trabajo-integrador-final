@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->string('marca', 100)->nullable();
             $table->string('modelo', 100)->nullable();
             $table->string('nro_serie', 100)->nullable();
+            $table->foreignId('cliente_id')->constrained('cliente')->cascadeOnDelete();
             $table->timestamps(); // <-- Reemplaza la línea de created_at con esta
 
         });
