@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\ReparacionController;
+use App\Http\Controllers\PresupuestoController;
 
 // Rutas públicas
 Route::post('/login', [AuthController::class, 'login']);
@@ -17,6 +18,7 @@ Route::apiResource('equipo', EquipoController::class);
 Route::apiResource('medios-cobro', MedioCobroController::class);
 Route::apiResource('facturas', FacturaController::class);
 Route::apiResource('reparaciones', ReparacionController::class);
+Route::apiResource('presupuesto', PresupuestoController::class);
 
 // Rutas protegidas con JWT
 Route::middleware('auth:api')->group(function () {
