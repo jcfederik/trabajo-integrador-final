@@ -634,6 +634,215 @@
                 }
             }
         },
+        "/api/compra-repuesto": {
+            "get": {
+                "tags": [
+                    "Compra de Repuestos"
+                ],
+                "summary": "Obtener todas las compras de repuestos",
+                "operationId": "9859610a3255cd6d85c3564d78aaa7a7",
+                "responses": {
+                    "200": {
+                        "description": "Lista de compras obtenida correctamente"
+                    },
+                    "500": {
+                        "description": "Error al obtener las compras de repuestos"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Compra de Repuestos"
+                ],
+                "summary": "Crear una nueva compra de repuesto",
+                "operationId": "b7c5881a559bd0bf64c16a7767b1af48",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "proveedor_id",
+                                    "repuesto_id",
+                                    "numero_comprobante",
+                                    "total",
+                                    "estado"
+                                ],
+                                "properties": {
+                                    "proveedor_id": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "repuesto_id": {
+                                        "type": "integer",
+                                        "example": 7
+                                    },
+                                    "numero_comprobante": {
+                                        "type": "string",
+                                        "example": "FAC-2025-001"
+                                    },
+                                    "total": {
+                                        "type": "number",
+                                        "example": 25900.5
+                                    },
+                                    "estado": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Compra creada correctamente"
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "500": {
+                        "description": "Error al crear la compra de repuesto"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/compra-repuesto/{id}": {
+            "get": {
+                "tags": [
+                    "Compra de Repuestos"
+                ],
+                "summary": "Obtener una compra de repuesto específica",
+                "operationId": "875adca88f3f7a059785d75399b01319",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la compra de repuesto",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Compra encontrada"
+                    },
+                    "404": {
+                        "description": "Compra de repuesto no encontrada"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Compra de Repuestos"
+                ],
+                "summary": "Actualizar una compra de repuesto existente",
+                "operationId": "624d5d23366d9da6f2b605a814dc0261",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la compra de repuesto a actualizar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "numero_comprobante": {
+                                        "type": "string",
+                                        "example": "FAC-2025-002"
+                                    },
+                                    "total": {
+                                        "type": "number",
+                                        "example": 27000
+                                    },
+                                    "estado": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Compra de repuesto actualizada correctamente"
+                    },
+                    "404": {
+                        "description": "Compra de repuesto no encontrada"
+                    },
+                    "500": {
+                        "description": "Error al actualizar la compra de repuesto"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Compra de Repuestos"
+                ],
+                "summary": "Eliminar una compra de repuesto",
+                "operationId": "7ffc5c79b34cdf24f3fdbadd89730e19",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la compra de repuesto a eliminar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Compra de repuesto eliminada correctamente"
+                    },
+                    "404": {
+                        "description": "Compra de repuesto no encontrada"
+                    },
+                    "500": {
+                        "description": "Error al eliminar la compra de repuesto"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/equipos": {
             "get": {
                 "tags": [
@@ -1179,6 +1388,379 @@
                 }
             }
         },
+        "/api/presupuesto": {
+            "get": {
+                "tags": [
+                    "Presupuestos"
+                ],
+                "summary": "Obtener todos los presupuestos",
+                "operationId": "2a0c56607892953dbfcb4921da3cc9e5",
+                "responses": {
+                    "200": {
+                        "description": "Lista de presupuestos obtenida correctamente"
+                    },
+                    "500": {
+                        "description": "Error al obtener los presupuestos"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Presupuestos"
+                ],
+                "summary": "Crear un nuevo presupuesto",
+                "operationId": "f307c689838be26c806ef81b1f507295",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reparacion_id",
+                                    "monto_total",
+                                    "aceptado",
+                                    "fecha"
+                                ],
+                                "properties": {
+                                    "reparacion_id": {
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "monto_total": {
+                                        "type": "number",
+                                        "example": 12500.75
+                                    },
+                                    "aceptado": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "fecha": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2025-10-11T15:00:00Z"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Presupuesto creado correctamente"
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "500": {
+                        "description": "Error al crear el presupuesto"
+                    }
+                }
+            }
+        },
+        "/api/presupuesto/{id}": {
+            "get": {
+                "tags": [
+                    "Presupuestos"
+                ],
+                "summary": "Obtener un presupuesto específico",
+                "operationId": "1739df6a840b2a92858a1980f399f385",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del presupuesto",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Presupuesto encontrado"
+                    },
+                    "404": {
+                        "description": "Presupuesto no encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Presupuestos"
+                ],
+                "summary": "Actualizar un presupuesto existente",
+                "operationId": "ca0221bbcd4c2c0a8d3c9d105b78b34d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del presupuesto a actualizar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "monto_total": {
+                                        "type": "number",
+                                        "example": 15000
+                                    },
+                                    "aceptado": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "fecha": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2025-10-12T16:00:00Z"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Presupuesto actualizado correctamente"
+                    },
+                    "404": {
+                        "description": "Presupuesto no encontrado"
+                    },
+                    "500": {
+                        "description": "Error al actualizar el presupuesto"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Presupuestos"
+                ],
+                "summary": "Eliminar un presupuesto",
+                "operationId": "62a0b9f6dbbd2105fb992dfc41e8bff7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del presupuesto a eliminar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Presupuesto eliminado correctamente"
+                    },
+                    "404": {
+                        "description": "Presupuesto no encontrado"
+                    },
+                    "500": {
+                        "description": "Error al eliminar el presupuesto"
+                    }
+                }
+            }
+        },
+        "/api/proveedor": {
+            "get": {
+                "tags": [
+                    "Proveedores"
+                ],
+                "summary": "Obtener todos los proveedores",
+                "operationId": "88a134edb3670cef1fb9c484e8861a8e",
+                "responses": {
+                    "200": {
+                        "description": "Lista de proveedores obtenida correctamente"
+                    },
+                    "500": {
+                        "description": "Error al obtener los proveedores"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Proveedores"
+                ],
+                "summary": "Crear un nuevo proveedor",
+                "operationId": "2b0fe2400c2ac56fb81390b5ba1423c8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "razon_social",
+                                    "cuit",
+                                    "direccion",
+                                    "telefono",
+                                    "email"
+                                ],
+                                "properties": {
+                                    "razon_social": {
+                                        "type": "string",
+                                        "example": "Repuestos S.A."
+                                    },
+                                    "cuit": {
+                                        "type": "string",
+                                        "example": "20345678901"
+                                    },
+                                    "direccion": {
+                                        "type": "string",
+                                        "example": "Av. Corrientes 1234"
+                                    },
+                                    "telefono": {
+                                        "type": "string",
+                                        "example": "1123456789"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "contacto@repuestos.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Proveedor creado correctamente"
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "500": {
+                        "description": "Error al crear el proveedor"
+                    }
+                }
+            }
+        },
+        "/api/proveedor/{id}": {
+            "get": {
+                "tags": [
+                    "Proveedores"
+                ],
+                "summary": "Obtener un proveedor específico",
+                "operationId": "139fe70ec5e9ec58e22118018af0dd3f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del proveedor",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proveedor encontrado"
+                    },
+                    "404": {
+                        "description": "Proveedor no encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Proveedores"
+                ],
+                "summary": "Actualizar un proveedor existente",
+                "operationId": "b5923fcc42b74117e14f4c6e270538f1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del proveedor a actualizar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "razon_social": {
+                                        "type": "string",
+                                        "example": "Repuestos Actualizados S.A."
+                                    },
+                                    "cuit": {
+                                        "type": "string",
+                                        "example": "20999888777"
+                                    },
+                                    "direccion": {
+                                        "type": "string",
+                                        "example": "Calle Nueva 456"
+                                    },
+                                    "telefono": {
+                                        "type": "string",
+                                        "example": "1133344455"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "actualizado@empresa.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Proveedor actualizado correctamente"
+                    },
+                    "404": {
+                        "description": "Proveedor no encontrado"
+                    },
+                    "500": {
+                        "description": "Error al actualizar el proveedor"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Proveedores"
+                ],
+                "summary": "Eliminar un proveedor",
+                "operationId": "603706516c328b4bbb173adf007a13a0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del proveedor a eliminar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proveedor eliminado correctamente"
+                    },
+                    "404": {
+                        "description": "Proveedor no encontrado"
+                    },
+                    "500": {
+                        "description": "Error al eliminar el proveedor"
+                    }
+                }
+            }
+        },
         "/api/reparaciones": {
             "get": {
                 "tags": [
@@ -1548,6 +2130,54 @@
                     }
                 ]
             },
+            "CompraRepuesto": {
+                "title": "Compra de Repuesto",
+                "description": "Modelo de Compra de Repuesto",
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/SuccessMessage"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "proveedor_id": {
+                                "type": "integer",
+                                "example": 3
+                            },
+                            "repuesto_id": {
+                                "type": "integer",
+                                "example": 7
+                            },
+                            "numero_comprobante": {
+                                "type": "string",
+                                "example": "FAC-2025-001"
+                            },
+                            "total": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 25900.5
+                            },
+                            "estado": {
+                                "type": "boolean",
+                                "example": true
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
             "User": {
                 "properties": {
                     "id": {
@@ -1732,6 +2362,98 @@
                     }
                 ]
             },
+            "Presupuesto": {
+                "title": "Presupuesto",
+                "description": "Modelo de Presupuesto",
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/SuccessMessage"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "reparacion_id": {
+                                "type": "integer",
+                                "example": 5
+                            },
+                            "monto_total": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 12500.75
+                            },
+                            "aceptado": {
+                                "type": "boolean",
+                                "example": true
+                            },
+                            "fecha": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2025-10-11T15:00:00Z"
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "Proveedor": {
+                "title": "Proveedor",
+                "description": "Modelo de Proveedor",
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/SuccessMessage"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "razon_social": {
+                                "type": "string",
+                                "example": "Repuestos S.A."
+                            },
+                            "cuit": {
+                                "type": "string",
+                                "example": "20345678901"
+                            },
+                            "direccion": {
+                                "type": "string",
+                                "example": "Av. Corrientes 1234"
+                            },
+                            "telefono": {
+                                "type": "string",
+                                "example": "1123456789"
+                            },
+                            "email": {
+                                "type": "string",
+                                "example": "contacto@repuestos.com"
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
             "Reparacion": {
                 "title": "Reparacion",
                 "description": "Modelo de Reparación",
@@ -1799,8 +2521,20 @@
             "description": "Operaciones relacionadas con los clientes del sistema"
         },
         {
+            "name": "Compra de Repuestos",
+            "description": "Operaciones relacionadas con la gestión de compras de repuestos"
+        },
+        {
             "name": "Facturas",
             "description": "Operaciones relacionadas con la facturación"
+        },
+        {
+            "name": "Presupuestos",
+            "description": "Operaciones relacionadas con la gestión de presupuestos"
+        },
+        {
+            "name": "Proveedores",
+            "description": "Operaciones relacionadas con la gestión de proveedores"
         },
         {
             "name": "Reparaciones",

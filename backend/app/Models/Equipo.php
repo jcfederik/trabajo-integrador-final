@@ -10,6 +10,7 @@ class Equipo extends Model
     protected $table = 'equipo';
 
     protected $fillable = [
+        'cliente_id',
         'descripcion',
         'marca',
         'modelo',
