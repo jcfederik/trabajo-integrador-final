@@ -12,22 +12,6 @@ use Illuminate\Support\Facades\Validator;
  *     name="Facturas",
  *     description="Operaciones relacionadas con la facturación"
  * )
- *
- * @OA\Schema(
- *     schema="Factura",
- *     type="object",
- *     title="Factura",
- *     description="Modelo de Factura",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="presupuesto_id", type="integer", example=3),
- *     @OA\Property(property="numero", type="string", example="F0001-00002345"),
- *     @OA\Property(property="letra", type="string", example="A"),
- *     @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-11T14:30:00Z"),
- *     @OA\Property(property="monto_total", type="number", format="float", example=15200.50),
- *     @OA\Property(property="detalle", type="string", example="Reparación general de equipos informáticos"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  */
 class FacturaController extends Controller
 {
@@ -36,7 +20,16 @@ class FacturaController extends Controller
      *     path="/api/facturas",
      *     summary="Obtener todas las facturas",
      *     tags={"Facturas"},
-     *     @OA\Response(response=200, description="Lista de facturas obtenida correctamente"),
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Lista de facturas obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Factura")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al obtener las facturas")
      * )
      */
@@ -55,6 +48,7 @@ class FacturaController extends Controller
      *     path="/api/facturas",
      *     summary="Crear una nueva factura",
      *     tags={"Facturas"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -67,8 +61,13 @@ class FacturaController extends Controller
      *             @OA\Property(property="detalle", type="string", example="Factura generada tras aceptar presupuesto.")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Factura creada correctamente"),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Factura creada correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Factura")
+     *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al crear la factura")
      * )
      */
@@ -100,6 +99,7 @@ class FacturaController extends Controller
      *     path="/api/facturas/{id}",
      *     summary="Obtener una factura específica",
      *     tags={"Facturas"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -107,7 +107,12 @@ class FacturaController extends Controller
      *         description="ID de la factura",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Factura encontrada"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Factura encontrada",
+     *         @OA\JsonContent(ref="#/components/schemas/Factura")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Factura no encontrada")
      * )
      */
@@ -125,6 +130,7 @@ class FacturaController extends Controller
      *     path="/api/facturas/{id}",
      *     summary="Actualizar una factura existente",
      *     tags={"Facturas"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -142,7 +148,12 @@ class FacturaController extends Controller
      *             @OA\Property(property="detalle", type="string", example="Factura actualizada con nuevos datos")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Factura actualizada correctamente"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Factura actualizada correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Factura")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Factura no encontrada"),
      *     @OA\Response(response=500, description="Error al actualizar la factura")
      * )
@@ -163,6 +174,7 @@ class FacturaController extends Controller
      *     path="/api/facturas/{id}",
      *     summary="Eliminar una factura",
      *     tags={"Facturas"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -171,6 +183,7 @@ class FacturaController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(response=200, description="Factura eliminada correctamente"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Factura no encontrada"),
      *     @OA\Response(response=500, description="Error al eliminar la factura")
      * )

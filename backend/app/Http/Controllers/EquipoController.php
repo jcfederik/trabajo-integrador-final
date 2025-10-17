@@ -12,22 +12,6 @@ use Illuminate\Support\Facades\Validator;
  *     description="Operaciones relacionadas con los equipos registrados en el sistema"
  * )
  */
-
-/**
- * @OA\Schema(
- *     schema="Equipo",
- *     type="object",
- *     title="Equipo",
- *     description="Modelo que representa un equipo técnico ingresado al taller",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="descripcion", type="string", example="Notebook Lenovo con pantalla rota"),
- *     @OA\Property(property="marca", type="string", example="Lenovo"),
- *     @OA\Property(property="modelo", type="string", example="IdeaPad 320"),
- *     @OA\Property(property="nro_serie", type="string", example="SN-1234567890"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
- */
 class EquipoController extends Controller
 {
     /**
@@ -35,9 +19,18 @@ class EquipoController extends Controller
      *     path="/api/equipos",
      *     summary="Obtener todos los equipos registrados",
      *     tags={"Equipos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Response(
      *         response=200,
-     *         description="Lista de equipos obtenida correctamente"
+     *         description="Lista de equipos obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Equipo")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
      *     ),
      *     @OA\Response(
      *         response=500,
@@ -60,6 +53,7 @@ class EquipoController extends Controller
      *     path="/api/equipos",
      *     summary="Registrar un nuevo equipo",
      *     tags={"Equipos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -70,9 +64,23 @@ class EquipoController extends Controller
      *             @OA\Property(property="nro_serie", type="string", example="HP123XYZ")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Equipo creado correctamente"),
-     *     @OA\Response(response=400, description="Datos inválidos"),
-     *     @OA\Response(response=500, description="Error al crear equipo")
+     *     @OA\Response(
+     *         response=201,
+     *         description="Equipo creado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Equipo")
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Datos inválidos"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al crear equipo"
+     *     )
      * )
      */
     public function store(Request $request)
@@ -101,6 +109,7 @@ class EquipoController extends Controller
      *     path="/api/equipos/{id}",
      *     summary="Mostrar un equipo específico",
      *     tags={"Equipos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -108,8 +117,19 @@ class EquipoController extends Controller
      *         description="ID del equipo a mostrar",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Equipo encontrado correctamente"),
-     *     @OA\Response(response=404, description="Equipo no encontrado")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Equipo encontrado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Equipo")
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Equipo no encontrado"
+     *     )
      * )
      */
     public function show($id)
@@ -129,6 +149,7 @@ class EquipoController extends Controller
      *     path="/api/equipos/{id}",
      *     summary="Actualizar un equipo existente",
      *     tags={"Equipos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -145,9 +166,23 @@ class EquipoController extends Controller
      *             @OA\Property(property="nro_serie", type="string", example="DL1234ABC")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Equipo actualizado correctamente"),
-     *     @OA\Response(response=404, description="Equipo no encontrado"),
-     *     @OA\Response(response=400, description="Datos inválidos")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Equipo actualizado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Equipo")
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Datos inválidos"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Equipo no encontrado"
+     *     )
      * )
      */
     public function update(Request $request, $id)
@@ -180,6 +215,7 @@ class EquipoController extends Controller
      *     path="/api/equipos/{id}",
      *     summary="Eliminar un equipo del sistema",
      *     tags={"Equipos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -187,9 +223,22 @@ class EquipoController extends Controller
      *         description="ID del equipo a eliminar",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Equipo eliminado correctamente"),
-     *     @OA\Response(response=404, description="Equipo no encontrado"),
-     *     @OA\Response(response=500, description="Error al eliminar equipo")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Equipo eliminado correctamente"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Equipo no encontrado"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al eliminar equipo"
+     *     )
      * )
      */
     public function destroy($id)

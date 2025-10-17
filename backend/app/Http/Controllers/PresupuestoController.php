@@ -11,20 +11,6 @@ use Illuminate\Support\Facades\Validator;
  *     name="Presupuestos",
  *     description="Operaciones relacionadas con la gestión de presupuestos"
  * )
- *
- * @OA\Schema(
- *     schema="Presupuesto",
- *     type="object",
- *     title="Presupuesto",
- *     description="Modelo de Presupuesto",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="reparacion_id", type="integer", example=5),
- *     @OA\Property(property="monto_total", type="number", format="float", example=12500.75),
- *     @OA\Property(property="aceptado", type="boolean", example=true),
- *     @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-11T15:00:00Z"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  */
 class PresupuestoController extends Controller
 {
@@ -33,7 +19,16 @@ class PresupuestoController extends Controller
      *     path="/api/presupuesto",
      *     summary="Obtener todos los presupuestos",
      *     tags={"Presupuestos"},
-     *     @OA\Response(response=200, description="Lista de presupuestos obtenida correctamente"),
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Lista de presupuestos obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Presupuesto")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al obtener los presupuestos")
      * )
      */
@@ -52,6 +47,7 @@ class PresupuestoController extends Controller
      *     path="/api/presupuesto",
      *     summary="Crear un nuevo presupuesto",
      *     tags={"Presupuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -62,8 +58,13 @@ class PresupuestoController extends Controller
      *             @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-11T15:00:00Z")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Presupuesto creado correctamente"),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Presupuesto creado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Presupuesto")
+     *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al crear el presupuesto")
      * )
      */
@@ -93,6 +94,7 @@ class PresupuestoController extends Controller
      *     path="/api/presupuesto/{id}",
      *     summary="Obtener un presupuesto específico",
      *     tags={"Presupuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -100,7 +102,12 @@ class PresupuestoController extends Controller
      *         description="ID del presupuesto",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Presupuesto encontrado"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Presupuesto encontrado",
+     *         @OA\JsonContent(ref="#/components/schemas/Presupuesto")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Presupuesto no encontrado")
      * )
      */
@@ -118,6 +125,7 @@ class PresupuestoController extends Controller
      *     path="/api/presupuesto/{id}",
      *     summary="Actualizar un presupuesto existente",
      *     tags={"Presupuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -133,7 +141,12 @@ class PresupuestoController extends Controller
      *             @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-12T16:00:00Z")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Presupuesto actualizado correctamente"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Presupuesto actualizado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Presupuesto")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Presupuesto no encontrado"),
      *     @OA\Response(response=500, description="Error al actualizar el presupuesto")
      * )
@@ -158,6 +171,7 @@ class PresupuestoController extends Controller
      *     path="/api/presupuesto/{id}",
      *     summary="Eliminar un presupuesto",
      *     tags={"Presupuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -166,6 +180,7 @@ class PresupuestoController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(response=200, description="Presupuesto eliminado correctamente"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Presupuesto no encontrado"),
      *     @OA\Response(response=500, description="Error al eliminar el presupuesto")
      * )

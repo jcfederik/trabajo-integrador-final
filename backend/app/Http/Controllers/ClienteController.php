@@ -13,19 +13,6 @@ use Illuminate\Validation\ValidationException;
  *     name="Clientes",
  *     description="Operaciones relacionadas con los clientes del sistema"
  * )
- *
- * @OA\Schema(
- *     schema="Cliente",
- *     type="object",
- *     title="Cliente",
- *     description="Modelo que representa un cliente registrado en el sistema",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="nombre", type="string", example="Juan Pérez"),
- *     @OA\Property(property="email", type="string", example="juanperez@example.com"),
- *     @OA\Property(property="telefono", type="string", example="+54 9 345 4129626"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  */
 class ClienteController extends Controller
 {
@@ -34,8 +21,23 @@ class ClienteController extends Controller
      *     path="/api/clientes",
      *     summary="Listar todos los clientes",
      *     tags={"Clientes"},
-     *     @OA\Response(response=200, description="Lista de clientes obtenida correctamente"),
-     *     @OA\Response(response=500, description="Error al obtener clientes")
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de clientes obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Cliente")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al obtener clientes"
+     *     )
      * )
      */
     public function index()
@@ -53,6 +55,7 @@ class ClienteController extends Controller
      *     path="/api/clientes",
      *     summary="Registrar un nuevo cliente",
      *     tags={"Clientes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -62,9 +65,23 @@ class ClienteController extends Controller
      *             @OA\Property(property="telefono", type="string", example="+54 9 345 1234567")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Cliente creado correctamente"),
-     *     @OA\Response(response=422, description="Validación fallida"),
-     *     @OA\Response(response=500, description="Error al crear cliente")
+     *     @OA\Response(
+     *         response=201,
+     *         description="Cliente creado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Cliente")
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validación fallida"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al crear cliente"
+     *     )
      * )
      */
     public function store(Request $request)
@@ -93,6 +110,7 @@ class ClienteController extends Controller
      *     path="/api/clientes/{id}",
      *     summary="Obtener un cliente específico",
      *     tags={"Clientes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -100,8 +118,19 @@ class ClienteController extends Controller
      *         description="ID del cliente a mostrar",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Cliente encontrado"),
-     *     @OA\Response(response=404, description="Cliente no encontrado")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Cliente encontrado",
+     *         @OA\JsonContent(ref="#/components/schemas/Cliente")
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Cliente no encontrado"
+     *     )
      * )
      */
     public function show($id)
@@ -121,6 +150,7 @@ class ClienteController extends Controller
      *     path="/api/clientes/{id}",
      *     summary="Actualizar los datos de un cliente existente",
      *     tags={"Clientes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -136,10 +166,27 @@ class ClienteController extends Controller
      *             @OA\Property(property="telefono", type="string", example="345-4129 626")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Cliente actualizado correctamente"),
-     *     @OA\Response(response=404, description="Cliente no encontrado"),
-     *     @OA\Response(response=422, description="Validación fallida"),
-     *     @OA\Response(response=500, description="Error al actualizar cliente")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Cliente actualizado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Cliente")
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Cliente no encontrado"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validación fallida"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al actualizar cliente"
+     *     )
      * )
      */
     public function update(Request $request, $id)
@@ -172,6 +219,7 @@ class ClienteController extends Controller
      *     path="/api/clientes/{id}",
      *     summary="Eliminar un cliente del sistema",
      *     tags={"Clientes"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -179,9 +227,22 @@ class ClienteController extends Controller
      *         description="ID del cliente a eliminar",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Cliente eliminado correctamente"),
-     *     @OA\Response(response=404, description="Cliente no encontrado"),
-     *     @OA\Response(response=500, description="Error al eliminar cliente")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Cliente eliminado correctamente"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Cliente no encontrado"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al eliminar cliente"
+     *     )
      * )
      */
     public function destroy($id)

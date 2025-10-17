@@ -11,33 +11,31 @@ use Illuminate\Support\Facades\Validator;
  *     name="Compra de Repuestos",
  *     description="Operaciones relacionadas con la gestión de compras de repuestos"
  * )
- *
- * @OA\Schema(
- *     schema="CompraRepuesto",
- *     type="object",
- *     title="Compra de Repuesto",
- *     description="Modelo de Compra de Repuesto",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="proveedor_id", type="integer", example=3),
- *     @OA\Property(property="repuesto_id", type="integer", example=7),
- *     @OA\Property(property="numero_comprobante", type="string", example="FAC-2025-001"),
- *     @OA\Property(property="total", type="number", format="float", example=25900.50),
- *     @OA\Property(property="estado", type="boolean", example=true),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  */
 class CompraRepuestoController extends Controller
 {
-
     /**
      * @OA\Get(
      *     path="/api/compra-repuesto",
      *     summary="Obtener todas las compras de repuestos",
      *     tags={"Compra de Repuestos"},
      *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response=200, description="Lista de compras obtenida correctamente"),
-     *     @OA\Response(response=500, description="Error al obtener las compras de repuestos")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de compras obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/CompraRepuesto")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al obtener las compras de repuestos"
+     *     )
      * )
      */
     public function index()
@@ -67,9 +65,23 @@ class CompraRepuestoController extends Controller
      *             @OA\Property(property="estado", type="boolean", example=true)
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Compra creada correctamente"),
-     *     @OA\Response(response=400, description="Datos inválidos"),
-     *     @OA\Response(response=500, description="Error al crear la compra de repuesto")
+     *     @OA\Response(
+     *         response=201,
+     *         description="Compra creada correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/CompraRepuesto")
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Datos inválidos"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al crear la compra de repuesto"
+     *     )
      * )
      */
     public function store(Request $request)
@@ -107,8 +119,19 @@ class CompraRepuestoController extends Controller
      *         description="ID de la compra de repuesto",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Compra encontrada"),
-     *     @OA\Response(response=404, description="Compra de repuesto no encontrada")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compra encontrada",
+     *         @OA\JsonContent(ref="#/components/schemas/CompraRepuesto")
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compra de repuesto no encontrada"
+     *     )
      * )
      */
     public function show(string $id)
@@ -136,14 +159,34 @@ class CompraRepuestoController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
+     *             @OA\Property(property="proveedor_id", type="integer", example=3),
+     *             @OA\Property(property="repuesto_id", type="integer", example=7),
      *             @OA\Property(property="numero_comprobante", type="string", example="FAC-2025-002"),
      *             @OA\Property(property="total", type="number", example=27000.00),
      *             @OA\Property(property="estado", type="boolean", example=false)
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Compra de repuesto actualizada correctamente"),
-     *     @OA\Response(response=404, description="Compra de repuesto no encontrada"),
-     *     @OA\Response(response=500, description="Error al actualizar la compra de repuesto")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compra de repuesto actualizada correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/CompraRepuesto")
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Datos inválidos"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compra de repuesto no encontrada"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al actualizar la compra de repuesto"
+     *     )
      * )
      */
     public function update(Request $request, string $id)
@@ -153,8 +196,20 @@ class CompraRepuestoController extends Controller
             return response()->json(['error' => 'Compra de repuesto no encontrada'], 404);
         }
 
+        $validator = Validator::make($request->all(), [
+            'proveedor_id' => 'sometimes|exists:proveedor,id',
+            'repuesto_id' => 'sometimes|exists:repuesto,id',
+            'numero_comprobante' => 'sometimes|alpha_num',
+            'total' => 'sometimes|numeric|min:0',
+            'estado' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
+        }
+
         try {
-            $compraRepuesto->update($request->all());
+            $compraRepuesto->update($validator->validated());
             return response()->json(['mensaje' => 'Compra de repuesto actualizada correctamente', 'compraRepuesto' => $compraRepuesto], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al actualizar la compra de repuesto', 'detalle' => $e->getMessage()], 500);
@@ -174,9 +229,22 @@ class CompraRepuestoController extends Controller
      *         description="ID de la compra de repuesto a eliminar",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Compra de repuesto eliminada correctamente"),
-     *     @OA\Response(response=404, description="Compra de repuesto no encontrada"),
-     *     @OA\Response(response=500, description="Error al eliminar la compra de repuesto")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compra de repuesto eliminada correctamente"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compra de repuesto no encontrada"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al eliminar la compra de repuesto"
+     *     )
      * )
      */
     public function destroy(string $id)
