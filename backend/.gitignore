@@ -44,6 +44,6 @@ Thumbs.db
 # ========================================
 # 📘 L5-SWAGGER / OPENAPI
 # ========================================
-/storage/api-docs
+/storage/api-docs/
 /public/docs
 /public/vendor/l5-swagger
