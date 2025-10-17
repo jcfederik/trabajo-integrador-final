@@ -184,7 +184,20 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * 
+ * /**
+ * @OA\Schema(
+ *     schema="DetalleCobro",
+ *     type="object",
+ *     title="DetalleCobro",
+ *     description="Modelo de Detalle de Cobro",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="cobro_id", type="integer", example=1),
+ *     @OA\Property(property="medio_cobro_id", type="integer", example=2),
+ *     @OA\Property(property="monto_pagado", type="number", format="float", example=1500.50),
+ *     @OA\Property(property="fecha", type="string", format="date-time"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
  */
 abstract class Controller
 {
