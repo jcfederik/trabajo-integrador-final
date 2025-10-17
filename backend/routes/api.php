@@ -14,7 +14,8 @@ use App\Http\Controllers\{
     CompraRepuestoController,
     ProveedorController,
     RepuestoController,
-    EspecializacionController
+    EspecializacionController,
+    DetalleCobroController
 };
 
 /*
@@ -52,7 +53,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('compras-repuestos', CompraRepuestoController::class);
     Route::apiResource('proveedores', ProveedorController::class);
     Route::apiResource('repuestos', RepuestoController::class);
-    Route::apiResource('especializaciones', EspecializacionController::class)
+    Route::apiResource('especializaciones', EspecializacionController::class);
+    Route::apiResource('detalle-cobros', DetalleCobroController::class)
         ->only(['index', 'show']); // 👈 todos pueden ver, no crear
 
 
