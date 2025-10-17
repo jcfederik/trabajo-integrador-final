@@ -11,19 +11,6 @@ use Illuminate\Support\Facades\Validator;
  *     name="Repuestos",
  *     description="Operaciones relacionadas con la gestión de repuestos"
  * )
- *
- * @OA\Schema(
- *     schema="Repuesto",
- *     type="object",
- *     title="Repuesto",
- *     description="Modelo de Repuesto",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="nombre", type="string", example="Filtro de aire"),
- *     @OA\Property(property="stock", type="integer", example=50),
- *     @OA\Property(property="costo_base", type="number", format="float", example=1500.75),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  */
 class RepuestoController extends Controller
 {
@@ -32,7 +19,16 @@ class RepuestoController extends Controller
      *     path="/api/repuesto",
      *     summary="Obtener todos los repuestos",
      *     tags={"Repuestos"},
-     *     @OA\Response(response=200, description="Lista de repuestos obtenida correctamente"),
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Lista de repuestos obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Repuesto")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al obtener los repuestos")
      * )
      */
@@ -51,6 +47,7 @@ class RepuestoController extends Controller
      *     path="/api/repuesto",
      *     summary="Crear un nuevo repuesto",
      *     tags={"Repuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -60,8 +57,13 @@ class RepuestoController extends Controller
      *             @OA\Property(property="costo_base", type="number", format="float", example=1200.50)
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Repuesto creado correctamente"),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Repuesto creado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Repuesto")
+     *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al crear el repuesto")
      * )
      */
@@ -90,6 +92,7 @@ class RepuestoController extends Controller
      *     path="/api/repuesto/{id}",
      *     summary="Obtener un repuesto específico",
      *     tags={"Repuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -97,7 +100,12 @@ class RepuestoController extends Controller
      *         description="ID del repuesto",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Repuesto encontrado"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Repuesto encontrado",
+     *         @OA\JsonContent(ref="#/components/schemas/Repuesto")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Repuesto no encontrado")
      * )
      */
@@ -115,6 +123,7 @@ class RepuestoController extends Controller
      *     path="/api/repuesto/{id}",
      *     summary="Actualizar un repuesto existente",
      *     tags={"Repuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -130,7 +139,12 @@ class RepuestoController extends Controller
      *             @OA\Property(property="costo_base", type="number", format="float", example=1350.00)
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Repuesto actualizado correctamente"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Repuesto actualizado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Repuesto")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Repuesto no encontrado"),
      *     @OA\Response(response=500, description="Error al actualizar el repuesto")
      * )
@@ -155,6 +169,7 @@ class RepuestoController extends Controller
      *     path="/api/repuesto/{id}",
      *     summary="Eliminar un repuesto",
      *     tags={"Repuestos"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -163,6 +178,7 @@ class RepuestoController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(response=200, description="Repuesto eliminado correctamente"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Repuesto no encontrado"),
      *     @OA\Response(response=500, description="Error al eliminar el repuesto")
      * )

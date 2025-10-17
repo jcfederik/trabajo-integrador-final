@@ -11,21 +11,6 @@ use Illuminate\Support\Facades\Validator;
  *     name="Proveedores",
  *     description="Operaciones relacionadas con la gestión de proveedores"
  * )
- *
- * @OA\Schema(
- *     schema="Proveedor",
- *     type="object",
- *     title="Proveedor",
- *     description="Modelo de Proveedor",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="razon_social", type="string", example="Repuestos S.A."),
- *     @OA\Property(property="cuit", type="string", example="20345678901"),
- *     @OA\Property(property="direccion", type="string", example="Av. Corrientes 1234"),
- *     @OA\Property(property="telefono", type="string", example="1123456789"),
- *     @OA\Property(property="email", type="string", example="contacto@repuestos.com"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  */
 class ProveedorController extends Controller
 {
@@ -34,7 +19,16 @@ class ProveedorController extends Controller
      *     path="/api/proveedor",
      *     summary="Obtener todos los proveedores",
      *     tags={"Proveedores"},
-     *     @OA\Response(response=200, description="Lista de proveedores obtenida correctamente"),
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Lista de proveedores obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Proveedor")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al obtener los proveedores")
      * )
      */
@@ -53,6 +47,7 @@ class ProveedorController extends Controller
      *     path="/api/proveedor",
      *     summary="Crear un nuevo proveedor",
      *     tags={"Proveedores"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -64,8 +59,13 @@ class ProveedorController extends Controller
      *             @OA\Property(property="email", type="string", example="contacto@repuestos.com")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Proveedor creado correctamente"),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Proveedor creado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Proveedor")
+     *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al crear el proveedor")
      * )
      */
@@ -96,6 +96,7 @@ class ProveedorController extends Controller
      *     path="/api/proveedor/{id}",
      *     summary="Obtener un proveedor específico",
      *     tags={"Proveedores"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -103,7 +104,12 @@ class ProveedorController extends Controller
      *         description="ID del proveedor",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Proveedor encontrado"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Proveedor encontrado",
+     *         @OA\JsonContent(ref="#/components/schemas/Proveedor")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Proveedor no encontrado")
      * )
      */
@@ -121,6 +127,7 @@ class ProveedorController extends Controller
      *     path="/api/proveedor/{id}",
      *     summary="Actualizar un proveedor existente",
      *     tags={"Proveedores"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -138,7 +145,12 @@ class ProveedorController extends Controller
      *             @OA\Property(property="email", type="string", example="actualizado@empresa.com")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Proveedor actualizado correctamente"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Proveedor actualizado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Proveedor")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Proveedor no encontrado"),
      *     @OA\Response(response=500, description="Error al actualizar el proveedor")
      * )
@@ -163,6 +175,7 @@ class ProveedorController extends Controller
      *     path="/api/proveedor/{id}",
      *     summary="Eliminar un proveedor",
      *     tags={"Proveedores"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -171,6 +184,7 @@ class ProveedorController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(response=200, description="Proveedor eliminado correctamente"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Proveedor no encontrado"),
      *     @OA\Response(response=500, description="Error al eliminar el proveedor")
      * )

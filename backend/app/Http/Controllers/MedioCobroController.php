@@ -12,45 +12,26 @@ use Illuminate\Support\Facades\Validator;
  *     description="Operaciones relacionadas con los medios de cobro disponibles"
  * )
  */
-
-/**
- * @OA\Schema(
- *     schema="MedioCobro",
- *     type="object",
- *     title="Medio de Cobro",
- *     description="Modelo que representa un método o medio de cobro aceptado por el sistema",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="nombre", type="string", example="Transferencia bancaria"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
- */
 class MedioCobroController extends Controller
-
 {
-
     /**
-     * @OA\Get(
-     *     path="/api/medios-cobro",
-     *     summary="Obtener todos los medios de cobro",
-     *     tags={"Medios de Cobro"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Lista de medios de cobro obtenida correctamente",
-     *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(ref="#/components/schemas/MedioCobro")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Error al obtener medios de cobro"
-     *     )
-     * )
-     */
-
-
-
+     * @OA\Get(
+     *     path="/api/medios-cobro",
+     *     summary="Obtener todos los medios de cobro",
+     *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de medios de cobro obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/MedioCobro")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=500, description="Error al obtener medios de cobro")
+     * )
+     */
     public function index()
     {
         try {
@@ -64,12 +45,12 @@ class MedioCobroController extends Controller
         }
     }
 
-
     /**
      * @OA\Post(
      *     path="/api/medios-cobro",
      *     summary="Registrar un nuevo medio de cobro",
      *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -77,8 +58,13 @@ class MedioCobroController extends Controller
      *             @OA\Property(property="nombre", type="string", example="Tarjeta de crédito")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Medio de cobro creado correctamente"),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Medio de cobro creado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/MedioCobro")
+     *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al crear medio de cobro")
      * )
      */
@@ -105,6 +91,7 @@ class MedioCobroController extends Controller
      *     path="/api/medios-cobro/{id}",
      *     summary="Mostrar un medio de cobro específico",
      *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -112,7 +99,12 @@ class MedioCobroController extends Controller
      *         description="ID del medio de cobro",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Medio de cobro encontrado"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Medio de cobro encontrado",
+     *         @OA\JsonContent(ref="#/components/schemas/MedioCobro")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Medio de cobro no encontrado")
      * )
      */
@@ -131,6 +123,7 @@ class MedioCobroController extends Controller
      *     path="/api/medios-cobro/{id}",
      *     summary="Actualizar un medio de cobro existente",
      *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -144,9 +137,15 @@ class MedioCobroController extends Controller
      *             @OA\Property(property="nombre", type="string", example="Pago en efectivo")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Medio de cobro actualizado correctamente"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Medio de cobro actualizado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/MedioCobro")
+     *     ),
+     *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Medio de cobro no encontrado"),
-     *     @OA\Response(response=400, description="Datos inválidos")
+     *     @OA\Response(response=500, description="Error al actualizar medio de cobro")
      * )
      */
     public function update(Request $request, $id)
@@ -177,6 +176,7 @@ class MedioCobroController extends Controller
      *     path="/api/medios-cobro/{id}",
      *     summary="Eliminar un medio de cobro",
      *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -185,6 +185,7 @@ class MedioCobroController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(response=200, description="Medio de cobro eliminado correctamente"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Medio de cobro no encontrado"),
      *     @OA\Response(response=500, description="Error al eliminar medio de cobro")
      * )
