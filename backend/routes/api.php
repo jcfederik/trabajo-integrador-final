@@ -13,7 +13,8 @@ use App\Http\Controllers\{
     PresupuestoController,
     CompraRepuestoController,
     ProveedorController,
-    RepuestoController
+    RepuestoController,
+    EspecializacionController
 };
 
 
@@ -28,6 +29,8 @@ Route::apiResource('presupuesto', PresupuestoController::class);
 Route::apiResource('compra-repuesto', CompraRepuestoController::class);
 Route::apiResource('proveedor', ProveedorController::class);
 Route::apiResource('repuesto', RepuestoController::class);
+Route::apiResource('especializaciones', EspecializacionController::class);
+
 // Rutas protegidas con JWT
 Route::middleware('auth:api')->group(function () {
     // Auth routes

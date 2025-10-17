@@ -37,9 +37,6 @@
                                 }
                             }
                         }
-                    },
-                    "403": {
-                        "description": "No autorizado"
                     }
                 },
                 "security": [
@@ -52,7 +49,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Crear nuevo usuario",
+                "summary": "Crear nuevo usuario (solo administradores)",
                 "operationId": "5580f7cbc46031c2a19a99caf091cd80",
                 "requestBody": {
                     "required": true,
@@ -81,6 +78,16 @@
                                     "password": {
                                         "type": "string",
                                         "example": "password123"
+                                    },
+                                    "especializaciones": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2
+                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -90,23 +97,10 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Usuario creado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Usuario creado exitosamente"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/User"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario creado"
+                    },
+                    "403": {
+                        "description": "No autorizado"
                     },
                     "422": {
                         "description": "Validación fallida"
@@ -124,7 +118,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Obtener usuario específico",
+                "summary": "Obtener usuario específico con especializaciones",
                 "operationId": "3d14b8127febd0566792e2487d67f2f9",
                 "parameters": [
                     {
@@ -138,19 +132,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Usuario encontrado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/User"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario encontrado"
                     },
                     "404": {
                         "description": "Usuario no encontrado"
@@ -166,7 +148,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Actualizar usuario",
+                "summary": "Actualizar usuario (solo administradores)",
                 "operationId": "7ac35494da2a9e661419e1b63a49d7e9",
                 "parameters": [
                     {
@@ -183,10 +165,6 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "nombre",
-                                    "tipo"
-                                ],
                                 "properties": {
                                     "nombre": {
                                         "type": "string",
@@ -204,6 +182,16 @@
                                     "password": {
                                         "type": "string",
                                         "example": "nueva_password"
+                                    },
+                                    "especializaciones": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            3
+                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -213,23 +201,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Usuario actualizado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Usuario actualizado exitosamente"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/User"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario actualizado"
                     }
                 },
                 "security": [
@@ -242,7 +214,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Eliminar usuario",
+                "summary": "Eliminar usuario (solo administradores)",
                 "operationId": "6a7ed569257285d63ce31d00c669b9cd",
                 "parameters": [
                     {
@@ -256,23 +228,57 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Usuario eliminado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Usuario eliminado exitosamente"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario eliminado"
+                    },
+                    "403": {
+                        "description": "No autorizado"
                     },
                     "422": {
                         "description": "No puedes eliminar tu propio usuario"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/profile/especializaciones": {
+            "post": {
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Asignar especializaciones al usuario autenticado (técnico o admin)",
+                "operationId": "d805db64a30c431b002b672c942ed3fa",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "especializaciones": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Especializaciones actualizadas correctamente"
+                    },
+                    "403": {
+                        "description": "No autorizado"
                     }
                 },
                 "security": [
@@ -1019,6 +1025,162 @@
                     },
                     "500": {
                         "description": "Error al eliminar equipo"
+                    }
+                }
+            }
+        },
+        "/api/especializaciones": {
+            "get": {
+                "tags": [
+                    "Especializaciones"
+                ],
+                "summary": "Obtener todas las especializaciones",
+                "operationId": "f8951077b6ad0b382c7bad0d89bb7998",
+                "responses": {
+                    "200": {
+                        "description": "Lista de especializaciones"
+                    },
+                    "500": {
+                        "description": "Error al obtener especializaciones"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Especializaciones"
+                ],
+                "summary": "Crear una nueva especialización",
+                "operationId": "3758bd4959878d8bfec7182ab02c47ba",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nombre"
+                                ],
+                                "properties": {
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Mecánica Automotriz"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Especialización creada exitosamente"
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    },
+                    "500": {
+                        "description": "Error interno del servidor"
+                    }
+                }
+            }
+        },
+        "/api/especializaciones/{id}": {
+            "get": {
+                "tags": [
+                    "Especializaciones"
+                ],
+                "summary": "Obtener una especialización específica",
+                "operationId": "3b2330f62eddb2b03d7171d9e00508fe",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la especialización",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Especialización encontrada"
+                    },
+                    "404": {
+                        "description": "Especialización no encontrada"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Especializaciones"
+                ],
+                "summary": "Actualizar una especialización existente",
+                "operationId": "4aaf89ef11f9f833b7936a4bad7ac4f3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la especialización a actualizar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Electrónica Industrial"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Especialización actualizada exitosamente"
+                    },
+                    "404": {
+                        "description": "Especialización no encontrada"
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Especializaciones"
+                ],
+                "summary": "Eliminar una especialización",
+                "operationId": "48ae5389bd945b6ee56cf9e6ae73d228",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la especialización a eliminar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Especialización eliminada exitosamente"
+                    },
+                    "404": {
+                        "description": "Especialización no encontrada"
+                    },
+                    "500": {
+                        "description": "Error interno del servidor"
                     }
                 }
             }
@@ -1947,6 +2109,182 @@
                 }
             }
         },
+        "/api/repuesto": {
+            "get": {
+                "tags": [
+                    "Repuestos"
+                ],
+                "summary": "Obtener todos los repuestos",
+                "operationId": "377156c2df9063ca7eedb2d2bc23f444",
+                "responses": {
+                    "200": {
+                        "description": "Lista de repuestos obtenida correctamente"
+                    },
+                    "500": {
+                        "description": "Error al obtener los repuestos"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Repuestos"
+                ],
+                "summary": "Crear un nuevo repuesto",
+                "operationId": "7709874732833a8964a5df9baba3704d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nombre",
+                                    "stock",
+                                    "costo_base"
+                                ],
+                                "properties": {
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Filtro de aceite"
+                                    },
+                                    "stock": {
+                                        "type": "integer",
+                                        "example": 100
+                                    },
+                                    "costo_base": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1200.5
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Repuesto creado correctamente"
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "500": {
+                        "description": "Error al crear el repuesto"
+                    }
+                }
+            }
+        },
+        "/api/repuesto/{id}": {
+            "get": {
+                "tags": [
+                    "Repuestos"
+                ],
+                "summary": "Obtener un repuesto específico",
+                "operationId": "12c6d5083ae84230175084d9c395a0d1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del repuesto",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Repuesto encontrado"
+                    },
+                    "404": {
+                        "description": "Repuesto no encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Repuestos"
+                ],
+                "summary": "Actualizar un repuesto existente",
+                "operationId": "194ebc1410fa95a7a29f146b817f957c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del repuesto a actualizar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Filtro actualizado"
+                                    },
+                                    "stock": {
+                                        "type": "integer",
+                                        "example": 80
+                                    },
+                                    "costo_base": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1350
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Repuesto actualizado correctamente"
+                    },
+                    "404": {
+                        "description": "Repuesto no encontrado"
+                    },
+                    "500": {
+                        "description": "Error al actualizar el repuesto"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Repuestos"
+                ],
+                "summary": "Eliminar un repuesto",
+                "operationId": "57dea896f7d6d98259c0518e530db8e7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del repuesto a eliminar",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Repuesto eliminado correctamente"
+                    },
+                    "404": {
+                        "description": "Repuesto no encontrado"
+                    },
+                    "500": {
+                        "description": "Error al eliminar el repuesto"
+                    }
+                }
+            }
+        },
         "/api/profile": {
             "get": {
                 "tags": [
@@ -2278,6 +2616,37 @@
                     }
                 ]
             },
+            "Especializacion": {
+                "title": "Especialización",
+                "description": "Representa una especialización técnica asignable a un usuario",
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/SuccessMessage"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "nombre": {
+                                "type": "string",
+                                "example": "Electricidad"
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
             "Factura": {
                 "title": "Factura",
                 "description": "Modelo de Factura",
@@ -2501,6 +2870,46 @@
                         "type": "object"
                     }
                 ]
+            },
+            "Repuesto": {
+                "title": "Repuesto",
+                "description": "Modelo de Repuesto",
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/SuccessMessage"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "nombre": {
+                                "type": "string",
+                                "example": "Filtro de aire"
+                            },
+                            "stock": {
+                                "type": "integer",
+                                "example": 50
+                            },
+                            "costo_base": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 1500.75
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
             }
         },
         "securitySchemes": {
@@ -2514,7 +2923,7 @@
     "tags": [
         {
             "name": "Administración",
-            "description": "Endpoints para administradores"
+            "description": "Endpoints para administradores y técnicos (gestión de usuarios y especializaciones)"
         },
         {
             "name": "Clientes",
@@ -2523,6 +2932,10 @@
         {
             "name": "Compra de Repuestos",
             "description": "Operaciones relacionadas con la gestión de compras de repuestos"
+        },
+        {
+            "name": "Especializaciones",
+            "description": "Gestión de especializaciones técnicas de los usuarios"
         },
         {
             "name": "Facturas",
@@ -2539,6 +2952,10 @@
         {
             "name": "Reparaciones",
             "description": "Operaciones relacionadas con las reparaciones de equipos"
+        },
+        {
+            "name": "Repuestos",
+            "description": "Operaciones relacionadas con la gestión de repuestos"
         },
         {
             "name": "Usuario",
