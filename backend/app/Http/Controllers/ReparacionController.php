@@ -11,21 +11,6 @@ use Illuminate\Support\Facades\Validator;
  *     name="Reparaciones",
  *     description="Operaciones relacionadas con las reparaciones de equipos"
  * )
- *
- * @OA\Schema(
- *     schema="Reparacion",
- *     type="object",
- *     title="Reparacion",
- *     description="Modelo de Reparación",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="equipo_id", type="integer", example=2),
- *     @OA\Property(property="usuario_id", type="integer", example=5),
- *     @OA\Property(property="descripcion", type="string", example="Cambio de fuente de alimentación"),
- *     @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-11T10:30:00Z"),
- *     @OA\Property(property="estado", type="string", example="en proceso"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  */
 class ReparacionController extends Controller
 {
@@ -34,7 +19,16 @@ class ReparacionController extends Controller
      *     path="/api/reparaciones",
      *     summary="Listar todas las reparaciones",
      *     tags={"Reparaciones"},
-     *     @OA\Response(response=200, description="Lista de reparaciones obtenida correctamente"),
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Lista de reparaciones obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Reparacion")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al obtener las reparaciones")
      * )
      */
@@ -53,6 +47,7 @@ class ReparacionController extends Controller
      *     path="/api/reparaciones",
      *     summary="Registrar una nueva reparación",
      *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -64,8 +59,13 @@ class ReparacionController extends Controller
      *             @OA\Property(property="estado", type="string", example="pendiente")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Reparación creada correctamente"),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Reparación creada correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Reparacion")
+     *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al crear la reparación")
      * )
      */
@@ -96,6 +96,7 @@ class ReparacionController extends Controller
      *     path="/api/reparaciones/{id}",
      *     summary="Mostrar una reparación específica",
      *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -103,7 +104,12 @@ class ReparacionController extends Controller
      *         description="ID de la reparación",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Reparación encontrada"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Reparación encontrada",
+     *         @OA\JsonContent(ref="#/components/schemas/Reparacion")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Reparación no encontrada")
      * )
      */
@@ -121,6 +127,7 @@ class ReparacionController extends Controller
      *     path="/api/reparaciones/{id}",
      *     summary="Actualizar una reparación existente",
      *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -136,7 +143,12 @@ class ReparacionController extends Controller
      *             @OA\Property(property="estado", type="string", example="finalizada")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Reparación actualizada correctamente"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Reparación actualizada correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/Reparacion")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
      *     @OA\Response(response=500, description="Error al actualizar la reparación")
      * )
@@ -161,6 +173,7 @@ class ReparacionController extends Controller
      *     path="/api/reparaciones/{id}",
      *     summary="Eliminar una reparación",
      *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -169,6 +182,7 @@ class ReparacionController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(response=200, description="Reparación eliminada correctamente"),
+     *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
      *     @OA\Response(response=500, description="Error al eliminar la reparación")
      * )

@@ -473,12 +473,30 @@
                 "operationId": "de55d50d1b708d9e5c63ee3f8fe8f54a",
                 "responses": {
                     "200": {
-                        "description": "Lista de clientes obtenida correctamente"
+                        "description": "Lista de clientes obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Cliente"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener clientes"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -516,7 +534,17 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Cliente creado correctamente"
+                        "description": "Cliente creado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cliente"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "422": {
                         "description": "Validación fallida"
@@ -524,7 +552,12 @@
                     "500": {
                         "description": "Error al crear cliente"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/clientes/{id}": {
@@ -547,12 +580,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Cliente encontrado"
+                        "description": "Cliente encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cliente"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Cliente no encontrado"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -597,7 +645,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Cliente actualizado correctamente"
+                        "description": "Cliente actualizado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cliente"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Cliente no encontrado"
@@ -608,7 +666,12 @@
                     "500": {
                         "description": "Error al actualizar cliente"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -631,13 +694,21 @@
                     "200": {
                         "description": "Cliente eliminado correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Cliente no encontrado"
                     },
                     "500": {
                         "description": "Error al eliminar cliente"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/compra-repuesto": {
@@ -649,7 +720,20 @@
                 "operationId": "9859610a3255cd6d85c3564d78aaa7a7",
                 "responses": {
                     "200": {
-                        "description": "Lista de compras obtenida correctamente"
+                        "description": "Lista de compras obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CompraRepuesto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener las compras de repuestos"
@@ -708,10 +792,20 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Compra creada correctamente"
+                        "description": "Compra creada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CompraRepuesto"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al crear la compra de repuesto"
@@ -744,7 +838,17 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Compra encontrada"
+                        "description": "Compra encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CompraRepuesto"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Compra de repuesto no encontrada"
@@ -779,6 +883,14 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "proveedor_id": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "repuesto_id": {
+                                        "type": "integer",
+                                        "example": 7
+                                    },
                                     "numero_comprobante": {
                                         "type": "string",
                                         "example": "FAC-2025-002"
@@ -799,7 +911,20 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Compra de repuesto actualizada correctamente"
+                        "description": "Compra de repuesto actualizada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CompraRepuesto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Compra de repuesto no encontrada"
@@ -835,6 +960,9 @@
                     "200": {
                         "description": "Compra de repuesto eliminada correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Compra de repuesto no encontrada"
                     },
@@ -858,12 +986,30 @@
                 "operationId": "70ebc1e663c58216e080e7eabfb8e4ee",
                 "responses": {
                     "200": {
-                        "description": "Lista de equipos obtenida correctamente"
+                        "description": "Lista de equipos obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Equipo"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener los equipos"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -904,15 +1050,30 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Equipo creado correctamente"
+                        "description": "Equipo creado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Equipo"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al crear equipo"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/equipos/{id}": {
@@ -935,12 +1096,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Equipo encontrado correctamente"
+                        "description": "Equipo encontrado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Equipo"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Equipo no encontrado"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -989,15 +1165,30 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Equipo actualizado correctamente"
-                    },
-                    "404": {
-                        "description": "Equipo no encontrado"
+                        "description": "Equipo actualizado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Equipo"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
+                    },
+                    "404": {
+                        "description": "Equipo no encontrado"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -1020,169 +1211,21 @@
                     "200": {
                         "description": "Equipo eliminado correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Equipo no encontrado"
                     },
                     "500": {
                         "description": "Error al eliminar equipo"
                     }
-                }
-            }
-        },
-        "/api/especializaciones": {
-            "get": {
-                "tags": [
-                    "Especializaciones"
-                ],
-                "summary": "Obtener todas las especializaciones",
-                "operationId": "f8951077b6ad0b382c7bad0d89bb7998",
-                "responses": {
-                    "200": {
-                        "description": "Lista de especializaciones"
-                    },
-                    "500": {
-                        "description": "Error al obtener especializaciones"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Especializaciones"
-                ],
-                "summary": "Crear una nueva especialización",
-                "operationId": "3758bd4959878d8bfec7182ab02c47ba",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "nombre"
-                                ],
-                                "properties": {
-                                    "nombre": {
-                                        "type": "string",
-                                        "example": "Mecánica Automotriz"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
                 },
-                "responses": {
-                    "201": {
-                        "description": "Especialización creada exitosamente"
-                    },
-                    "422": {
-                        "description": "Error de validación"
-                    },
-                    "500": {
-                        "description": "Error interno del servidor"
-                    }
-                }
-            }
-        },
-        "/api/especializaciones/{id}": {
-            "get": {
-                "tags": [
-                    "Especializaciones"
-                ],
-                "summary": "Obtener una especialización específica",
-                "operationId": "3b2330f62eddb2b03d7171d9e00508fe",
-                "parameters": [
+                "security": [
                     {
-                        "name": "id",
-                        "in": "path",
-                        "description": "ID de la especialización",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "bearerAuth": []
                     }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Especialización encontrada"
-                    },
-                    "404": {
-                        "description": "Especialización no encontrada"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Especializaciones"
-                ],
-                "summary": "Actualizar una especialización existente",
-                "operationId": "4aaf89ef11f9f833b7936a4bad7ac4f3",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "ID de la especialización a actualizar",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "nombre": {
-                                        "type": "string",
-                                        "example": "Electrónica Industrial"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Especialización actualizada exitosamente"
-                    },
-                    "404": {
-                        "description": "Especialización no encontrada"
-                    },
-                    "422": {
-                        "description": "Error de validación"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Especializaciones"
-                ],
-                "summary": "Eliminar una especialización",
-                "operationId": "48ae5389bd945b6ee56cf9e6ae73d228",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "ID de la especialización a eliminar",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Especialización eliminada exitosamente"
-                    },
-                    "404": {
-                        "description": "Especialización no encontrada"
-                    },
-                    "500": {
-                        "description": "Error interno del servidor"
-                    }
-                }
+                ]
             }
         },
         "/api/facturas": {
@@ -1194,12 +1237,30 @@
                 "operationId": "bbbe5c66d08b31e895bcb4daf020827f",
                 "responses": {
                     "200": {
-                        "description": "Lista de facturas obtenida correctamente"
+                        "description": "Lista de facturas obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Factura"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener las facturas"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -1253,15 +1314,30 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Factura creada correctamente"
+                        "description": "Factura creada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Factura"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al crear la factura"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/facturas/{id}": {
@@ -1284,12 +1360,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Factura encontrada"
+                        "description": "Factura encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Factura"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Factura no encontrada"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -1343,7 +1434,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Factura actualizada correctamente"
+                        "description": "Factura actualizada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Factura"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Factura no encontrada"
@@ -1351,7 +1452,12 @@
                     "500": {
                         "description": "Error al actualizar la factura"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -1374,13 +1480,21 @@
                     "200": {
                         "description": "Factura eliminada correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Factura no encontrada"
                     },
                     "500": {
                         "description": "Error al eliminar la factura"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/medios-cobro": {
@@ -1389,7 +1503,6 @@
                     "Medios de Cobro"
                 ],
                 "summary": "Obtener todos los medios de cobro",
-                "description": "     * @OA\\Get(\n     *     path=\"/api/medios-cobro\",\n     *     summary=\"Obtener todos los medios de cobro\",\n     *     tags={\"Medios de Cobro\"},\n     *     @OA\\Response(\n     *         response=200,\n     *         description=\"Lista de medios de cobro obtenida correctamente\",\n     *         @OA\\JsonContent(\n     *             type=\"array\",\n     *             @OA\\Items(ref=\"#/components/schemas/MedioCobro\")\n     *         )\n     *     ),\n     *     @OA\\Response(\n     *         response=500,\n     *         description=\"Error al obtener medios de cobro\"\n     *     )\n     * )\n     ",
                 "operationId": "ab5a8d752403b59a7d6b15e23f725554",
                 "responses": {
                     "200": {
@@ -1405,10 +1518,18 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al obtener medios de cobro"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -1437,15 +1558,30 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Medio de cobro creado correctamente"
+                        "description": "Medio de cobro creado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MedioCobro"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al crear medio de cobro"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/medios-cobro/{id}": {
@@ -1468,12 +1604,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Medio de cobro encontrado"
+                        "description": "Medio de cobro encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MedioCobro"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Medio de cobro no encontrado"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -1510,15 +1661,33 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Medio de cobro actualizado correctamente"
+                        "description": "Medio de cobro actualizado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MedioCobro"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos"
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Medio de cobro no encontrado"
                     },
-                    "400": {
-                        "description": "Datos inválidos"
+                    "500": {
+                        "description": "Error al actualizar medio de cobro"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -1541,13 +1710,21 @@
                     "200": {
                         "description": "Medio de cobro eliminado correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Medio de cobro no encontrado"
                     },
                     "500": {
                         "description": "Error al eliminar medio de cobro"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/presupuesto": {
@@ -1559,12 +1736,30 @@
                 "operationId": "2a0c56607892953dbfcb4921da3cc9e5",
                 "responses": {
                     "200": {
-                        "description": "Lista de presupuestos obtenida correctamente"
+                        "description": "Lista de presupuestos obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Presupuesto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener los presupuestos"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -1609,15 +1804,30 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Presupuesto creado correctamente"
+                        "description": "Presupuesto creado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Presupuesto"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al crear el presupuesto"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/presupuesto/{id}": {
@@ -1640,12 +1850,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Presupuesto encontrado"
+                        "description": "Presupuesto encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Presupuesto"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Presupuesto no encontrado"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -1691,7 +1916,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Presupuesto actualizado correctamente"
+                        "description": "Presupuesto actualizado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Presupuesto"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Presupuesto no encontrado"
@@ -1699,7 +1934,12 @@
                     "500": {
                         "description": "Error al actualizar el presupuesto"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -1722,13 +1962,21 @@
                     "200": {
                         "description": "Presupuesto eliminado correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Presupuesto no encontrado"
                     },
                     "500": {
                         "description": "Error al eliminar el presupuesto"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/proveedor": {
@@ -1740,12 +1988,30 @@
                 "operationId": "88a134edb3670cef1fb9c484e8861a8e",
                 "responses": {
                     "200": {
-                        "description": "Lista de proveedores obtenida correctamente"
+                        "description": "Lista de proveedores obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Proveedor"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener los proveedores"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -1794,15 +2060,30 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Proveedor creado correctamente"
+                        "description": "Proveedor creado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Proveedor"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al crear el proveedor"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/proveedor/{id}": {
@@ -1825,12 +2106,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Proveedor encontrado"
+                        "description": "Proveedor encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Proveedor"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Proveedor no encontrado"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -1883,7 +2179,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Proveedor actualizado correctamente"
+                        "description": "Proveedor actualizado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Proveedor"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Proveedor no encontrado"
@@ -1891,7 +2197,12 @@
                     "500": {
                         "description": "Error al actualizar el proveedor"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -1914,13 +2225,21 @@
                     "200": {
                         "description": "Proveedor eliminado correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Proveedor no encontrado"
                     },
                     "500": {
                         "description": "Error al eliminar el proveedor"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/reparaciones": {
@@ -1932,12 +2251,30 @@
                 "operationId": "ec731425b637f60705e51d42609c4187",
                 "responses": {
                     "200": {
-                        "description": "Lista de reparaciones obtenida correctamente"
+                        "description": "Lista de reparaciones obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Reparacion"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener las reparaciones"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -1987,15 +2324,30 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Reparación creada correctamente"
+                        "description": "Reparación creada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Reparacion"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al crear la reparación"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/reparaciones/{id}": {
@@ -2018,12 +2370,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Reparación encontrada"
+                        "description": "Reparación encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Reparacion"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Reparación no encontrada"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -2069,7 +2436,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Reparación actualizada correctamente"
+                        "description": "Reparación actualizada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Reparacion"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Reparación no encontrada"
@@ -2077,7 +2454,12 @@
                     "500": {
                         "description": "Error al actualizar la reparación"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -2100,13 +2482,21 @@
                     "200": {
                         "description": "Reparación eliminada correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Reparación no encontrada"
                     },
                     "500": {
                         "description": "Error al eliminar la reparación"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/repuesto": {
@@ -2118,12 +2508,30 @@
                 "operationId": "377156c2df9063ca7eedb2d2bc23f444",
                 "responses": {
                     "200": {
-                        "description": "Lista de repuestos obtenida correctamente"
+                        "description": "Lista de repuestos obtenida correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Repuesto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "500": {
                         "description": "Error al obtener los repuestos"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -2163,15 +2571,30 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Repuesto creado correctamente"
+                        "description": "Repuesto creado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Repuesto"
+                                }
+                            }
+                        }
                     },
                     "400": {
                         "description": "Datos inválidos"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "500": {
                         "description": "Error al crear el repuesto"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/repuesto/{id}": {
@@ -2194,12 +2617,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Repuesto encontrado"
+                        "description": "Repuesto encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Repuesto"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Repuesto no encontrado"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -2245,7 +2683,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Repuesto actualizado correctamente"
+                        "description": "Repuesto actualizado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Repuesto"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado"
                     },
                     "404": {
                         "description": "Repuesto no encontrado"
@@ -2253,7 +2701,12 @@
                     "500": {
                         "description": "Error al actualizar el repuesto"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -2276,13 +2729,21 @@
                     "200": {
                         "description": "Repuesto eliminado correctamente"
                     },
+                    "401": {
+                        "description": "No autorizado"
+                    },
                     "404": {
                         "description": "Repuesto no encontrado"
                     },
                     "500": {
                         "description": "Error al eliminar el repuesto"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/profile": {
@@ -2429,93 +2890,6 @@
     },
     "components": {
         "schemas": {
-            "Cliente": {
-                "title": "Cliente",
-                "description": "Modelo que representa un cliente registrado en el sistema",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
-                    },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "nombre": {
-                                "type": "string",
-                                "example": "Juan Pérez"
-                            },
-                            "email": {
-                                "type": "string",
-                                "example": "juanperez@example.com"
-                            },
-                            "telefono": {
-                                "type": "string",
-                                "example": "+54 9 345 4129626"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
-                    }
-                ]
-            },
-            "CompraRepuesto": {
-                "title": "Compra de Repuesto",
-                "description": "Modelo de Compra de Repuesto",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
-                    },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "proveedor_id": {
-                                "type": "integer",
-                                "example": 3
-                            },
-                            "repuesto_id": {
-                                "type": "integer",
-                                "example": 7
-                            },
-                            "numero_comprobante": {
-                                "type": "string",
-                                "example": "FAC-2025-001"
-                            },
-                            "total": {
-                                "type": "number",
-                                "format": "float",
-                                "example": 25900.5
-                            },
-                            "estado": {
-                                "type": "boolean",
-                                "example": true
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
-                    }
-                ]
-            },
             "User": {
                 "properties": {
                     "id": {
@@ -2573,343 +2947,327 @@
                 },
                 "type": "object"
             },
-            "Equipo": {
-                "title": "Equipo",
-                "description": "Modelo que representa un equipo técnico ingresado al taller",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
-                    },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "descripcion": {
-                                "type": "string",
-                                "example": "Notebook Lenovo con pantalla rota"
-                            },
-                            "marca": {
-                                "type": "string",
-                                "example": "Lenovo"
-                            },
-                            "modelo": {
-                                "type": "string",
-                                "example": "IdeaPad 320"
-                            },
-                            "nro_serie": {
-                                "type": "string",
-                                "example": "SN-1234567890"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
-                    }
-                ]
-            },
-            "Especializacion": {
-                "title": "Especialización",
-                "description": "Representa una especialización técnica asignable a un usuario",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
-                    },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "nombre": {
-                                "type": "string",
-                                "example": "Electricidad"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
-                    }
-                ]
-            },
-            "Factura": {
-                "title": "Factura",
-                "description": "Modelo de Factura",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
-                    },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "presupuesto_id": {
-                                "type": "integer",
-                                "example": 3
-                            },
-                            "numero": {
-                                "type": "string",
-                                "example": "F0001-00002345"
-                            },
-                            "letra": {
-                                "type": "string",
-                                "example": "A"
-                            },
-                            "fecha": {
-                                "type": "string",
-                                "format": "date-time",
-                                "example": "2025-10-11T14:30:00Z"
-                            },
-                            "monto_total": {
-                                "type": "number",
-                                "format": "float",
-                                "example": 15200.5
-                            },
-                            "detalle": {
-                                "type": "string",
-                                "example": "Reparación general de equipos informáticos"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
-                    }
-                ]
-            },
-            "MedioCobro": {
-                "title": "Medio de Cobro",
-                "description": "Modelo que representa un método o medio de cobro aceptado por el sistema",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
-                    },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "nombre": {
-                                "type": "string",
-                                "example": "Transferencia bancaria"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
-                    }
-                ]
-            },
             "Presupuesto": {
                 "title": "Presupuesto",
                 "description": "Modelo de Presupuesto",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
                     },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "reparacion_id": {
-                                "type": "integer",
-                                "example": 5
-                            },
-                            "monto_total": {
-                                "type": "number",
-                                "format": "float",
-                                "example": 12500.75
-                            },
-                            "aceptado": {
-                                "type": "boolean",
-                                "example": true
-                            },
-                            "fecha": {
-                                "type": "string",
-                                "format": "date-time",
-                                "example": "2025-10-11T15:00:00Z"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
+                    "reparacion_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "monto_total": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 12500.75
+                    },
+                    "aceptado": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-10-11T15:00:00Z"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
                     }
-                ]
+                },
+                "type": "object"
             },
             "Proveedor": {
                 "title": "Proveedor",
                 "description": "Modelo de Proveedor",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
                     },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "razon_social": {
-                                "type": "string",
-                                "example": "Repuestos S.A."
-                            },
-                            "cuit": {
-                                "type": "string",
-                                "example": "20345678901"
-                            },
-                            "direccion": {
-                                "type": "string",
-                                "example": "Av. Corrientes 1234"
-                            },
-                            "telefono": {
-                                "type": "string",
-                                "example": "1123456789"
-                            },
-                            "email": {
-                                "type": "string",
-                                "example": "contacto@repuestos.com"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
+                    "razon_social": {
+                        "type": "string",
+                        "example": "Repuestos S.A."
+                    },
+                    "cuit": {
+                        "type": "string",
+                        "example": "20345678901"
+                    },
+                    "direccion": {
+                        "type": "string",
+                        "example": "Av. Corrientes 1234"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "1123456789"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "contacto@repuestos.com"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
                     }
-                ]
+                },
+                "type": "object"
             },
             "Reparacion": {
                 "title": "Reparacion",
                 "description": "Modelo de Reparación",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
                     },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "equipo_id": {
-                                "type": "integer",
-                                "example": 2
-                            },
-                            "usuario_id": {
-                                "type": "integer",
-                                "example": 5
-                            },
-                            "descripcion": {
-                                "type": "string",
-                                "example": "Cambio de fuente de alimentación"
-                            },
-                            "fecha": {
-                                "type": "string",
-                                "format": "date-time",
-                                "example": "2025-10-11T10:30:00Z"
-                            },
-                            "estado": {
-                                "type": "string",
-                                "example": "en proceso"
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
+                    "equipo_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "usuario_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Cambio de fuente de alimentación"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-10-11T10:30:00Z"
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "en proceso"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
                     }
-                ]
+                },
+                "type": "object"
+            },
+            "MedioCobro": {
+                "title": "Medio de Cobro",
+                "description": "Modelo que representa un método o medio de cobro aceptado por el sistema",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Transferencia bancaria"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
             },
             "Repuesto": {
                 "title": "Repuesto",
                 "description": "Modelo de Repuesto",
-                "type": "object",
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/SuccessMessage"
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
                     },
-                    {
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "example": 1
-                            },
-                            "nombre": {
-                                "type": "string",
-                                "example": "Filtro de aire"
-                            },
-                            "stock": {
-                                "type": "integer",
-                                "example": 50
-                            },
-                            "costo_base": {
-                                "type": "number",
-                                "format": "float",
-                                "example": 1500.75
-                            },
-                            "created_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            "updated_at": {
-                                "type": "string",
-                                "format": "date-time"
-                            }
-                        },
-                        "type": "object"
+                    "nombre": {
+                        "type": "string",
+                        "example": "Filtro de aire"
+                    },
+                    "stock": {
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "costo_base": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1500.75
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
                     }
-                ]
+                },
+                "type": "object"
+            },
+            "Factura": {
+                "title": "Factura",
+                "description": "Modelo de Factura",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "presupuesto_id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "numero": {
+                        "type": "string",
+                        "example": "F0001-00002345"
+                    },
+                    "letra": {
+                        "type": "string",
+                        "example": "A"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-10-11T14:30:00Z"
+                    },
+                    "monto_total": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 15200.5
+                    },
+                    "detalle": {
+                        "type": "string",
+                        "example": "Reparación general de equipos informáticos"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Equipo": {
+                "title": "Equipo",
+                "description": "Modelo que representa un equipo técnico ingresado al taller",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Notebook Lenovo con pantalla rota"
+                    },
+                    "marca": {
+                        "type": "string",
+                        "example": "Lenovo"
+                    },
+                    "modelo": {
+                        "type": "string",
+                        "example": "IdeaPad 320"
+                    },
+                    "nro_serie": {
+                        "type": "string",
+                        "example": "SN-1234567890"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "CompraRepuesto": {
+                "title": "Compra de Repuesto",
+                "description": "Modelo de Compra de Repuesto",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "proveedor_id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "repuesto_id": {
+                        "type": "integer",
+                        "example": 7
+                    },
+                    "numero_comprobante": {
+                        "type": "string",
+                        "example": "FAC-2025-001"
+                    },
+                    "total": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 25900.5
+                    },
+                    "estado": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Cliente": {
+                "title": "Cliente",
+                "description": "Modelo que representa un cliente registrado en el sistema",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Juan Pérez"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "juanperez@example.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "+54 9 345 4129626"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -2934,12 +3292,16 @@
             "description": "Operaciones relacionadas con la gestión de compras de repuestos"
         },
         {
-            "name": "Especializaciones",
-            "description": "Gestión de especializaciones técnicas de los usuarios"
+            "name": "Equipos",
+            "description": "Operaciones relacionadas con los equipos registrados en el sistema"
         },
         {
             "name": "Facturas",
             "description": "Operaciones relacionadas con la facturación"
+        },
+        {
+            "name": "Medios de Cobro",
+            "description": "Operaciones relacionadas con los medios de cobro disponibles"
         },
         {
             "name": "Presupuestos",
@@ -2964,14 +3326,6 @@
         {
             "name": "Autenticación",
             "description": "Autenticación"
-        },
-        {
-            "name": "Equipos",
-            "description": "Equipos"
-        },
-        {
-            "name": "Medios de Cobro",
-            "description": "Medios de Cobro"
         }
     ]
 }
