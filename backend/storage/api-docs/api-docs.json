@@ -37,9 +37,6 @@
                                 }
                             }
                         }
-                    },
-                    "403": {
-                        "description": "No autorizado"
                     }
                 },
                 "security": [
@@ -52,7 +49,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Crear nuevo usuario",
+                "summary": "Crear nuevo usuario (solo administradores)",
                 "operationId": "5580f7cbc46031c2a19a99caf091cd80",
                 "requestBody": {
                     "required": true,
@@ -81,6 +78,16 @@
                                     "password": {
                                         "type": "string",
                                         "example": "password123"
+                                    },
+                                    "especializaciones": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2
+                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -90,23 +97,10 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Usuario creado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Usuario creado exitosamente"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/User"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario creado"
+                    },
+                    "403": {
+                        "description": "No autorizado"
                     },
                     "422": {
                         "description": "Validación fallida"
@@ -124,7 +118,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Obtener usuario específico",
+                "summary": "Obtener usuario específico con especializaciones",
                 "operationId": "3d14b8127febd0566792e2487d67f2f9",
                 "parameters": [
                     {
@@ -138,19 +132,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Usuario encontrado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/User"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario encontrado"
                     },
                     "404": {
                         "description": "Usuario no encontrado"
@@ -166,7 +148,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Actualizar usuario",
+                "summary": "Actualizar usuario (solo administradores)",
                 "operationId": "7ac35494da2a9e661419e1b63a49d7e9",
                 "parameters": [
                     {
@@ -183,10 +165,6 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "nombre",
-                                    "tipo"
-                                ],
                                 "properties": {
                                     "nombre": {
                                         "type": "string",
@@ -204,6 +182,16 @@
                                     "password": {
                                         "type": "string",
                                         "example": "nueva_password"
+                                    },
+                                    "especializaciones": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            3
+                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -213,23 +201,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Usuario actualizado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Usuario actualizado exitosamente"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/User"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario actualizado"
                     }
                 },
                 "security": [
@@ -242,7 +214,7 @@
                 "tags": [
                     "Administración"
                 ],
-                "summary": "Eliminar usuario",
+                "summary": "Eliminar usuario (solo administradores)",
                 "operationId": "6a7ed569257285d63ce31d00c669b9cd",
                 "parameters": [
                     {
@@ -256,23 +228,57 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Usuario eliminado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Usuario eliminado exitosamente"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Usuario eliminado"
+                    },
+                    "403": {
+                        "description": "No autorizado"
                     },
                     "422": {
                         "description": "No puedes eliminar tu propio usuario"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/profile/especializaciones": {
+            "post": {
+                "tags": [
+                    "Administración"
+                ],
+                "summary": "Asignar especializaciones al usuario autenticado (técnico o admin)",
+                "operationId": "d805db64a30c431b002b672c942ed3fa",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "especializaciones": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Especializaciones actualizadas correctamente"
+                    },
+                    "403": {
+                        "description": "No autorizado"
                     }
                 },
                 "security": [
@@ -3275,7 +3281,7 @@
     "tags": [
         {
             "name": "Administración",
-            "description": "Endpoints para administradores"
+            "description": "Endpoints para administradores y técnicos (gestión de usuarios y especializaciones)"
         },
         {
             "name": "Clientes",

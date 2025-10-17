@@ -13,8 +13,10 @@ use App\Http\Controllers\{
     PresupuestoController,
     CompraRepuestoController,
     ProveedorController,
-    RepuestoController
+    RepuestoController,
+    EspecializacionController
 };
+
 
 // Rutas públicas (SOLO login)
 Route::post('/login', [AuthController::class, 'login']);

@@ -1,15 +1,17 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Especializacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
- * @OA\Tag(name="Administración", description="Endpoints para administradores")
+ * @OA\Tag(name="Administración", description="Endpoints para administradores y técnicos (gestión de usuarios y especializaciones)")
  */
 class AdminUserController extends Controller
 {
@@ -25,13 +27,13 @@ class AdminUserController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/User"))
      *         )
-     *     ),
-     *     @OA\Response(response=403, description="No autorizado")
+     *     )
      * )
      */
     public function index()
     {
-        $users = User::all();
+        $users = User::with('especializaciones')->get();
+
         return response()->json([
             'data' => $users
         ]);
@@ -40,27 +42,18 @@ class AdminUserController extends Controller
     /**
      * @OA\Get(
      *     path="/api/users/{id}",
-     *     summary="Obtener usuario específico",
+     *     summary="Obtener usuario específico con especializaciones",
      *     tags={"Administración"},
      *     security={{"bearerAuth":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Usuario encontrado",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", ref="#/components/schemas/User")
-     *         )
-     *     ),
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Usuario encontrado"),
      *     @OA\Response(response=404, description="Usuario no encontrado")
      * )
      */
     public function show(User $user)
     {
+        $user->load('especializaciones');
+
         return response()->json([
             'data' => $user
         ]);
@@ -69,7 +62,7 @@ class AdminUserController extends Controller
     /**
      * @OA\Post(
      *     path="/api/users",
-     *     summary="Crear nuevo usuario",
+     *     summary="Crear nuevo usuario (solo administradores)",
      *     tags={"Administración"},
      *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
@@ -78,31 +71,36 @@ class AdminUserController extends Controller
      *             required={"nombre","tipo","password"},
      *             @OA\Property(property="nombre", type="string", example="tecnico1"),
      *             @OA\Property(property="tipo", type="string", enum={"administrador", "tecnico", "usuario"}, example="tecnico"),
-     *             @OA\Property(property="password", type="string", example="password123")
+     *             @OA\Property(property="password", type="string", example="password123"),
+     *             @OA\Property(property="especializaciones", type="array", @OA\Items(type="integer"), example={1,2})
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Usuario creado",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Usuario creado exitosamente"),
-     *             @OA\Property(property="data", ref="#/components/schemas/User")
-     *         )
-     *     ),
+     *     @OA\Response(response=201, description="Usuario creado"),
+     *     @OA\Response(response=403, description="No autorizado"),
      *     @OA\Response(response=422, description="Validación fallida")
      * )
      */
     public function store(Request $request)
-    {
+{
+    try {
+        $currentUser = JWTAuth::user();
+
+        if ($currentUser->tipo !== 'administrador') {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
-            'tipo' => 'required|string|max:255|in:administrador,tecnico,usuario',
+            'tipo' => 'required|string|in:administrador,tecnico,usuario',
             'password' => 'required|string|min:8',
+            'especializaciones' => 'array',
+            'especializaciones.*' => 'exists:especializacion,id'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'error' => $validator->errors()
+                'message' => 'Error de validación: revisá los campos ingresados.',
+                'errors' => $validator->errors()
             ], 422);
         }
 
@@ -112,55 +110,72 @@ class AdminUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        if (in_array($user->tipo, ['tecnico', 'administrador']) && $request->has('especializaciones')) {
+            $user->especializaciones()->sync($request->especializaciones);
+        }
+
         return response()->json([
             'message' => 'Usuario creado exitosamente',
-            'data' => $user
+            'data' => $user->load('especializaciones')
         ], 201);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'error' => 'Error interno en el servidor',
+            'exception' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile()
+        ], 500);
     }
+}
+
 
     /**
      * @OA\Put(
      *     path="/api/users/{id}",
-     *     summary="Actualizar usuario",
+     *     summary="Actualizar usuario (solo administradores)",
      *     tags={"Administración"},
      *     security={{"bearerAuth":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"nombre","tipo"},
      *             @OA\Property(property="nombre", type="string", example="nuevo_nombre"),
      *             @OA\Property(property="tipo", type="string", enum={"administrador", "tecnico", "usuario"}, example="tecnico"),
-     *             @OA\Property(property="password", type="string", example="nueva_password")
+     *             @OA\Property(property="password", type="string", example="nueva_password"),
+     *             @OA\Property(property="especializaciones", type="array", @OA\Items(type="integer"), example={1,3})
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Usuario actualizado",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Usuario actualizado exitosamente"),
-     *             @OA\Property(property="data", ref="#/components/schemas/User")
-     *         )
-     *     )
+     *     @OA\Response(response=200, description="Usuario actualizado")
      * )
      */
     public function update(Request $request, User $user)
     {
+        $currentUser = JWTAuth::user();
+
+        if ($currentUser->tipo !== 'administrador') {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|string|in:administrador,tecnico,usuario',
-            'password' => 'nullable|string|min:8',
+            'password' => 'required|string|min:8',
+            'especializaciones' => 'array',
+            'especializaciones.*' => 'exists:especializacion,id'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'error' => $validator->errors()
-            ], 422);
+    return response()->json([
+        'message' => 'Error de validación: revisá los campos ingresados.',
+        'errors' => $validator->errors()
+    ], 422);
+}
+
+
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
         }
 
         $user->nombre = $request->nombre;
@@ -172,48 +187,76 @@ class AdminUserController extends Controller
 
         $user->save();
 
+        // Actualizar especializaciones solo si aplica
+        if (in_array($user->tipo, ['tecnico', 'administrador']) && $request->has('especializaciones')) {
+            $user->especializaciones()->sync($request->especializaciones);
+        }
+
         return response()->json([
             'message' => 'Usuario actualizado exitosamente',
-            'data' => $user
+            'data' => $user->load('especializaciones')
         ]);
     }
 
     /**
      * @OA\Delete(
      *     path="/api/users/{id}",
-     *     summary="Eliminar usuario",
+     *     summary="Eliminar usuario (solo administradores)",
      *     tags={"Administración"},
      *     security={{"bearerAuth":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Usuario eliminado",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Usuario eliminado exitosamente")
-     *         )
-     *     ),
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Usuario eliminado"),
+     *     @OA\Response(response=403, description="No autorizado"),
      *     @OA\Response(response=422, description="No puedes eliminar tu propio usuario")
      * )
      */
     public function destroy(User $user)
     {
         $currentUser = JWTAuth::user();
-        
+
+        if ($currentUser->tipo !== 'administrador') {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
         if ($currentUser->id === $user->id) {
-            return response()->json([
-                'error' => 'No puedes eliminar tu propio usuario'
-            ], 422);
+            return response()->json(['error' => 'No puedes eliminar tu propio usuario'], 422);
         }
 
         $user->delete();
 
-        return response()->json([
-            'message' => 'Usuario eliminado exitosamente'
+        return response()->json(['message' => 'Usuario eliminado exitosamente']);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/profile/especializaciones",
+     *     summary="Asignar especializaciones al usuario autenticado (técnico o admin)",
+     *     tags={"Administración"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="especializaciones", type="array", @OA\Items(type="integer"), example={1,2})
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Especializaciones actualizadas correctamente"),
+     *     @OA\Response(response=403, description="No autorizado")
+     * )
+     */
+    public function asignarEspecializaciones(Request $request)
+    {
+        $user = JWTAuth::user();
+
+        if (!in_array($user->tipo, ['tecnico', 'administrador'])) {
+            return response()->json(['error' => 'Solo técnicos o administradores pueden modificar especializaciones'], 403);
+        }
+
+        $request->validate([
+            'especializaciones' => 'required|array'
         ]);
+
+        $user->especializaciones()->sync($request->especializaciones);
+
+        return response()->json(['mensaje' => 'Especializaciones actualizadas correctamente']);
     }
 }
