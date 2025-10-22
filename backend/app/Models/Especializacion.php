@@ -12,10 +12,12 @@ class Especializacion extends Model
         'nombre',
     ];
 
+    public $timestamps = false;
+
     /** Relaciones */
-    public function usuarios()
+    public function users()
     {
-        return $this->belongsToMany(Usuario::class, 'usuario_especializacion', 'especializacion_id', 'usuario_id')
-                    ->withTimestamps();
+        return $this->belongsToMany(User::class, 'usuario_especializacion', 'especializacion_id', 'usuario_id');
+                    //->withTimestamps();
     }
 }
