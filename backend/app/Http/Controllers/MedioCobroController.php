@@ -4,78 +4,203 @@ namespace App\Http\Controllers;
 
 use App\Models\MedioCobro;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
-        // Schema::create('medio_cobro', function (Blueprint $table) {
-        //     $table->id();
-        //     $table->string('nombre', 100);
-
+/**
+ * @OA\Tag(
+ *     name="Medios de Cobro",
+ *     description="Operaciones relacionadas con los medios de cobro disponibles"
+ * )
+ */
 class MedioCobroController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * @OA\Get(
+     *     path="/api/medios-cobro",
+     *     summary="Obtener todos los medios de cobro",
+     *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de medios de cobro obtenida correctamente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/MedioCobro")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=500, description="Error al obtener medios de cobro")
+     * )
      */
     public function index()
     {
         try {
-            $mediocobro = MedioCobro::all();
-            return response()->json($mediocobro);
+            $mediosCobro = MedioCobro::all();
+            return response()->json($mediosCobro, 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener medios de cobro', 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => 'Error al obtener medios de cobro',
+                'detalle' => $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * @OA\Post(
+     *     path="/api/medios-cobro",
+     *     summary="Registrar un nuevo medio de cobro",
+     *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"nombre"},
+     *             @OA\Property(property="nombre", type="string", example="Tarjeta de crédito")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Medio de cobro creado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/MedioCobro")
+     *     ),
+     *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=500, description="Error al crear medio de cobro")
+     * )
      */
     public function store(Request $request)
     {
-        $mediocobro = $request->validate([
+        $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:100',
-
         ]);
 
-        $mediocobro = MedioCobro::create($mediocobro);
-        return response()->json($mediocobro, 201);
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
+        }
+
+        try {
+            $medioCobro = MedioCobro::create($validator->validated());
+            return response()->json(['mensaje' => 'Medio de cobro creado correctamente', 'medio_cobro' => $medioCobro], 201);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al crear medio de cobro', 'detalle' => $e->getMessage()], 500);
+        }
     }
 
     /**
-     * Display the specified resource.
+     * @OA\Get(
+     *     path="/api/medios-cobro/{id}",
+     *     summary="Mostrar un medio de cobro específico",
+     *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID del medio de cobro",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Medio de cobro encontrado",
+     *         @OA\JsonContent(ref="#/components/schemas/MedioCobro")
+     *     ),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=404, description="Medio de cobro no encontrado")
+     * )
      */
     public function show($id)
     {
-        $mediocobro = MedioCobro::findOrFail($id);
-        return response()->json($mediocobro);
-    }
-
-    
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        $mediocobro = MedioCobro::findOrFail($id);
-
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:100',
-        ]);
+        try {
+            $medioCobro = MedioCobro::findOrFail($id);
+            return response()->json($medioCobro, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Medio de cobro no encontrado', 'detalle' => $e->getMessage()], 404);
+        }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * @OA\Put(
+     *     path="/api/medios-cobro/{id}",
+     *     summary="Actualizar un medio de cobro existente",
+     *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID del medio de cobro a actualizar",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="nombre", type="string", example="Pago en efectivo")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Medio de cobro actualizado correctamente",
+     *         @OA\JsonContent(ref="#/components/schemas/MedioCobro")
+     *     ),
+     *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=404, description="Medio de cobro no encontrado"),
+     *     @OA\Response(response=500, description="Error al actualizar medio de cobro")
+     * )
      */
-    public function destroy(string $id)
+    public function update(Request $request, $id)
     {
-        $mediocobro = MedioCobro::findOrFail($id);
-        $mediocobro->delete();
-        return response()-json('message', 'Medio de cobro eliminado correctamente');
+        try {
+            $medioCobro = MedioCobro::findOrFail($id);
+
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'required|string|max:100',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
+            }
+
+            $medioCobro->update($validator->validated());
+
+            return response()->json(['mensaje' => 'Medio de cobro actualizado correctamente', 'medio_cobro' => $medioCobro], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'Medio de cobro no encontrado'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al actualizar medio de cobro', 'detalle' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/medios-cobro/{id}",
+     *     summary="Eliminar un medio de cobro",
+     *     tags={"Medios de Cobro"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID del medio de cobro a eliminar",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="Medio de cobro eliminado correctamente"),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=404, description="Medio de cobro no encontrado"),
+     *     @OA\Response(response=500, description="Error al eliminar medio de cobro")
+     * )
+     */
+    public function destroy($id)
+    {
+        try {
+            $medioCobro = MedioCobro::findOrFail($id);
+            $medioCobro->delete();
+
+            return response()->json(['mensaje' => 'Medio de cobro eliminado correctamente'], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'Medio de cobro no encontrado'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al eliminar medio de cobro', 'detalle' => $e->getMessage()], 500);
+        }
     }
 }

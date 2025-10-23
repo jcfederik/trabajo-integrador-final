@@ -1,0 +1,46 @@
+<div class="container mt-5" style="max-width: 400px;">
+  <h3 class="text-center mb-4">Iniciar sesión</h3>
+
+  <form #f="ngForm" (ngSubmit)="login(f)">
+    <div class="mb-3">
+      <label class="form-label">Nombre de usuario</label>
+      <input
+        type="text"
+        name="nombre"
+        class="form-control"
+        [(ngModel)]="f.value.nombre"
+        #nombre="ngModel"
+        required
+        (input)="clearError()"
+      />
+      <div *ngIf="nombre.invalid && nombre.touched" class="text-danger small">
+        El nombre de usuario es obligatorio.
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Contraseña</label>
+      <input
+        type="password"
+        name="password"
+        class="form-control"
+        [(ngModel)]="f.value.password"
+        #password="ngModel"
+        required
+        (input)="clearError()"
+      />
+      <div *ngIf="password.invalid && password.touched" class="text-danger small">
+        La contraseña es obligatoria.
+      </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger text-center">
+      {{ error }}
+    </div>
+
+    <button class="btn btn-primary w-100" type="submit" [disabled]="loading">
+      <span *ngIf="!loading">Entrar</span>
+      <span *ngIf="loading"><i class="bi bi-arrow-repeat me-2"></i>Cargando...</span>
+    </button>
+  </form>
+</div>
