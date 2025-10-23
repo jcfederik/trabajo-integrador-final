@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Presupuesto extends Model
 {
     //
+    
     protected $table = 'presupuesto';
     protected $fillable = [
         'reparacion_id',
@@ -15,6 +16,9 @@ class Presupuesto extends Model
         'monto_total',
         'aceptado'
     ];
+
+    public $timestamps = false;
+
         public function reparacion()
     {
         return $this->belongsTo(Reparacion::class, 'reparacion_id');
