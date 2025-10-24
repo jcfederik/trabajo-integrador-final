@@ -1,0 +1,14 @@
+<nav class="navbar">
+  <div class="navbar-left">
+    <span class="username">{{ username }}</span>
+  </div>
+  <div class="navbar-center">
+    <input
+      type="text"
+      class="search-input"
+      placeholder="Buscar..."
+      [(ngModel)]="searchQuery"
+      (keyup.enter)="onSearch()"
+    />
+  </div>
+</nav>
