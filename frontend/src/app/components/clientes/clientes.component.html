@@ -1,3 +1,4 @@
+<!-- src/app/components/clientes/clientes.component.html -->
 <div class="container py-4">
   <!-- 🔹 Botones circulares CRUD -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
@@ -15,11 +16,17 @@
     </button>
   </div>
 
+  <!-- 🔹 Info de búsqueda -->
+  <div *ngIf="filteredClientes.length !== clientes.length && selectedAction === 'listar'" 
+       class="alert alert-info text-center">
+    Mostrando {{ filteredClientes.length }} de {{ clientes.length }} clientes
+  </div>
+
   <!-- 🔹 Listado -->
   <div *ngIf="selectedAction === 'listar'">
     <h4 class="text-center mb-3">Lista de Clientes</h4>
     <div class="list-group">
-      <div *ngFor="let cliente of clientes" class="list-group-item d-flex justify-content-between align-items-center">
+      <div *ngFor="let cliente of filteredClientes" class="list-group-item d-flex justify-content-between align-items-center">
         <div>
           <strong>{{ cliente.nombre }}</strong><br />
           <small>{{ cliente.email }}</small><br />
@@ -32,11 +39,18 @@
         </div>
       </div>
     </div>
+
+    <!-- Mensaje cuando no hay resultados -->
+    <div *ngIf="filteredClientes.length === 0 && clientes.length > 0" class="text-center mt-4">
+      <p class="text-muted">No se encontraron clientes con ese criterio de búsqueda.</p>
+    </div>
+
     <div class="text-center mt-3" *ngIf="loading">
       <div class="spinner-border text-primary" role="status"></div>
     </div>
   </div>
 
+  <!-- Los demás sections (crear, editar, eliminar) se mantienen igual -->
   <!-- 🔹 Crear -->
   <div *ngIf="selectedAction === 'crear'">
     <h4 class="text-center mb-3">Registrar Cliente</h4>
