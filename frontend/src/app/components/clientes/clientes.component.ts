@@ -1,7 +1,10 @@
+// En src/app/components/clientes/clientes.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ClienteService, Cliente } from '../../services/cliente.service';
+import { SearchService } from '../../services/busqueda/busquedaglobal';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-clientes',
@@ -12,24 +15,39 @@ import { ClienteService, Cliente } from '../../services/cliente.service';
 })
 export class ClientesComponent implements OnInit, OnDestroy {
   clientes: Cliente[] = [];
+  filteredClientes: Cliente[] = [];
   selectedAction: 'listar' | 'crear' | 'editar' | 'eliminar' = 'listar';
   loading = false;
   page = 1;
   lastPage = false;
   nuevoCliente: Partial<Cliente> = {};
+  
+  private searchSubscription!: Subscription;
 
-  constructor(private clienteService: ClienteService) {}
+  constructor(
+    private clienteService: ClienteService,
+    private searchService: SearchService
+  ) {}
 
   ngOnInit() {
     this.obtenerClientes();
+    
+    this.searchService.setCurrentComponent('clientes');
     window.addEventListener('scroll', this.onScroll.bind(this));
+    this.searchSubscription = this.searchService.searchTerm$.subscribe(term => {
+      this.filterClientes(term);
+    });
   }
 
   ngOnDestroy() {
     window.removeEventListener('scroll', this.onScroll.bind(this));
+
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
+    this.searchService.clearSearch();
   }
 
-  // 🔹 Obtener clientes del backend
   obtenerClientes() {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -37,8 +55,9 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.clienteService.getClientes().subscribe({
       next: (data) => {
         this.clientes = [...this.clientes, ...data];
+        this.filteredClientes = [...this.clientes];
         this.loading = false;
-        // ⚠️ Si luego tu back tiene paginación, podés agregar lógica acá.
+        this.searchService.setSearchData(this.clientes);
       },
       error: (err) => {
         console.error('Error al obtener clientes', err);
@@ -50,6 +69,18 @@ export class ClientesComponent implements OnInit, OnDestroy {
   onScroll() {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
     if (nearBottom) this.obtenerClientes();
+  private filterClientes(searchTerm: string) {
+    if (!searchTerm) {
+      this.filteredClientes = [...this.clientes];
+      return;
+    }
+
+    // Usar el método mejorado
+    this.filteredClientes = this.searchService.search(this.clientes, searchTerm);
+    
+  }
+  clearSearch() {
+    this.searchService.clearSearch();
   }
 
   seleccionarAccion(accion: 'listar' | 'crear' | 'editar' | 'eliminar') {
@@ -63,11 +94,12 @@ export class ClientesComponent implements OnInit, OnDestroy {
     }
 
     this.clienteService.createCliente(this.nuevoCliente).subscribe({
-      next: () => {
+      next: (nuevoCliente) => {
         this.nuevoCliente = {};
-        this.clientes = [];
-        this.obtenerClientes();
+        this.clientes = [nuevoCliente, ...this.clientes];
+        this.filteredClientes = [nuevoCliente, ...this.filteredClientes];
         this.selectedAction = 'listar';
+        this.searchService.setSearchData(this.clientes);
       },
       error: (err) => {
         console.error('Error al crear cliente', err);
@@ -82,6 +114,8 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.clienteService.deleteCliente(id).subscribe({
       next: () => {
         this.clientes = this.clientes.filter((c) => c.id !== id);
+        this.filteredClientes = this.filteredClientes.filter((c) => c.id !== id);
+        this.searchService.setSearchData(this.clientes);
       },
       error: (err) => {
         console.error('Error al eliminar cliente', err);
