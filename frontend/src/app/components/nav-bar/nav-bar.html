@@ -1,14 +1,32 @@
+<!-- src/app/components/nav-bar/nav-bar.html -->
 <nav class="navbar">
+  <!-- Izquierda: Logo -->
   <div class="navbar-left">
-    <span class="username">{{ username }}</span>
+    <span class="logo">MiLogo</span>
   </div>
+
+  <!-- Centro: Buscador -->
   <div class="navbar-center">
-    <input
-      type="text"
-      class="search-input"
-      placeholder="Buscar..."
-      [(ngModel)]="searchQuery"
-      (keyup.enter)="onSearch()"
-    />
+    <div class="search-container">
+      <input
+        type="text"
+        class="search-input"
+        [placeholder]="currentComponent ? 'Buscar ' + currentComponent + '...' : 'Buscar...'"
+        [(ngModel)]="searchQuery"
+        (keyup)="onSearchChange()"
+        (keyup.enter)="onSearch()"
+      />
+      <!-- Usar @if en lugar de *ngIf -->
+      @if (searchQuery) {
+        <button (click)="clearSearch()" class="clear-search-btn">
+          ×
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Derecha: Nombre de usuario con enlace -->
+  <div class="navbar-right">
+    <a [routerLink]="['/perfil']" class="username">{{ username }}</a>
   </div>
 </nav>
