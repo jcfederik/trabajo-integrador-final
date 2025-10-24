@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminUserSeeder::class,
             EspecializacionSeeder::class,
+            UserSeeder::class, // <-- NUEVO: debe ir ANTES de UsuarioEspecializacionSeeder
             ClienteSeeder::class,
             ProveedorSeeder::class,
             EquipoSeeder::class,

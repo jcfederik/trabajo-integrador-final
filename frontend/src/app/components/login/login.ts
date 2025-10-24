@@ -41,7 +41,7 @@ export class Login {
 
         this.loading = false;
         this.cdr.markForCheck();
-        // this.router.navigate(['/home']);
+        this.router.navigate(['/dashboard']);
         console.log('Login successful:', res);
         
       },

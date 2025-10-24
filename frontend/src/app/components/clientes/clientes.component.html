@@ -1,0 +1,69 @@
+<div class="container py-4">
+  <!-- 🔹 Botones circulares CRUD -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+    <button class="btn btn-outline-primary rounded-circle p-3" (click)="seleccionarAccion('listar')" [class.active]="selectedAction === 'listar'">
+      <i class="bi bi-list fs-4"></i>
+    </button>
+    <button class="btn btn-outline-success rounded-circle p-3" (click)="seleccionarAccion('crear')" [class.active]="selectedAction === 'crear'">
+      <i class="bi bi-person-plus fs-4"></i>
+    </button>
+    <button class="btn btn-outline-warning rounded-circle p-3" (click)="seleccionarAccion('editar')" [class.active]="selectedAction === 'editar'">
+      <i class="bi bi-pencil-square fs-4"></i>
+    </button>
+    <button class="btn btn-outline-danger rounded-circle p-3" (click)="seleccionarAccion('eliminar')" [class.active]="selectedAction === 'eliminar'">
+      <i class="bi bi-trash fs-4"></i>
+    </button>
+  </div>
+
+  <!-- 🔹 Listado -->
+  <div *ngIf="selectedAction === 'listar'">
+    <h4 class="text-center mb-3">Lista de Clientes</h4>
+    <div class="list-group">
+      <div *ngFor="let cliente of clientes" class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ cliente.nombre }}</strong><br />
+          <small>{{ cliente.email }}</small><br />
+          <small *ngIf="cliente.telefono">{{ cliente.telefono }}</small>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-outline-danger" (click)="eliminarCliente(cliente.id)">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-3" *ngIf="loading">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  </div>
+
+  <!-- 🔹 Crear -->
+  <div *ngIf="selectedAction === 'crear'">
+    <h4 class="text-center mb-3">Registrar Cliente</h4>
+    <form (ngSubmit)="crearCliente()" class="mx-auto" style="max-width: 500px;">
+      <div class="mb-3">
+        <label class="form-label">Nombre</label>
+        <input [(ngModel)]="nuevoCliente.nombre" name="nombre" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input [(ngModel)]="nuevoCliente.email" name="email" type="email" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Teléfono</label>
+        <input [(ngModel)]="nuevoCliente.telefono" name="telefono" class="form-control" />
+      </div>
+      <button class="btn btn-success w-100" type="submit">Guardar</button>
+    </form>
+  </div>
+
+  <!-- 🔹 Editar (placeholder) -->
+  <div *ngIf="selectedAction === 'editar'">
+    <p class="text-center text-muted">Edición de clientes próximamente 🛠️</p>
+  </div>
+
+  <!-- 🔹 Eliminar (placeholder) -->
+  <div *ngIf="selectedAction === 'eliminar'">
+    <p class="text-center text-muted">Usá los íconos de la lista para eliminar clientes.</p>
+  </div>
+</div>

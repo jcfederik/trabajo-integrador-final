@@ -27,7 +27,7 @@ class Reparacion extends Model
 
     public function tecnico()
     {
-        return $this->belongsTo(Usuario::class, 'usuario_id');
+        return $this->belongsTo(User::class, 'usuario_id');
     }
 
     public function repuestos()
