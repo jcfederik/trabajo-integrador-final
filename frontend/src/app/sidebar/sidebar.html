@@ -1,0 +1,30 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed">
+    <div class="sidebar-header">
+        <button class="toggle-btn" (click)="toggleSidebar()">
+            <i class="bi" [class.bi-chevron-left]="!isCollapsed" [class.bi-chevron-right]="isCollapsed"></i>
+        </button>
+        <h5 *ngIf="!isCollapsed" class="sidebar-title">Sistema</h5>
+    </div>
+
+    <nav class="sidebar-nav">
+        <ul class="sidebar-menu">
+            <li *ngFor="let item of menuItems" class="sidebar-item">
+                <ng-container *ngIf="item.isHeader; else menuItem">
+                    <div *ngIf="!isCollapsed" class="sidebar-header-item">
+                        {{ item.title }}
+                    </div>
+                    <hr *ngIf="!isCollapsed" class="sidebar-divider">
+                </ng-container>
+
+                <ng-template #menuItem>
+                    <a class="sidebar-link" [class.disabled]="item.disabled"
+                        [routerLink]="item.disabled ? null : item.route" routerLinkActive="active"
+                        [routerLinkActiveOptions]="{ exact: false }">
+                        <i class="bi {{ item.icon }} sidebar-icon"></i>
+                        <span *ngIf="!isCollapsed" class="sidebar-text">{{ item.title }}</span>
+                    </a>
+                </ng-template>
+            </li>
+        </ul>
+    </nav>
+</aside>
