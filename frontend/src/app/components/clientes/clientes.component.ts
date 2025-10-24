@@ -69,6 +69,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
   onScroll() {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
     if (nearBottom) this.obtenerClientes();
+  }
   private filterClientes(searchTerm: string) {
     if (!searchTerm) {
       this.filteredClientes = [...this.clientes];
