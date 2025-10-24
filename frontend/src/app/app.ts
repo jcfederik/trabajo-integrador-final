@@ -1,12 +1,12 @@
 import { Component, signal } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { NavBar } from './components/nav-bar/nav-bar';
 import { NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavBar, NgIf],
+  imports: [RouterOutlet, NavBar, NgIf, SidebarComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
