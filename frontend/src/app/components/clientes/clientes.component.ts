@@ -87,8 +87,6 @@ export class ClientesComponent implements OnInit, OnDestroy {
     });
   }
 
-<<<<<<< Updated upstream
-=======
   onScroll() {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
     if (nearBottom && this.currentPage < this.lastPage) {
@@ -96,7 +94,6 @@ export class ClientesComponent implements OnInit, OnDestroy {
     }
   }
 
->>>>>>> Stashed changes
   private filterClientes(searchTerm: string) {
     if (!searchTerm) {
       this.filteredClientes = [...this.clientes];
@@ -150,8 +147,6 @@ export class ClientesComponent implements OnInit, OnDestroy {
       },
     });
   }
-<<<<<<< Updated upstream
-=======
 
   // 🔥 Método para cambiar elementos por página
   cambiarItemsPorPagina(perPage: number) {
@@ -159,5 +154,4 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.currentPage = 1;
     this.obtenerClientes(1);
   }
->>>>>>> Stashed changes
 }

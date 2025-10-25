@@ -11,17 +11,13 @@ import { SearchService } from '../../services/busquedaglobal';
   templateUrl: './nav-bar.html',
   styleUrls: ['./nav-bar.css']
 })
-<<<<<<< Updated upstream
 export class NavBar implements OnInit {
   username: string = 'Nahuel';
   searchQuery: string = '';
   currentComponent: string = '';
-=======
-export class NavBarComponent implements OnInit {
   placeholder: string = 'Buscar...';
   searchTerm: string = '';
   usuarioActual: string = 'Usuario';
->>>>>>> Stashed changes
 
   constructor(public searchService: SearchService, public router: Router) {}
 
@@ -53,10 +49,6 @@ export class NavBarComponent implements OnInit {
     });
   }
 
-<<<<<<< Updated upstream
-  onSearchChange() {
-    this.searchService.setSearchTerm(this.searchQuery);
-=======
   private setPlaceholderByRoute() {
     const currentPath = window.location.pathname;
     if (currentPath.includes('equipos')) {
@@ -104,7 +96,6 @@ export class NavBarComponent implements OnInit {
       case 'dashboard': return 'Buscar módulos... (clientes, equipos, facturas, etc.)'; // 🔥 NUEVO
       default: return 'Buscar...';
     }
->>>>>>> Stashed changes
   }
 
   onSearch() {
@@ -127,12 +118,9 @@ export class NavBarComponent implements OnInit {
     this.searchService.clearSearch();
     this.searchService.clearDashboardSearch();
   }
-<<<<<<< Updated upstream
-=======
 
   // ✅ Nuevo: detectar si está en dashboard
   esDashboard(): boolean {
     return this.router.url === '/dashboard' || this.router.url === '/';
   }
->>>>>>> Stashed changes
 }
