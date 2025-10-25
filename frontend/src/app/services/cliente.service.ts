@@ -1,5 +1,6 @@
+// src/app/services/cliente.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Cliente {
@@ -9,15 +10,30 @@ export interface Cliente {
   telefono?: string;
 }
 
+// 🔥 Interfaz para la respuesta paginada
+export interface PaginatedResponse<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number;
+  to: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ClienteService {
   private apiUrl = 'http://127.0.0.1:8000/api/clientes';
 
   constructor(private http: HttpClient) {}
 
-  // 🔹 Obtener todos los clientes (paginados si lo deseas más adelante)
-  getClientes(): Observable<Cliente[]> {
-    return this.http.get<Cliente[]>(this.apiUrl);
+  // 🔹 Obtener clientes paginados
+  getClientes(page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Cliente>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('per_page', perPage.toString());
+
+    return this.http.get<PaginatedResponse<Cliente>>(this.apiUrl, { params });
   }
 
   // 🔹 Obtener cliente por ID

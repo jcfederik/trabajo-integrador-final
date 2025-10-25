@@ -17,15 +17,34 @@ class DetalleCobroController extends Controller
     /**
      * @OA\Get(
      *     path="/api/detalle-cobro",
-     *     summary="Obtener todos los detalles de cobro",
+     *     summary="Obtener todos los detalles de cobro con paginación",
      *     tags={"Detalles de Cobro"},
      *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Lista de detalles de cobro obtenida correctamente",
      *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(ref="#/components/schemas/DetalleCobro")
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/DetalleCobro")),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=15),
+     *             @OA\Property(property="total", type="integer", example=75),
+     *             @OA\Property(property="from", type="integer", example=1),
+     *             @OA\Property(property="to", type="integer", example=15)
      *         )
      *     ),
      *     @OA\Response(
@@ -38,10 +57,13 @@ class DetalleCobroController extends Controller
      *     )
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $detalleCobros = DetalleCobro::all();
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            
+            $detalleCobros = DetalleCobro::paginate($perPage, ['*'], 'page', $page);
             return response()->json($detalleCobros, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener los detalles de cobro', 'detalle' => $e->getMessage()], 500);

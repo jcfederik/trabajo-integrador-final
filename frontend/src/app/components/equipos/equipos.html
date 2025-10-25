@@ -1,0 +1,141 @@
+<div class="container py-4">
+  <!-- 🔹 Botones circulares CRUD -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+    <button class="btn btn-outline-primary rounded-circle p-3" 
+            (click)="seleccionarAccion('listar')" 
+            [class.active]="selectedAction === 'listar'">
+      <i class="bi bi-list fs-4"></i>
+    </button>
+    <button class="btn btn-outline-success rounded-circle p-3" 
+            (click)="seleccionarAccion('crear')" 
+            [class.active]="selectedAction === 'crear'">
+      <i class="bi bi-plus-circle fs-4"></i>
+    </button>
+    <button class="btn btn-outline-warning rounded-circle p-3" 
+            (click)="seleccionarAccion('editar')" 
+            [class.active]="selectedAction === 'editar'">
+      <i class="bi bi-pencil-square fs-4"></i>
+    </button>
+    <button class="btn btn-outline-danger rounded-circle p-3" 
+            (click)="seleccionarAccion('eliminar')" 
+            [class.active]="selectedAction === 'eliminar'">
+      <i class="bi bi-trash fs-4"></i>
+    </button>
+  </div>
+
+  <!-- 🔹 Info de búsqueda -->
+  <div *ngIf="filteredEquipos.length !== equipos.length && selectedAction === 'listar'" 
+       class="alert alert-info text-center">
+    Mostrando {{ filteredEquipos.length }} de {{ equipos.length }} equipos
+    <span *ngIf="hasMorePages" class="ms-2">(Sigue bajando para cargar más)</span>
+  </div>
+
+  <!-- 🔹 Listado -->
+  <div *ngIf="selectedAction === 'listar'">
+    <h4 class="text-center mb-3">Lista de Equipos</h4>
+    
+    <div class="list-group">
+      <div *ngFor="let equipo of filteredEquipos" 
+           class="list-group-item d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+          <strong>{{ equipo.descripcion }}</strong><br />
+          <small *ngIf="equipo.marca" class="text-muted">
+            <i class="bi bi-tag"></i> {{ equipo.marca }}
+          </small>
+          <small *ngIf="equipo.modelo" class="text-muted ms-2">
+            <i class="bi bi-cpu"></i> {{ equipo.modelo }}
+          </small>
+          <small *ngIf="equipo.nro_serie" class="text-muted d-block">
+            <i class="bi bi-upc-scan"></i> {{ equipo.nro_serie }}
+          </small>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-outline-danger" (click)="eliminarEquipo(equipo.id)">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje cuando no hay resultados -->
+    <div *ngIf="filteredEquipos.length === 0 && !loading" class="text-center mt-4">
+      <p class="text-muted" *ngIf="equipos.length === 0">No hay equipos registrados.</p>
+      <p class="text-muted" *ngIf="equipos.length > 0">No se encontraron equipos con ese criterio de búsqueda.</p>
+    </div>
+
+    <!-- 🔹 Información de paginación y loading -->
+    <div class="mt-3">
+      <!-- Información de paginación -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">
+          {{ total > 0 ? 'Mostrando ' + from + ' a ' + to + ' de ' + total + ' equipos' : 'No hay equipos' }}
+          <span *ngIf="hasMorePages && !loading" class="badge bg-primary ms-2">Más disponible</span>
+        </small>
+        
+        <button *ngIf="hasMorePages && !loading" 
+                class="btn btn-sm btn-outline-primary"
+                (click)="obtenerEquipos(currentPage + 1)">
+          <i class="bi bi-arrow-down"></i> Cargar más
+        </button>
+      </div>
+
+      <!-- Loading para paginación -->
+      <div class="text-center" *ngIf="loading">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <small class="text-muted ms-2">Cargando más equipos...</small>
+      </div>
+
+      <!-- Mensaje cuando no hay más páginas -->
+      <div *ngIf="!hasMorePages && equipos.length > 0" class="text-center">
+        <small class="text-muted">✅ Todos los equipos cargados</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔹 Crear -->
+  <div *ngIf="selectedAction === 'crear'">
+    <h4 class="text-center mb-3">Registrar Equipo</h4>
+    <form (ngSubmit)="crearEquipo()" class="mx-auto" style="max-width: 500px;">
+      <div class="mb-3">
+        <label class="form-label">Descripción *</label>
+        <input [(ngModel)]="nuevoEquipo.descripcion" 
+               name="descripcion" 
+               class="form-control" 
+               placeholder="Ej: Notebook con pantalla rota"
+               required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Marca</label>
+        <input [(ngModel)]="nuevoEquipo.marca" 
+               name="marca" 
+               class="form-control" 
+               placeholder="Ej: Dell, HP, Lenovo" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Modelo</label>
+        <input [(ngModel)]="nuevoEquipo.modelo" 
+               name="modelo" 
+               class="form-control" 
+               placeholder="Ej: Inspiron 15, ThinkPad X1" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Número de Serie</label>
+        <input [(ngModel)]="nuevoEquipo.nro_serie" 
+               name="nro_serie" 
+               class="form-control" 
+               placeholder="Ej: SN-123456789" />
+      </div>
+      <button class="btn btn-success w-100" type="submit">Guardar Equipo</button>
+    </form>
+  </div>
+
+  <!-- 🔹 Editar (placeholder) -->
+  <div *ngIf="selectedAction === 'editar'">
+    <p class="text-center text-muted">Edición de equipos próximamente 🛠️</p>
+  </div>
+
+  <!-- 🔹 Eliminar (placeholder) -->
+  <div *ngIf="selectedAction === 'eliminar'">
+    <p class="text-center text-muted">Usá los íconos de la lista para eliminar equipos.</p>
+  </div>
+</div>

@@ -36,6 +36,64 @@ class UserController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/usuarios",
+     *     summary="Listar todos los usuarios con paginación",
+     *     tags={"Usuario"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de usuarios obtenida correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/User")),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=15),
+     *             @OA\Property(property="total", type="integer", example=75),
+     *             @OA\Property(property="from", type="integer", example=1),
+     *             @OA\Property(property="to", type="integer", example=15)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al obtener usuarios"
+     *     )
+     * )
+     */
+    public function listarUsuarios(Request $request)
+    {
+        try {
+            // 🔥 Configurar paginación similar a ClienteController
+            $perPage = $request->get('per_page', 15); // Por defecto 15 elementos por página
+            $page = $request->get('page', 1); // Por defecto página 1
+            
+            $usuarios = User::paginate($perPage, ['*'], 'page', $page);
+            
+            return response()->json($usuarios);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener usuarios', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * @OA\Put(
      *     path="/api/profile",
      *     summary="Actualizar perfil del usuario autenticado",
