@@ -1,0 +1,134 @@
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background: #2c3e50;
+    color: white;
+    transition: all 0.3s ease;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar.collapsed {
+    width: 60px;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #34495e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+}
+
+.sidebar-title {
+    margin: 0;
+    color: #ecf0f1;
+    font-weight: 600;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #ecf0f1;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.toggle-btn:hover {
+    background-color: #34495e;
+}
+
+.sidebar-nav {
+    padding: 1rem 0;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-item {
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-header-item {
+    padding: 0.75rem 1rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #bdc3c7;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-divider {
+    margin: 0.5rem 1rem;
+    border-color: #34495e;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: #bdc3c7;
+    text-decoration: none;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+    background-color: #34495e;
+    color: #ecf0f1;
+    border-left-color: #3498db;
+}
+
+.sidebar-link.active {
+    background-color: #34495e;
+    color: #3498db;
+    border-left-color: #3498db;
+}
+
+.sidebar-link.disabled {
+    color: #7f8c8d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.sidebar-link.disabled:hover {
+    background-color: transparent;
+    border-left-color: transparent;
+}
+
+.sidebar-icon {
+    font-size: 1.1rem;
+    width: 20px;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.sidebar-text {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Scrollbar personalizado */
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #34495e;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 2px;
+}

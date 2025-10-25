@@ -12,7 +12,7 @@ import { SearchService } from '../../services/busquedaglobal';
   styleUrls: ['./nav-bar.css']
 })
 export class NavBar implements OnInit {
-  username: string = 'Nahuel';
+  username: string = 'Usuario';
   searchQuery: string = '';
   currentComponent: string = '';
   placeholder: string = 'Buscar...';

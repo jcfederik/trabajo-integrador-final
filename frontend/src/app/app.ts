@@ -1,8 +1,9 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
-import { NavBar} from './components/nav-bar/nav-bar';
+import { NavBar } from './components/nav-bar/nav-bar';
 import { NgIf } from '@angular/common';
-import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { SidebarComponent } from './components/sidebar/sidebar';
+
 @Component({
   selector: 'app-root',
   standalone: true,

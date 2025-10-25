@@ -40,7 +40,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.obtenerClientes();
     
     this.searchService.setCurrentComponent('clientes');
-    
+    window.addEventListener('scroll', this.onScroll.bind(this));
     this.searchSubscription = this.searchService.searchTerm$.subscribe(term => {
       this.filterClientes(term);
     });
@@ -49,6 +49,8 @@ export class ClientesComponent implements OnInit, OnDestroy {
   
 
   ngOnDestroy() {
+    window.removeEventListener('scroll', this.onScroll.bind(this));
+
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
     }
