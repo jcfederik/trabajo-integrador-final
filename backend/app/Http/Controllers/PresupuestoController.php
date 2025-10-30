@@ -17,25 +17,47 @@ class PresupuestoController extends Controller
     /**
      * @OA\Get(
      *     path="/api/presupuesto",
-     *     summary="Obtener todos los presupuestos",
+     *     summary="Obtener todos los presupuestos con paginación",
      *     tags={"Presupuestos"},
      *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
      *     @OA\Response(
      *         response=200, 
      *         description="Lista de presupuestos obtenida correctamente",
      *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(ref="#/components/schemas/Presupuesto")
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Presupuesto")),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=15),
+     *             @OA\Property(property="total", type="integer", example=75),
+     *             @OA\Property(property="from", type="integer", example=1),
+     *             @OA\Property(property="to", type="integer", example=15)
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al obtener los presupuestos")
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $presupuestos = Presupuesto::all();
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            
+            $presupuestos = Presupuesto::paginate($perPage, ['*'], 'page', $page);
             return response()->json($presupuestos, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener los presupuestos', 'detalle' => $e->getMessage()], 500);

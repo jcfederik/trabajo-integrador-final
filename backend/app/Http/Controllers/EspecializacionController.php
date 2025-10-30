@@ -28,16 +28,46 @@ class EspecializacionController extends Controller
     /**
      * @OA\Get(
      *     path="/api/especializaciones",
-     *     summary="Obtener todas las especializaciones",
+     *     summary="Obtener todas las especializaciones con paginación",
      *     tags={"Especializaciones"},
-     *     @OA\Response(response=200, description="Lista de especializaciones"),
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de especializaciones obtenida correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Especializacion")),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=15),
+     *             @OA\Property(property="total", type="integer", example=75),
+     *             @OA\Property(property="from", type="integer", example=1),
+     *             @OA\Property(property="to", type="integer", example=15)
+     *         )
+     *     ),
      *     @OA\Response(response=500, description="Error al obtener especializaciones")
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $especializaciones = Especializacion::all();
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            
+            $especializaciones = Especializacion::paginate($perPage, ['*'], 'page', $page);
             return response()->json($especializaciones, 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -52,6 +82,7 @@ class EspecializacionController extends Controller
      *     path="/api/especializaciones",
      *     summary="Crear una nueva especialización",
      *     tags={"Especializaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -96,6 +127,7 @@ class EspecializacionController extends Controller
      *     path="/api/especializaciones/{id}",
      *     summary="Obtener una especialización específica",
      *     tags={"Especializaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id", in="path", required=true, description="ID de la especialización",
      *         @OA\Schema(type="integer")
@@ -121,6 +153,7 @@ class EspecializacionController extends Controller
      *     path="/api/especializaciones/{id}",
      *     summary="Actualizar una especialización existente",
      *     tags={"Especializaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id", in="path", required=true, description="ID de la especialización a actualizar",
      *         @OA\Schema(type="integer")
@@ -174,6 +207,7 @@ class EspecializacionController extends Controller
      *     path="/api/especializaciones/{id}",
      *     summary="Eliminar una especialización",
      *     tags={"Especializaciones"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id", in="path", required=true, description="ID de la especialización a eliminar",
      *         @OA\Schema(type="integer")

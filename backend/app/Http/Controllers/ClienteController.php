@@ -19,15 +19,34 @@ class ClienteController extends Controller
     /**
      * @OA\Get(
      *     path="/api/clientes",
-     *     summary="Listar todos los clientes",
+     *     summary="Listar todos los clientes con paginación",
      *     tags={"Clientes"},
      *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Lista de clientes obtenida correctamente",
      *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(ref="#/components/schemas/Cliente")
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Cliente")),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=15),
+     *             @OA\Property(property="total", type="integer", example=75),
+     *             @OA\Property(property="from", type="integer", example=1),
+     *             @OA\Property(property="to", type="integer", example=15)
      *         )
      *     ),
      *     @OA\Response(
@@ -40,16 +59,22 @@ class ClienteController extends Controller
      *     )
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $clientes = Cliente::all();
+            // 🔥 Configurar paginación
+            $perPage = $request->get('per_page', 15); // Por defecto 15 elementos por página
+            $page = $request->get('page', 1); // Por defecto página 1
+            
+            $clientes = Cliente::paginate($perPage, ['*'], 'page', $page);
+            
             return response()->json($clientes);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener clientes', 'message' => $e->getMessage()], 500);
         }
     }
 
+    // 🔥 Los demás métodos (store, show, update, destroy) se mantienen igual
     /**
      * @OA\Post(
      *     path="/api/clientes",

@@ -1,32 +1,74 @@
-<!-- src/app/components/nav-bar/nav-bar.html -->
-<nav class="navbar">
-  <!-- Izquierda: Logo -->
-  <div class="navbar-left">
-    <span class="logo">MiLogo</span>
-  </div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid d-flex justify-content-between align-items-center">
 
-  <!-- Centro: Buscador -->
-  <div class="navbar-center">
-    <div class="search-container">
-      <input
-        type="text"
-        class="search-input"
-        [placeholder]="currentComponent ? 'Buscar ' + currentComponent + '...' : 'Buscar...'"
-        [(ngModel)]="searchQuery"
-        (keyup)="onSearchChange()"
-        (keyup.enter)="onSearch()"
-      />
-      <!-- Usar @if en lugar de *ngIf -->
-      @if (searchQuery) {
-        <button (click)="clearSearch()" class="clear-search-btn">
-          ×
-        </button>
-      }
+    <!-- 🔥 SI ESTÁ EN DASHBOARD: LOGO IZQUIERDA -->
+    @if (esDashboard()) {
+      <a class="navbar-brand fw-bold me-3" routerLink="/">
+        <i class="bi bi-tools me-2"></i>Sistema Técnico
+      </a>
+
+      <!-- 🔥 BUSCADOR CENTRADO -->
+      <div class="d-flex justify-content-center flex-grow-1 mx-3">
+        <div class="search-container" style="min-width: 400px; max-width: 600px;">
+          <div class="input-group">
+            <input
+              class="form-control"
+              type="search"
+              [(ngModel)]="searchTerm"
+              [placeholder]="placeholder"
+              (input)="onSearch()"
+              aria-label="Buscar">
+            @if (searchTerm) {
+              <button class="btn btn-outline-secondary" type="button" (click)="clearSearch()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- 🔥 SI NO ESTÁ EN DASHBOARD: LOGO + BUSCADOR CENTRADOS -->
+    @else {
+      <div class="d-flex align-items-center justify-content-center flex-grow-1">
+        <!-- LOGO -->
+        <a class="navbar-brand fw-bold me-3" routerLink="/">
+          <i class="bi bi-tools me-2"></i>Sistema Técnico
+        </a>
+
+        <!-- BUSCADOR -->
+        <div class="search-container" style="min-width: 400px; max-width: 600px;">
+          <div class="input-group">
+            <input
+              class="form-control"
+              type="search"
+              [(ngModel)]="searchTerm"
+              [placeholder]="placeholder"
+              (input)="onSearch()"
+              aria-label="Buscar">
+            @if (searchTerm) {
+              <button class="btn btn-outline-secondary" type="button" (click)="clearSearch()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- 🔥 USUARIO DERECHA -->
+    <div class="d-flex align-items-center">
+      <div class="user-info d-flex align-items-center">
+        <div class="user-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center me-2"
+            style="width: 32px; height: 32px;">
+          <i class="bi bi-person-fill text-white"></i>
+        </div>
+
+        <!-- 👇 Enlace al perfil -->
+        <a routerLink="/perfil" class="user-link">
+          {{ usuarioActual }}
+        </a>
+      </div>
     </div>
-  </div>
-
-  <!-- Derecha: Nombre de usuario con enlace -->
-  <div class="navbar-right">
-    <a [routerLink]="['/perfil']" class="username">{{ username }}</a>
   </div>
 </nav>

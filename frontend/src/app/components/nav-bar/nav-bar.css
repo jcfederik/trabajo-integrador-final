@@ -69,3 +69,13 @@
 .navbar-right .username:hover {
   color: #000;
 }
+.user-link {
+  color: black;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.user-link:hover {
+  text-decoration: underline;
+  color: black;
+}

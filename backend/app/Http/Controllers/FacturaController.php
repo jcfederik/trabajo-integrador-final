@@ -18,25 +18,47 @@ class FacturaController extends Controller
     /**
      * @OA\Get(
      *     path="/api/facturas",
-     *     summary="Obtener todas las facturas",
+     *     summary="Obtener todas las facturas con paginación",
      *     tags={"Facturas"},
      *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
      *     @OA\Response(
      *         response=200, 
      *         description="Lista de facturas obtenida correctamente",
      *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(ref="#/components/schemas/Factura")
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Factura")),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=15),
+     *             @OA\Property(property="total", type="integer", example=75),
+     *             @OA\Property(property="from", type="integer", example=1),
+     *             @OA\Property(property="to", type="integer", example=15)
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=500, description="Error al obtener las facturas")
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $facturas = Factura::with('presupuesto')->get();
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            
+            $facturas = Factura::with('presupuesto')->paginate($perPage, ['*'], 'page', $page);
             return response()->json($facturas, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener las facturas', 'detalle' => $e->getMessage()], 500);

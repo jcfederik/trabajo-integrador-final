@@ -1,14 +1,13 @@
-// src/app/components/nav-bar/nav-bar.ts
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { CommonModule } from '@angular/common'; // <-- Agregar esto
-import { SearchService } from '../../services/busqueda/busquedaglobal';
+import { Router, RouterModule } from '@angular/router';
+import { SearchService } from '../../services/busquedaglobal';
 
 @Component({
   selector: 'nav-bar',
   standalone: true,
-  imports: [FormsModule, RouterModule, CommonModule], // <-- Agregar CommonModule
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './nav-bar.html',
   styleUrls: ['./nav-bar.css']
 })
@@ -16,32 +15,112 @@ export class NavBar implements OnInit {
   username: string = 'Usuario';
   searchQuery: string = '';
   currentComponent: string = '';
+  placeholder: string = 'Buscar...';
+  searchTerm: string = '';
+  usuarioActual: string = 'Usuario';
 
-  constructor(private searchService: SearchService) {}
+  constructor(public searchService: SearchService, public router: Router) {}
 
   ngOnInit() {
-    this.searchService.currentComponent$.subscribe(component => {
-      this.currentComponent = component;
+    this.setPlaceholderByRoute();
+
+    // 🔥 Nuevo: obtener nombre del usuario guardado
+    const usuarioGuardado = localStorage.getItem('usuario');
+    if (usuarioGuardado) {
+      try {
+        const usuario = JSON.parse(usuarioGuardado);
+        this.usuarioActual = usuario.nombre || 'Usuario';
+      } catch {
+        this.usuarioActual = 'Usuario';
+      }
+    }
+
+    // 🔥 NUEVO: Sincronizar con búsqueda global cuando cambia
+    this.searchService.globalSearchTerm$.subscribe(term => {
+      if (term !== this.searchTerm) {
+        this.searchTerm = term;
+      }
     });
 
-    this.searchService.searchTerm$.subscribe(term => {
-      this.searchQuery = term;
+    this.searchService.currentComponent$.subscribe(component => {
+      setTimeout(() => {
+        this.placeholder = this.getPlaceholder(component);
+      });
     });
   }
 
+  private setPlaceholderByRoute() {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('equipos')) {
+      this.placeholder = 'Buscar equipos...';
+    } else if (currentPath.includes('clientes')) {
+      this.placeholder = 'Buscar clientes...';
+    } else if (currentPath.includes('facturas')) {
+      this.placeholder = 'Buscar facturas...';
+    } else if (currentPath.includes('proveedores')) {
+      this.placeholder = 'Buscar proveedores...';
+    } else if (currentPath.includes('repuestos')) {
+      this.placeholder = 'Buscar repuestos...';
+    } else if (currentPath.includes('presupuestos')) {
+      this.placeholder = 'Buscar presupuestos...';
+    } else if (currentPath.includes('reparaciones')) {
+      this.placeholder = 'Buscar reparaciones...';
+    } else if (currentPath.includes('cobros')) {
+      this.placeholder = 'Buscar cobros...';
+    } else if (currentPath.includes('usuarios')) {
+      this.placeholder = 'Buscar usuarios...';
+    } else if (currentPath.includes('especializaciones')) {
+      this.placeholder = 'Buscar especializaciones...';
+    } else if (currentPath.includes('detalles-cobro')) {
+      this.placeholder = 'Buscar detalles de cobro...';
+    } else if (currentPath === '/dashboard' || currentPath === '/') {
+      this.placeholder = 'Buscar módulos... (clientes, equipos, facturas, etc.)'; // 🔥 MODIFICADO
+    } else {
+      this.placeholder = 'Buscar...';
+    }
+  }
 
-
-  onSearchChange() {
-    this.searchService.setSearchTerm(this.searchQuery);
+  private getPlaceholder(component: string): string {
+    switch (component) {
+      case 'equipos': return 'Buscar equipos...';
+      case 'clientes': return 'Buscar clientes...';
+      case 'facturas': return 'Buscar facturas...';
+      case 'proveedores': return 'Buscar proveedores...';
+      case 'repuestos': return 'Buscar repuestos...';
+      case 'presupuestos': return 'Buscar presupuestos...';
+      case 'reparaciones': return 'Buscar reparaciones...';
+      case 'cobros': return 'Buscar cobros...';
+      case 'usuarios': return 'Buscar usuarios...';
+      case 'especializaciones': return 'Buscar especializaciones...';
+      case 'detalles-cobro': return 'Buscar detalles de cobro...';
+      case 'dashboard': return 'Buscar módulos... (clientes, equipos, facturas, etc.)'; // 🔥 NUEVO
+      default: return 'Buscar...';
+    }
   }
 
   onSearch() {
-    console.log('Buscando:', this.searchQuery);
-    this.searchService.setSearchTerm(this.searchQuery);
+    // 🔥 MODIFICADO: Usar búsqueda global en lugar de específica
+    this.searchService.setGlobalSearchTerm(this.searchTerm);
+    
+    // Si estamos en dashboard, también actualizar la búsqueda del dashboard
+    if (this.esDashboard()) {
+      this.searchService.setDashboardSearchTerm(this.searchTerm);
+    } else {
+      // Para otras páginas, usar la búsqueda normal
+      this.searchService.setSearchTerm(this.searchTerm);
+    }
   }
 
   clearSearch() {
-    this.searchQuery = '';
+    this.searchTerm = '';
+    // 🔥 MODIFICADO: Limpiar todas las búsquedas
+    this.searchService.clearGlobalSearch();
     this.searchService.clearSearch();
+    this.searchService.clearDashboardSearch();
+  }
+
+  // ✅ Nuevo: detectar si está en dashboard
+  esDashboard(): boolean {
+    return this.router.url === '/dashboard' || this.router.url === '/';
   }
 }
