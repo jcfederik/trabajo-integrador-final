@@ -1,0 +1,123 @@
+<div class="container py-4">
+  <!-- Botones circulares (listar / crear) -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+    <button class="btn btn-outline-primary rounded-circle p-3"
+            (click)="seleccionarAccion('listar')"
+            [class.active]="selectedAction==='listar'">
+      <i class="bi bi-list fs-4"></i>
+    </button>
+    <button class="btn btn-outline-success rounded-circle p-3"
+            (click)="seleccionarAccion('crear')"
+            [class.active]="selectedAction==='crear'">
+      <i class="bi bi-plus-circle fs-4"></i>
+    </button>
+  </div>
+
+  <!-- LISTAR -->
+  <div *ngIf="selectedAction==='listar'">
+    <h4 class="text-center mb-3">Reparaciones</h4>
+
+    <div class="list-group">
+      <div *ngFor="let r of reparaciones" class="list-group-item">
+        <!-- Normal vs Edición inline -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+
+          <!-- COLUMNA IZQ: datos -->
+          <div class="flex-grow-1">
+            <ng-container *ngIf="editingId !== r.id; else editRow">
+              <div class="fw-semibold">
+                #{{ r.id }} — {{ r.descripcion }}
+              </div>
+              <div class="text-muted small">
+                Equipo: {{ r.equipo?.nombre ?? r.equipo_id }} ·
+                Técnico: {{ r.tecnico?.nombre ?? r.usuario_id }} ·
+                Fecha: {{ r.fecha | date:'yyyy-MM-dd' }} ·
+                Estado: <span class="badge bg-secondary">{{ r.estado }}</span>
+              </div>
+            </ng-container>
+
+            <!-- Edición inline -->
+            <ng-template #editRow>
+              <div class="row g-2">
+                <div class="col-12">
+                  <label class="form-label small">Descripción</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.descripcion" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">Equipo ID</label>
+                  <input type="number" class="form-control" [(ngModel)]="editBuffer.equipo_id" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">Técnico (usuario_id)</label>
+                  <input type="number" class="form-control" [(ngModel)]="editBuffer.usuario_id" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">Fecha</label>
+                  <input type="date" class="form-control" [(ngModel)]="editBuffer.fecha" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">Estado</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.estado" placeholder="pendiente/en proceso/finalizada" />
+                </div>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- COLUMNA DER: acciones -->
+          <div class="d-flex gap-2">
+            <button *ngIf="editingId !== r.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(r)">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <ng-container *ngIf="editingId === r.id">
+              <button class="btn btn-sm btn-success" (click)="saveEdit(r.id)">
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button class="btn btn-sm btn-secondary" (click)="cancelEdit()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </ng-container>
+            <button class="btn btn-sm btn-outline-danger" (click)="eliminar(r.id)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-3" *ngIf="loading">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  </div>
+
+  <!-- CREAR -->
+  <div *ngIf="selectedAction==='crear'">
+    <h4 class="text-center mb-3">Registrar Reparación</h4>
+    <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
+      <div class="row g-3">
+        <div class="col-6">
+          <label class="form-label">Equipo ID</label>
+          <input type="number" class="form-control" [(ngModel)]="nuevo.equipo_id" name="equipo_id" required />
+        </div>
+        <div class="col-6">
+          <label class="form-label">Técnico (usuario_id)</label>
+          <input type="number" class="form-control" [(ngModel)]="nuevo.usuario_id" name="usuario_id" required />
+        </div>
+        <div class="col-12">
+          <label class="form-label">Descripción</label>
+          <input class="form-control" [(ngModel)]="nuevo.descripcion" name="descripcion" required />
+        </div>
+        <div class="col-6">
+          <label class="form-label">Fecha</label>
+          <input type="date" class="form-control" [(ngModel)]="nuevo.fecha" name="fecha" required />
+        </div>
+        <div class="col-6">
+          <label class="form-label">Estado</label>
+          <input class="form-control" [(ngModel)]="nuevo.estado" name="estado" placeholder="pendiente/en proceso/finalizada" required />
+        </div>
+      </div>
+
+      <button class="btn btn-success w-100 mt-3" type="submit">Guardar</button>
+    </form>
+  </div>
+</div>

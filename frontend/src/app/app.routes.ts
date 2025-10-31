@@ -1,13 +1,19 @@
 import { Routes } from '@angular/router';
-import { DashboardComponent } from './components/dashboard/dashboard';
-import { ClientesComponent } from './components/clientes/clientes.component';
 import { authGuard } from './services/auth-guard';
 
 export const routes: Routes = [
+  // Públicas
   { path: 'login', loadComponent: () => import('./components/login/login').then(m => m.Login) },
-  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
-  { path: 'clientes', component: ClientesComponent, canActivate: [authGuard] },
+
+  // Privadas (protegidas con guard)
+  { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent), canActivate: [authGuard] },
+  { path: 'clientes', loadComponent: () => import('./components/clientes/clientes.component').then(m => m.ClientesComponent), canActivate: [authGuard] },
   { path: 'equipos', loadComponent: () => import('./components/equipos/equipos').then(m => m.EquiposComponent), canActivate: [authGuard] },
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: '**', redirectTo: '/dashboard' }
+  { path: 'reparaciones', loadComponent: () => import('./components/reparaciones/reparaciones.component').then(m => m.ReparacionesComponent), canActivate: [authGuard] },
+
+  // Redirect raíz → dashboard (protegido)
+  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+
+  // Wildcard al final
+  { path: '**', redirectTo: 'dashboard' }
 ];

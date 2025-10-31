@@ -71,8 +71,8 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
       icon: 'bi-wrench', 
       description: 'Seguimiento de reparaciones', 
       route: '/reparaciones',
-      type: 'reparaciones',
-      disabled: true
+      type: 'reparaciones'
+    
     },
     { 
       title: 'Cobros', 
