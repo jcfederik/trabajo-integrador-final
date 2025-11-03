@@ -39,17 +39,14 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
       icon: 'bi-receipt', 
       description: 'Facturación y pagos', 
       route: '/facturas',
-      type: 'facturas',
-      disabled: true
-    },
+      type: 'facturas',    },
     { 
       title: 'Proveedores', 
       icon: 'bi-truck', 
       description: 'Gestión de proveedores', 
       route: '/proveedores',
       type: 'proveedores',
-      disabled: true
-    },
+        },
     { 
       title: 'Repuestos', 
       icon: 'bi-tools', 
@@ -64,7 +61,6 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
       description: 'Creación de presupuestos', 
       route: '/presupuestos',
       type: 'presupuestos',
-      disabled: true
     },
     { 
       title: 'Reparaciones', 

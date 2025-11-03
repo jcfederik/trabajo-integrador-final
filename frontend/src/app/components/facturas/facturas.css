@@ -1,0 +1,42 @@
+/* Botón circular mejorado (queda lindo con navbar + sidebar) */
+.btn-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
+}
+.btn-icon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+}
+.btn-icon.active {
+  color: #fff !important;
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+/* List-group con suavidad */
+.list-group-item {
+  border-radius: .5rem;
+  margin-bottom: .35rem;
+}
+
+/* Truncado suave si algún detalle es largo */
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Spinner */
+.spinner-border { width: 2rem; height: 2rem; }
+
+/* Pequeño ajuste para inputs en edición inline en pantallas chicas */
+@media (max-width: 576px) {
+  .list-group-item .row > [class^="col-"] { margin-bottom: .25rem; }
+}

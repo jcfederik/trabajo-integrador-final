@@ -18,7 +18,7 @@ interface SidebarItem {
   styleUrls: ['./sidebar.css']
 })
 export class SidebarComponent {
-  isCollapsed = false;
+  isCollapsed = true;
 
   menuItems: SidebarItem[] = [
     { title: 'MENÚ PRINCIPAL', isHeader: true },

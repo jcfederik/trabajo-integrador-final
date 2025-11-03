@@ -1,19 +1,46 @@
+// routes.ts
 import { Routes } from '@angular/router';
-import { authGuard } from './services/auth-guard';
+import { authMatchGuard } from './services/auth-guard'; // ver abajo
 
 export const routes: Routes = [
   // Públicas
   { path: 'login', loadComponent: () => import('./components/login/login').then(m => m.Login) },
 
-  // Privadas (protegidas con guard)
-  { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent), canActivate: [authGuard] },
-  { path: 'clientes', loadComponent: () => import('./components/clientes/clientes.component').then(m => m.ClientesComponent), canActivate: [authGuard] },
-  { path: 'equipos', loadComponent: () => import('./components/equipos/equipos').then(m => m.EquiposComponent), canActivate: [authGuard] },
-  { path: 'reparaciones', loadComponent: () => import('./components/reparaciones/reparaciones.component').then(m => m.ReparacionesComponent), canActivate: [authGuard] },
+  // Privadas (SOLO canMatch)
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent),
+    canMatch: [authMatchGuard],
+  },
+  {
+    path: 'clientes',
+    loadComponent: () => import('./components/clientes/clientes.component').then(m => m.ClientesComponent),
+    canMatch: [authMatchGuard],
+  },
+  {
+    path: 'equipos',
+    loadComponent: () => import('./components/equipos/equipos').then(m => m.EquiposComponent),
+    canMatch: [authMatchGuard],
+  },
+  {
+    path: 'reparaciones',
+    loadComponent: () => import('./components/reparaciones/reparaciones.component').then(m => m.ReparacionesComponent),
+    canMatch: [authMatchGuard],
+  },
+  {
+    path: 'facturas',
+    loadComponent: () => import('./components/facturas/facturas').then(m => m.FacturasComponent),
+    canMatch: [authMatchGuard],
+  },
+  { path: 'presupuestos',
+    loadComponent: () => import('./components/presupuestos/presupuestos')
+      .then(m => m.PresupuestosComponent),
+    canMatch: [authMatchGuard] // o lo que uses
+  },
 
-  // Redirect raíz → dashboard (protegido)
-  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+  // Redirect raíz
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
 
-  // Wildcard al final
-  { path: '**', redirectTo: 'dashboard' }
+  // Wildcard → login (no a dashboard)
+  { path: '**', redirectTo: 'login' },
 ];

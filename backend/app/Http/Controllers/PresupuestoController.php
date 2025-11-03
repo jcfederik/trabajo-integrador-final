@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Presupuesto;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 /**
  * @OA\Tag(
@@ -90,26 +91,34 @@ class PresupuestoController extends Controller
      *     @OA\Response(response=500, description="Error al crear el presupuesto")
      * )
      */
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'reparacion_id' => 'required|exists:reparacion,id',
-            'monto_total' => 'required|numeric|min:0',
-            'aceptado' => 'required|boolean',
-            'fecha' => 'required|date',
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
-        }
+public function store(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'reparacion_id' => 'required|exists:reparacion,id',
+        'monto_total'   => 'required|numeric|min:0',
+        'aceptado'      => 'required|boolean',
+        'fecha'         => 'required|date',
+    ]);
 
-        try {
-            $presupuesto = Presupuesto::create($validator->validated());
-            return response()->json(['mensaje' => 'Presupuesto creado correctamente', 'presupuesto' => $presupuesto], 201);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al crear el presupuesto', 'detalle' => $e->getMessage()], 500);
-        }
+    if ($validator->fails()) {
+        return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
     }
+
+    try {
+        $data = $validator->validated();
+
+        // 🔧 Normalizar fecha a formato SQL
+        $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
+
+        $presupuesto = Presupuesto::create($data);
+        return response()->json(['mensaje' => 'Presupuesto creado correctamente', 'presupuesto' => $presupuesto], 201);
+    } catch (\Throwable $e) {
+        \Log::error('Error creando presupuesto', ['err' => $e->getMessage()]);
+        return response()->json(['error' => 'Error al crear el presupuesto', 'detalle' => $e->getMessage()], 500);
+    }
+}
+
 
     /**
      * @OA\Get(
@@ -181,13 +190,18 @@ class PresupuestoController extends Controller
         }
 
         try {
-            $presupuesto->update($request->all());
+            $data = $request->all();
+            if (isset($data['fecha'])) {
+                $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
+            }
+            $presupuesto->update($data);
             return response()->json(['mensaje' => 'Presupuesto actualizado correctamente', 'presupuesto' => $presupuesto], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Log::error('Error actualizando presupuesto', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al actualizar el presupuesto', 'detalle' => $e->getMessage()], 500);
         }
-    }
 
+    }
     /**
      * @OA\Delete(
      *     path="/api/presupuesto/{id}",

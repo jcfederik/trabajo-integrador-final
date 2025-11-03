@@ -50,9 +50,16 @@ export class AuthService {
     return localStorage.getItem('token');
   }
 
-  // Comprobar si hay sesión activa
-  isLogged(): boolean {
-    return this.isLoggedIn();
+  isAuthenticated(): boolean {
+    const t = this.getToken();
+    if (!t) return false;
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1]));
+      const now = Math.floor(Date.now() / 1000);
+      return payload?.exp ? payload.exp > now : true; // si no hay exp, como mínimo existe token
+    } catch {
+      return false;
+    }
   }
 
   // Cerrar sesión (también podrías hacer POST /logout al back)

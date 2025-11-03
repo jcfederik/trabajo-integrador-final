@@ -1,0 +1,30 @@
+/* Botón circular consistente */
+.btn-icon {
+  width: 60px; height: 60px; border-radius: 50%;
+  padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
+}
+.btn-icon:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+.btn-icon.active {
+  color: #fff !important; background-color: var(--bs-primary); border-color: var(--bs-primary);
+}
+
+.list-group-item { border-radius: .5rem; margin-bottom: .35rem; }
+.spinner-border { width: 2rem; height: 2rem; }
+.placeholder { border-radius: .5rem; }
+
+/* Estado vacío */
+.empty-state { max-width: 640px; border-radius: .75rem; }
+.empty-ico-wrap {
+  width: 72px; height: 72px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(var(--bs-primary-rgb), .1); color: var(--bs-primary); font-size: 32px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05) inset;
+  animation: floatIn .25s ease-out both;
+}
+@keyframes floatIn { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+@media (max-width: 576px) {
+  .list-group-item .row > [class^="col-"] { margin-bottom: .25rem; }
+}

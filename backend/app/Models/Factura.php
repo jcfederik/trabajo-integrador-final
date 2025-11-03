@@ -1,15 +1,18 @@
 <?php
-
+// app/Models/Factura.php
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Factura extends Model
 {
     use HasFactory;
 
+    // 👇 tu tabla real es singular
     protected $table = 'factura';
+
+    public $timestamps = false;
 
     protected $fillable = [
         'presupuesto_id',
@@ -17,12 +20,16 @@ class Factura extends Model
         'letra',
         'fecha',
         'monto_total',
-        'detalle'
+        'detalle',
     ];
 
-    /** Relaciones */
+    protected $casts = [
+        'fecha'       => 'datetime:Y-m-d H:i:s',
+        'monto_total' => 'decimal:2',
+    ];
+
     public function presupuesto()
     {
-        return $this->belongsTo(Presupuesto::class, 'presupuesto_id');
+        return $this->belongsTo(\App\Models\Presupuesto::class, 'presupuesto_id');
     }
 }

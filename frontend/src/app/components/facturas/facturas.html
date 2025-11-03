@@ -1,0 +1,224 @@
+<div class="container py-4">
+
+  <!-- Botonera circular -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+    <button class="btn btn-icon btn-outline-primary"
+            (click)="seleccionarAccion('listar')"
+            [class.active]="selectedAction==='listar'"
+            aria-label="Listar facturas">
+      <i class="bi bi-card-list fs-5"></i>
+    </button>
+
+    <button class="btn btn-icon btn-outline-success"
+            (click)="seleccionarAccion('crear')"
+            [class.active]="selectedAction==='crear'"
+            aria-label="Crear factura">
+      <i class="bi bi-file-earmark-plus fs-5"></i>
+    </button>
+
+    <button class="btn btn-icon btn-outline-secondary"
+            (click)="exportarPDF()"
+            [disabled]="!facturas.length"
+            aria-label="Exportar a PDF">
+      <i class="bi bi-printer fs-5"></i>
+    </button>
+  </div>
+
+  <!-- ================= LISTAR ================= -->
+  <div *ngIf="selectedAction==='listar'">
+    <h4 class="text-center mb-3">Facturas</h4>
+
+    <!-- Skeleton de carga (primera página) -->
+    <div *ngIf="loading && facturas.length === 0" class="list-group">
+      <div class="list-group-item" *ngFor="let s of [1,2,3,4,5]">
+        <div class="placeholder-glow">
+          <span class="placeholder col-4 me-2"></span>
+          <span class="placeholder col-2 me-2"></span>
+          <span class="placeholder col-3"></span>
+        </div>
+        <div class="placeholder-glow mt-2">
+          <span class="placeholder col-8"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado vacío (sin datos) -->
+    <ng-container *ngIf="!loading && facturas.length === 0; else listContent">
+      <div class="empty-state card border-0 shadow-sm p-4 mx-auto text-center">
+        <div class="empty-ico-wrap mx-auto mb-3">
+          <i class="bi bi-receipt"></i>
+        </div>
+        <h5 class="mb-1">Aún no cargaste facturas</h5>
+        <p class="text-muted mb-3">
+          Registrá tu primera factura para empezar a ver el historial acá.
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <button class="btn btn-success" (click)="seleccionarAccion('crear')">
+            <i class="bi bi-file-earmark-plus me-1"></i> Crear factura
+          </button>
+          <button class="btn btn-outline-primary" (click)="resetLista()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+          </button>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Contenido de lista -->
+    <ng-template #listContent>
+      <div class="list-group">
+        <div *ngFor="let f of facturas" class="list-group-item">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+
+            <!-- Columna izquierda: datos -->
+            <div class="flex-grow-1">
+              <ng-container *ngIf="editingId !== f.id; else editRow">
+                <div class="fw-semibold">
+                  {{ f.numero }} <span class="text-muted">({{ f.letra }})</span>
+                </div>
+                <div class="text-muted small">
+                  Fecha: {{ f.fecha | date:'yyyy-MM-dd' }} ·
+                  Monto: {{ f.monto_total | number:'1.2-2' }} ·
+                  Presupuesto: {{ f.presupuesto_id }}
+                </div>
+                <div class="small">
+                  <span class="text-muted">Detalle:</span> {{ f.detalle || '—' }}
+                </div>
+              </ng-container>
+
+              <!-- Edición inline -->
+              <ng-template #editRow>
+                <div class="row g-2">
+                  <div class="col-12 col-md-3">
+                    <label class="form-label small">Número</label>
+                    <input class="form-control" [(ngModel)]="editBuffer.numero" />
+                  </div>
+                  <div class="col-6 col-md-2">
+                    <label class="form-label small">Letra</label>
+                    <input class="form-control text-uppercase" maxlength="1" [(ngModel)]="editBuffer.letra" />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small">Fecha</label>
+                    <input type="date" class="form-control" [(ngModel)]="editBuffer.fecha" />
+                  </div>
+                  <div class="col-12 col-md-2">
+                    <label class="form-label small">Monto</label>
+                    <input type="number" step="0.01" class="form-control" [(ngModel)]="editBuffer.monto_total" />
+                  </div>
+                  <div class="col-12 col-md-2">
+                    <label class="form-label small">Presupuesto ID</label>
+                    <input type="number" class="form-control" [(ngModel)]="editBuffer.presupuesto_id" />
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small">Detalle</label>
+                    <input class="form-control" [(ngModel)]="editBuffer.detalle" />
+                  </div>
+                </div>
+              </ng-template>
+            </div>
+
+            <!-- Columna derecha: acciones -->
+            <div class="d-flex gap-2">
+              <button *ngIf="editingId !== f.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(f)" title="Editar">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+
+              <ng-container *ngIf="editingId === f.id">
+                <button class="btn btn-sm btn-success" (click)="saveEdit(f.id)" title="Guardar">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+                <button class="btn btn-sm btn-secondary" (click)="cancelEdit()" title="Cancelar">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </ng-container>
+
+              <button class="btn btn-sm btn-outline-danger" (click)="eliminar(f.id)" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Loader incremental -->
+      <div class="text-center mt-3" *ngIf="loading && facturas.length > 0">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+
+      <!-- Fin de listado -->
+      <div class="text-center mt-3 text-muted small"
+           *ngIf="!loading && lastPage && facturas.length">
+        Llegaste al final.
+      </div>
+
+      <!-- CTA cuando hay pocos ítems -->
+      <div *ngIf="!loading && facturas.length && facturas.length < 3" class="text-center mt-3">
+        <button class="btn btn-outline-success" (click)="seleccionarAccion('crear')">
+          <i class="bi bi-file-earmark-plus me-1"></i> Registrar nueva factura
+        </button>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- ================= CREAR ================= -->
+  <div *ngIf="selectedAction==='crear'">
+    <h4 class="text-center mb-3">Registrar Factura</h4>
+
+    <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <label class="form-label">Presupuesto ID</label>
+          <input type="number" class="form-control" [(ngModel)]="nuevo.presupuesto_id" name="presupuesto_id" required />
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">Número</label>
+          <input class="form-control" [(ngModel)]="nuevo.numero" name="numero" placeholder="F0001-00000001" required />
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">Letra</label>
+          <input class="form-control text-uppercase" maxlength="1" [(ngModel)]="nuevo.letra" name="letra" required />
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Fecha</label>
+          <input type="date" class="form-control" [(ngModel)]="nuevo.fecha" name="fecha" required />
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Monto total</label>
+          <input type="number" min="0" step="0.01" class="form-control" [(ngModel)]="nuevo.monto_total" name="monto_total" required />
+        </div>
+        <div class="col-12">
+          <label class="form-label">Detalle (opcional)</label>
+          <input class="form-control" [(ngModel)]="nuevo.detalle" name="detalle" />
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Presupuesto</label>
+        <div class="input-group">
+            <input type="number" class="form-control"
+                [(ngModel)]="nuevo.presupuesto_id"
+                name="presupuesto_id"
+                placeholder="ID de presupuesto (o seleccionar)"
+                required />
+            <button type="button" class="btn btn-outline-secondary" (click)="abrirPicker()">
+            <i class="bi bi-search"></i> Seleccionar
+            </button>
+        </div>
+        <div class="form-text">
+            Podés ingresar el ID directamente o buscar por número/apellido.
+        </div>
+        </div>
+
+        <!-- Modal Picker -->
+        <app-presupuesto-picker
+        *ngIf="pickerVisible"
+        (closed)="pickerVisible=false"
+        (select)="onPickPresupuesto($event)">
+        </app-presupuesto-picker>
+
+
+      <button class="btn btn-success w-100 mt-3" type="submit">
+        <i class="bi bi-check2-circle me-1"></i> Guardar
+      </button>
+    </form>
+  </div>
+</div>

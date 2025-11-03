@@ -1,19 +1,12 @@
+// services/auth-guard.ts
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanMatchFn, Router, UrlTree } from '@angular/router';
 import { AuthService } from './auth';
 
-export const authGuard: CanActivateFn = () => {
+export const authMatchGuard: CanMatchFn = (_route, _segments): boolean | UrlTree => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  const token = auth.getToken();
-  const isLogged = auth.isLogged();
-
-  if (token && isLogged) {
-    return true; // ✅ Usuario autenticado → continuar
-  } else {
-    console.warn('⚠️ No autenticado, redirigiendo al login...');
-    router.navigate(['/login']);
-    return false;
-  }
+  // isAuthenticated debe ser un chequeo real (JWT exp o estado en memoria)
+  return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
 };
