@@ -42,9 +42,7 @@ class EquipoController extends Controller
      *             @OA\Property(property="current_page", type="integer", example=1),
      *             @OA\Property(property="last_page", type="integer", example=5),
      *             @OA\Property(property="per_page", type="integer", example=15),
-     *             @OA\Property(property="total", type="integer", example=75),
-     *             @OA\Property(property="from", type="integer", example=1),
-     *             @OA\Property(property="to", type="integer", example=15)
+     *             @OA\Property(property="total", type="integer", example=75)
      *         )
      *     ),
      *     @OA\Response(
@@ -79,8 +77,9 @@ class EquipoController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"descripcion"},
+     *             required={"descripcion", "cliente_id"},
      *             @OA\Property(property="descripcion", type="string", example="Notebook con problema de encendido"),
+     *             @OA\Property(property="cliente_id", type="integer", example=1),
      *             @OA\Property(property="marca", type="string", example="HP"),
      *             @OA\Property(property="modelo", type="string", example="Pavilion 14"),
      *             @OA\Property(property="nro_serie", type="string", example="HP123XYZ")
@@ -89,7 +88,10 @@ class EquipoController extends Controller
      *     @OA\Response(
      *         response=201,
      *         description="Equipo creado correctamente",
-     *         @OA\JsonContent(ref="#/components/schemas/Equipo")
+     *         @OA\JsonContent(
+     *             @OA\Property(property="mensaje", type="string", example="Equipo creado correctamente"),
+     *             @OA\Property(property="equipo", ref="#/components/schemas/Equipo")
+     *         )
      *     ),
      *     @OA\Response(
      *         response=400,
@@ -109,6 +111,7 @@ class EquipoController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'descripcion' => 'required|string|max:200',
+            'cliente_id' => 'required|exists:cliente,id',
             'marca' => 'nullable|string|max:100',
             'modelo' => 'nullable|string|max:100',
             'nro_serie' => 'nullable|string|max:100',
@@ -183,6 +186,7 @@ class EquipoController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             @OA\Property(property="descripcion", type="string", example="Notebook con batería reemplazada"),
+     *             @OA\Property(property="cliente_id", type="integer", example=1),
      *             @OA\Property(property="marca", type="string", example="Dell"),
      *             @OA\Property(property="modelo", type="string", example="Inspiron 15"),
      *             @OA\Property(property="nro_serie", type="string", example="DL1234ABC")
@@ -191,7 +195,10 @@ class EquipoController extends Controller
      *     @OA\Response(
      *         response=200,
      *         description="Equipo actualizado correctamente",
-     *         @OA\JsonContent(ref="#/components/schemas/Equipo")
+     *         @OA\JsonContent(
+     *             @OA\Property(property="mensaje", type="string", example="Equipo actualizado correctamente"),
+     *             @OA\Property(property="equipo", ref="#/components/schemas/Equipo")
+     *         )
      *     ),
      *     @OA\Response(
      *         response=400,
@@ -214,6 +221,7 @@ class EquipoController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'descripcion' => 'required|string|max:200',
+                'cliente_id' => 'required|exists:cliente,id',
                 'marca' => 'nullable|string|max:100',
                 'modelo' => 'nullable|string|max:100',
                 'nro_serie' => 'nullable|string|max:100',
@@ -247,7 +255,10 @@ class EquipoController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Equipo eliminado correctamente"
+     *         description="Equipo eliminado correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="mensaje", type="string", example="Equipo eliminado correctamente")
+     *         )
      *     ),
      *     @OA\Response(
      *         response=401,
@@ -274,6 +285,92 @@ class EquipoController extends Controller
             return response()->json(['error' => 'Equipo no encontrado'], 404);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al eliminar equipo', 'detalle' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/equipos/buscar",
+     *     summary="Buscar equipos por término",
+     *     tags={"Equipos"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         required=true,
+     *         description="Término de búsqueda (mínimo 2 caracteres)",
+     *         @OA\Schema(type="string", example="HP")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Resultados de búsqueda",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Equipo")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Término de búsqueda inválido"
+     *     )
+     * )
+     */
+    public function buscar(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'q' => 'required|string|min:2'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Término de búsqueda inválido'], 400);
+        }
+
+        $termino = $request->q;
+        
+        $equipos = Equipo::where('descripcion', 'LIKE', "%{$termino}%")
+            ->orWhere('marca', 'LIKE', "%{$termino}%")
+            ->orWhere('modelo', 'LIKE', "%{$termino}%")
+            ->orWhere('nro_serie', 'LIKE', "%{$termino}%")
+            ->limit(10)
+            ->get();
+
+        return response()->json($equipos);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/equipos/cliente/{clienteId}",
+     *     summary="Obtener equipos por cliente",
+     *     tags={"Equipos"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="clienteId",
+     *         in="path",
+     *         required=true,
+     *         description="ID del cliente",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de equipos del cliente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Equipo")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error al obtener equipos del cliente"
+     *     )
+     * )
+     */
+    public function porCliente($clienteId)
+    {
+        try {
+            $equipos = Equipo::where('cliente_id', $clienteId)->get();
+            return response()->json($equipos);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener equipos del cliente'], 500);
         }
     }
 }

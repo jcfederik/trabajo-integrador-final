@@ -15,14 +15,17 @@ export interface SearchableItem {
   modelo?: string;
   nro_serie?: string;
   
-  // // Campos para Reparación
-  // estado?: string;
-  
-  // // Campos para Factura
-  // numero?: string;
-  // letra?: string;
-  // monto_total?: number;
-  // detalle?: string;
+  // Campos para Reparación
+  estado?: string;
+  tecnico_nombre?: string;
+  equipo_nombre?: string;
+  reparacion_nombre?: string;
+  fecha?: string;
+  // Campos para Factura
+  numero?: string;
+  letra?: string;
+  monto_total?: number;
+  detalle?: string;
   
   // // Campos para Presupuesto
   // monto_total?: number;
@@ -176,13 +179,16 @@ export class SearchService {
         );
         break;
 
-      // case 'reparaciones':
-      //   fields.push(
-      //     item.descripcion || '',
-      //     item.estado || '',
-      //     item.fecha || ''
-      //   );
-      //   break;
+      case 'reparaciones':
+        fields.push(
+          item.descripcion || '',
+          item.estado || '',
+          item.fecha || '',
+          item.equipo_nombre || '',
+          item.tecnico_nombre || '',
+          item.reparacion_nombre || ''
+        );
+        break;
 
       // case 'facturas':
       //   fields.push(

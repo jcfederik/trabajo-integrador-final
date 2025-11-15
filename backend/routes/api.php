@@ -44,8 +44,12 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
 
     // 🔹 Recursos accesibles por cualquier usuario autenticado
+    Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
+    Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
     Route::apiResource('clientes', ClienteController::class);
+    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
     Route::apiResource('equipos', EquipoController::class);
+    Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
     Route::apiResource('medios-cobro', MedioCobroController::class);
     Route::apiResource('facturas', FacturaController::class);
     Route::apiResource('reparaciones', ReparacionController::class);

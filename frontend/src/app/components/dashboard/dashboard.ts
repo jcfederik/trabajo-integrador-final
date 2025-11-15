@@ -109,6 +109,7 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
   }
 
   ngOnInit() {
+    this.searchService.setCurrentComponent('dashboard');
     // 🔥 NUEVO: Suscribirse a cambios en la búsqueda global
     this.searchSubscription = this.searchService.globalSearchTerm$.subscribe(term => {
       if (term !== this.searchTerm) {
