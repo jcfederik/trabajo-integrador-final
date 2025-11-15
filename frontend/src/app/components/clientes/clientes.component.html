@@ -1,82 +1,126 @@
 <div class="container py-4">
-  <!-- 🔹 Botones circulares CRUD -->
+
+  <!-- Píldoras de acción -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
-    <button class="btn btn-outline-primary rounded-circle p-3" (click)="seleccionarAccion('listar')" [class.active]="selectedAction === 'listar'">
-      <i class="bi bi-list fs-4"></i>
+    <button class="action-pill" [class.active]="selectedAction==='listar'" (click)="seleccionarAccion('listar')">
+      <i class="bi bi-list-ul me-2"></i> Listar
     </button>
-    <button class="btn btn-outline-success rounded-circle p-3" (click)="seleccionarAccion('crear')" [class.active]="selectedAction === 'crear'">
-      <i class="bi bi-person-plus fs-4"></i>
-    </button>
-    <button class="btn btn-outline-warning rounded-circle p-3" (click)="seleccionarAccion('editar')" [class.active]="selectedAction === 'editar'">
-      <i class="bi bi-pencil-square fs-4"></i>
-    </button>
-    <button class="btn btn-outline-danger rounded-circle p-3" (click)="seleccionarAccion('eliminar')" [class.active]="selectedAction === 'eliminar'">
-      <i class="bi bi-trash fs-4"></i>
+    <button class="action-pill success" [class.active]="selectedAction==='crear'" (click)="seleccionarAccion('crear')">
+      <i class="bi bi-plus-circle me-2"></i> Crear
     </button>
   </div>
 
-  <!-- 🔹 Info de búsqueda -->
-  <div *ngIf="filteredClientes.length !== clientes.length && selectedAction === 'listar'" 
-       class="alert alert-info text-center">
-    Mostrando {{ filteredClientes.length }} de {{ clientes.length }} clientes
-  </div>
+  <!-- LISTAR -->
+  <div *ngIf="selectedAction==='listar'">
+    <h4 class="text-center mb-3">Clientes</h4>
 
-  <!-- 🔹 Listado -->
-  <div *ngIf="selectedAction === 'listar'">
-    <h4 class="text-center mb-3">Lista de Clientes</h4>
-    <div class="list-group">
-      <div *ngFor="let cliente of filteredClientes" class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <strong>{{ cliente.nombre }}</strong><br />
-          <small>{{ cliente.email }}</small><br />
-          <small *ngIf="cliente.telefono">{{ cliente.telefono }}</small>
-        </div>
-        <div>
-          <button class="btn btn-sm btn-outline-danger" (click)="eliminarCliente(cliente.id)">
-            <i class="bi bi-trash"></i>
-          </button>
+    <!-- Estado vacío -->
+    <div *ngIf="!loading && clientes.length===0" class="empty-state">
+      <div class="icon-wrap">
+        <i class="bi bi-people"></i>
+      </div>
+      <h5 class="mb-1">Sin clientes por ahora</h5>
+      <p class="text-muted mb-3">Creá tu primer cliente para comenzar.</p>
+      <button class="btn btn-primary" (click)="seleccionarAccion('crear')">
+        <i class="bi bi-plus-circle me-2"></i>Nuevo cliente
+      </button>
+    </div>
+
+    <div class="list-group" *ngIf="clientes.length">
+      <div *ngFor="let c of clientes" class="list-group-item">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+
+          <!-- Columna izquierda: datos -->
+          <div class="flex-grow-1">
+            <ng-container *ngIf="editingId !== c.id; else editRow">
+              <div class="fw-semibold">
+                {{ c.nombre }} <span class="text-muted">·</span>
+                <span class="small text-muted">{{ c.email }}</span>
+              </div>
+              <div class="text-muted small">
+                <ng-container *ngIf="c.telefono">Tel: {{ c.telefono }} · </ng-container>
+                <ng-container *ngIf="c.direccion">Dir: {{ c.direccion }}</ng-container>
+              </div>
+            </ng-container>
+
+            <!-- Edición inline -->
+            <ng-template #editRow>
+              <div class="row g-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Nombre</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.nombre" name="e_nombre"/>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Email</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.email" name="e_email"/>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Teléfono</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.telefono" name="e_tel"/>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Dirección</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.direccion" name="e_dir"/>
+                </div>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Columna derecha: acciones -->
+          <div class="d-flex gap-2">
+            <button *ngIf="editingId !== c.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(c)" title="Editar">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <ng-container *ngIf="editingId === c.id">
+              <button class="btn btn-sm btn-success" (click)="saveEdit(c.id)" title="Guardar">
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button class="btn btn-sm btn-secondary" (click)="cancelEdit()" title="Cancelar">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </ng-container>
+            <button class="btn btn-sm btn-outline-danger" (click)="eliminar(c.id)" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
 
-    <!-- Mensaje cuando no hay resultados -->
-    <div *ngIf="filteredClientes.length === 0 && clientes.length > 0" class="text-center mt-4">
-      <p class="text-muted">No se encontraron clientes con ese criterio de búsqueda.</p>
-    </div>
-
+    <!-- Loader -->
     <div class="text-center mt-3" *ngIf="loading">
       <div class="spinner-border text-primary" role="status"></div>
     </div>
   </div>
 
-  <!-- Los demás sections (crear, editar, eliminar) se mantienen igual -->
-  <!-- 🔹 Crear -->
-  <div *ngIf="selectedAction === 'crear'">
-    <h4 class="text-center mb-3">Registrar Cliente</h4>
-    <form (ngSubmit)="crearCliente()" class="mx-auto" style="max-width: 500px;">
-      <div class="mb-3">
-        <label class="form-label">Nombre</label>
-        <input [(ngModel)]="nuevoCliente.nombre" name="nombre" class="form-control" required />
+  <!-- CREAR -->
+  <div *ngIf="selectedAction==='crear'">
+    <h4 class="text-center mb-3">Nuevo cliente</h4>
+    <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Nombre</label>
+          <input class="form-control" [(ngModel)]="nuevo.nombre" name="nombre" required/>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Email</label>
+          <input class="form-control" [(ngModel)]="nuevo.email" name="email" required/>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Teléfono</label>
+          <input class="form-control" [(ngModel)]="nuevo.telefono" name="telefono"/>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Dirección</label>
+          <input class="form-control" [(ngModel)]="nuevo.direccion" name="direccion"/>
+        </div>
       </div>
-      <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input [(ngModel)]="nuevoCliente.email" name="email" type="email" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Teléfono</label>
-        <input [(ngModel)]="nuevoCliente.telefono" name="telefono" class="form-control" />
-      </div>
-      <button class="btn btn-success w-100" type="submit">Guardar</button>
+
+      <button class="btn btn-success w-100 mt-3" type="submit">
+        <i class="bi bi-save me-2"></i>Guardar
+      </button>
     </form>
   </div>
 
-  <!-- 🔹 Editar (placeholder) -->
-  <div *ngIf="selectedAction === 'editar'">
-    <p class="text-center text-muted">Edición de clientes próximamente 🛠️</p>
-  </div>
-
-  <!-- 🔹 Eliminar (placeholder) -->
-  <div *ngIf="selectedAction === 'eliminar'">
-    <p class="text-center text-muted">Usá los íconos de la lista para eliminar clientes.</p>
-  </div>
 </div>

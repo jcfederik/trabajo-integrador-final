@@ -76,7 +76,6 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
       description: 'Medios de cobro', 
       route: '/medios-cobro',
       type: 'cobros',
-      disabled: true
     },
     { 
       title: 'Usuarios', 

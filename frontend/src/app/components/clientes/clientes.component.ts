@@ -2,9 +2,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+
 import { ClienteService, Cliente, PaginatedResponse } from '../../services/cliente.service';
 import { SearchService } from '../../services/busquedaglobal';
-import { Subscription } from 'rxjs';
+
+type Accion = 'listar' | 'crear';
+type ClienteUI = Cliente & { telefono?: string; direccion?: string };
 
 @Component({
   selector: 'app-clientes',
@@ -14,146 +18,226 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./clientes.component.css'],
 })
 export class ClientesComponent implements OnInit, OnDestroy {
-  clientes: Cliente[] = [];
-  filteredClientes: Cliente[] = [];
-  selectedAction: 'listar' | 'crear' | 'editar' | 'eliminar' = 'listar';
-  loading = false;
-  
-  // 🔥 Variables de paginación
-  currentPage = 1;
-  lastPage = 1;
+  selectedAction: Accion = 'listar';
+
+  // Datos (mantenemos el crudo y el filtrado para mostrar)
+  private clientesAll: ClienteUI[] = [];
+  clientes: ClienteUI[] = [];
+
+  // paginación + estado
+  page = 1;
   perPage = 15;
-  total = 0;
-  from = 0;
-  to = 0;
-  
-  nuevoCliente: Partial<Cliente> = {};
-  
-  private searchSubscription!: Subscription;
+  lastPage = false;
+  loading = false;
+
+  // edición inline
+  editingId: number | null = null;
+  editBuffer: Partial<ClienteUI> = {};
+
+  // creación
+  nuevo: Partial<ClienteUI> = {
+    nombre: '',
+    email: '',
+    telefono: '',
+    direccion: ''
+  };
+
+  // búsqueda global
+  private searchSub?: Subscription;
+  searchTerm = '';
 
   constructor(
     private clienteService: ClienteService,
     private searchService: SearchService
   ) {}
 
-  ngOnInit() {
-    this.obtenerClientes();
-    
+  ngOnInit(): void {
+    this.resetLista();
+
+    // integrar con el buscador global
     this.searchService.setCurrentComponent('clientes');
-    window.addEventListener('scroll', this.onScroll.bind(this));
-    this.searchSubscription = this.searchService.searchTerm$.subscribe(term => {
-      this.filterClientes(term);
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      this.searchTerm = (term || '').trim();
+      this.applyFilter();
     });
-    
+
+    window.addEventListener('scroll', this.onScroll, { passive: true });
   }
-  
 
-  ngOnDestroy() {
-    window.removeEventListener('scroll', this.onScroll.bind(this));
-
-    if (this.searchSubscription) {
-      this.searchSubscription.unsubscribe();
-    }
+  ngOnDestroy(): void {
+    window.removeEventListener('scroll', this.onScroll);
+    this.searchSub?.unsubscribe();
     this.searchService.clearSearch();
   }
 
-  obtenerClientes(page: number = 1) {
-    if (this.loading || (page > this.lastPage && this.lastPage !== 0)) return;
-    
+  seleccionarAccion(a: Accion) { this.selectedAction = a; }
+
+  // ====== LISTA / SCROLL ======
+  private fetch(page = 1): void {
+    if (this.loading || this.lastPage) return;
     this.loading = true;
 
+    // Nota: usamos la firma (page, perPage) del servicio existente
     this.clienteService.getClientes(page, this.perPage).subscribe({
-      next: (response: PaginatedResponse<Cliente>) => {
+      next: (res: PaginatedResponse<Cliente>) => {
+        const batch = (res.data as ClienteUI[]) ?? [];
         if (page === 1) {
-          // Primera página - reemplazar
-          this.clientes = response.data;
+          this.clientesAll = batch;
         } else {
-          // Páginas siguientes - concatenar
-          this.clientes = [...this.clientes, ...response.data];
+          this.clientesAll = [...this.clientesAll, ...batch];
         }
-        
-        this.filteredClientes = [...this.clientes];
-        this.currentPage = response.current_page;
-        this.lastPage = response.last_page;
-        this.total = response.total;
-        this.from = response.from;
-        this.to = response.to;
-        
-        this.loading = false;
-        this.searchService.setSearchData(this.clientes);
-      },
-      error: (err) => {
-        console.error('Error al obtener clientes', err);
+
+        // paginación
+        this.page = res.current_page;
+this.lastPage = res.current_page >= res.last_page;
+
+        // aplicar filtro visible
+        this.applyFilter();
+
+        // compartir dataset al buscador (para autocompletar si hiciera falta)
+        this.searchService.setSearchData(this.clientesAll);
+
         this.loading = false;
       },
+      error: (e) => {
+        console.error('Error al obtener clientes', e);
+        this.loading = false;
+      }
     });
   }
 
-  onScroll() {
-    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
-    if (nearBottom && this.currentPage < this.lastPage) {
-      this.obtenerClientes(this.currentPage + 1);
+  cargar(): void { this.fetch(this.page === 0 ? 1 : this.page); }
+
+  onScroll = () => {
+    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
+    if (nearBottom && !this.loading && !this.lastPage) {
+      this.fetch(this.page + 1);
     }
+  };
+
+  resetLista(): void {
+    this.page = 1;
+    this.lastPage = false;
+    this.clientesAll = [];
+    this.clientes = [];
+    this.fetch(1);
   }
 
-  private filterClientes(searchTerm: string) {
-    if (!searchTerm) {
-      this.filteredClientes = [...this.clientes];
+  // Filtrado en cliente (nombre, email, teléfono, dirección)
+  private applyFilter(): void {
+    const term = this.searchTerm.toLowerCase();
+    if (!term) {
+      this.clientes = [...this.clientesAll];
       return;
     }
 
-    this.filteredClientes = this.searchService.search(this.clientes, searchTerm, 'clientes');
+    this.clientes = this.clientesAll.filter(c => {
+      const nombre = (c.nombre ?? '').toString().toLowerCase();
+      const email = (c.email ?? '').toString().toLowerCase();
+      const telefono = (c.telefono ?? '').toString().toLowerCase();
+      const direccion = (c.direccion ?? '').toString().toLowerCase();
+      return (
+        nombre.includes(term) ||
+        email.includes(term) ||
+        telefono.includes(term) ||
+        direccion.includes(term)
+      );
+    });
   }
 
-  clearSearch() {
-    this.searchService.clearSearch();
-  }
+  // ====== CREAR ======
+  crear(): void {
+    const payload = this.limpiar(this.nuevo);
+    if (!this.valida(payload)) return;
 
-  seleccionarAccion(accion: 'listar' | 'crear' | 'editar' | 'eliminar') {
-    this.selectedAction = accion;
-  }
-
-  crearCliente() {
-    if (!this.nuevoCliente.nombre || !this.nuevoCliente.email) {
-      alert('Nombre y email son obligatorios');
-      return;
-    }
-
-    this.clienteService.createCliente(this.nuevoCliente).subscribe({
-      next: (nuevoCliente) => {
-        this.nuevoCliente = {};
-        // Agregar al inicio y recargar primera página para mantener consistencia
-        this.clientes = [nuevoCliente, ...this.clientes];
-        this.filteredClientes = [nuevoCliente, ...this.filteredClientes];
+    this.clienteService.createCliente(payload).subscribe({
+      next: () => {
+        // refresco consistente desde página 1
         this.selectedAction = 'listar';
-        this.searchService.setSearchData(this.clientes);
+        this.nuevo = { nombre: '', email: '', telefono: '', direccion: '' };
+        this.resetLista();
       },
-      error: (err) => {
-        console.error('Error al crear cliente', err);
-        alert(err.error?.error || 'Error al crear cliente');
-      },
+      error: (e) => {
+        console.error('Error al crear cliente', e);
+        alert(e?.error?.error ?? 'Error al crear cliente');
+      }
     });
   }
 
-  eliminarCliente(id: number) {
-    if (!confirm('¿Seguro que querés eliminar este cliente?')) return;
+  // ====== ELIMINAR ======
+  eliminar(id: number): void {
+    if (!confirm('¿Eliminar este cliente?')) return;
 
     this.clienteService.deleteCliente(id).subscribe({
       next: () => {
-        this.clientes = this.clientes.filter((c) => c.id !== id);
-        this.filteredClientes = this.filteredClientes.filter((c) => c.id !== id);
-        this.searchService.setSearchData(this.clientes);
+        this.clientesAll = this.clientesAll.filter(c => c.id !== id);
+        this.applyFilter();
+        this.searchService.setSearchData(this.clientesAll);
       },
-      error: (err) => {
-        console.error('Error al eliminar cliente', err);
-      },
+      error: (e) => { console.error('Error al eliminar cliente', e); }
     });
   }
 
-  // 🔥 Método para cambiar elementos por página
-  cambiarItemsPorPagina(perPage: number) {
-    this.perPage = perPage;
-    this.currentPage = 1;
-    this.obtenerClientes(1);
+  // ====== EDICIÓN INLINE ======
+  startEdit(item: ClienteUI): void {
+    this.editingId = item.id;
+    this.editBuffer = {
+      nombre: item.nombre,
+      email: item.email,
+      telefono: item.telefono ?? '',
+      direccion: item.direccion ?? ''
+    };
   }
+
+  cancelEdit(): void {
+    this.editingId = null;
+    this.editBuffer = {};
+  }
+
+  saveEdit(id: number): void {
+    const payload = this.limpiar(this.editBuffer);
+    if (!this.valida(payload)) return;
+
+    this.clienteService.updateCliente(id, payload).subscribe({
+      next: () => {
+        // actualizar en memoria (crudo y visible)
+        const updateLocal = (arr: ClienteUI[]) => {
+          const idx = arr.findIndex(c => c.id === id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...payload } as ClienteUI;
+        };
+        updateLocal(this.clientesAll);
+        updateLocal(this.clientes);
+
+        this.searchService.setSearchData(this.clientesAll);
+        this.cancelEdit();
+      },
+      error: (e) => {
+        console.error('Error al actualizar cliente', e);
+        alert(e?.error?.error ?? 'No se pudo actualizar');
+      }
+    });
+  }
+
+  // ====== Helpers ======
+  private limpiar(obj: Partial<ClienteUI>): Partial<ClienteUI> {
+    return {
+      nombre: (obj.nombre ?? '').toString().trim(),
+      email: (obj.email ?? '').toString().trim(),
+      telefono: obj.telefono ? obj.telefono.toString().trim() : '',
+      direccion: obj.direccion ? obj.direccion.toString().trim() : ''
+    };
+  }
+
+  private valida(p: Partial<ClienteUI>): boolean {
+    if (!p.nombre || !p.email) {
+      alert('Completá: nombre y email.');
+      return false;
+    }
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email);
+    if (!emailOk) {
+      alert('Email inválido.');
+      return false;
+    }
+    return true;
+    }
 }

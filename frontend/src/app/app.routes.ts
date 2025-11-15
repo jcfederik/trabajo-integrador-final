@@ -38,6 +38,12 @@ export const routes: Routes = [
     canMatch: [authMatchGuard] // o lo que uses
   },
 
+  { path: 'medios-cobro',
+    loadComponent: () => import('./components/medios-cobro/medios-cobro')
+      .then(m => m.MediosCobroComponent),
+    canMatch: [authMatchGuard]
+  },
+
   // Redirect raíz
   { path: '', pathMatch: 'full', redirectTo: 'login' },
 
