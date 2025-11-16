@@ -2,8 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { SearchableItem } from './busquedaglobal';
 
-export interface Presupuesto {
+export interface Presupuesto extends SearchableItem {
   id: number;
   reparacion_id: number;
   fecha: string;
@@ -50,6 +51,45 @@ export class PresupuestoService {
 
   delete(id: number) {
     return this.http.delete(`${this.base}/${id}`);
+  }
+
+  // 🔥 NUEVO MÉTODO PARA BÚSQUEDA GLOBAL - USA EL ENDPOINT /buscar DEL BACKEND
+  buscarGlobal(termino: string): Observable<Presupuesto[]> {
+    if (!termino.trim()) {
+      return of([]);
+    }
+
+    const params = new HttpParams()
+      .set('q', termino)
+      .set('per_page', '100')
+      .set('include', 'reparacion');
+
+    return this.http.get<any>(`${this.base}/buscar`, { params }).pipe(
+      map(response => {
+        // Manejar diferentes formatos de respuesta
+        let presupuestos: any[] = [];
+        
+        if (Array.isArray(response)) {
+          presupuestos = response;
+        } else if (response.data && Array.isArray(response.data)) {
+          presupuestos = response.data;
+        } else if (response.presupuestos && Array.isArray(response.presupuestos)) {
+          presupuestos = response.presupuestos;
+        }
+        
+        return presupuestos.map(presupuesto => ({
+          ...presupuesto,
+          displayText: this.formatearDisplayText(presupuesto),
+          reparacion_descripcion: presupuesto.reparacion?.descripcion || 'Reparación no especificada',
+          estado_legible: presupuesto.aceptado ? 'aceptado' : 'pendiente'
+        }));
+      }),
+      catchError((error) => {
+        console.error('Error en búsqueda global de presupuestos:', error);
+        // Si falla la búsqueda específica, intentar con búsqueda fallback
+        return this.buscarPresupuestosFallback(termino);
+      })
+    );
   }
 
   buscarPresupuestos(termino: string): Observable<Presupuesto[]> {

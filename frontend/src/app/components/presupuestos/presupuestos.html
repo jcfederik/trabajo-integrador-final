@@ -60,14 +60,31 @@
 
     <!-- Contenido listado -->
     <ng-template #listContent>
-      <div class="list-group">
+      <div *ngIf="searchTerm && items.length === 0 && !loading" class="empty-state">
+        <div class="icon-wrap">
+          <i class="bi bi-search"></i>
+        </div>
+        <h5 class="mb-1">No se encontraron resultados</h5>
+        <p class="text-muted mb-3">
+          No hay presupuestos que coincidan con "{{ searchTerm }}"
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <button class="action-pill" (click)="searchService.clearSearch()">
+            <i class="bi bi-x-circle me-1"></i> Limpiar búsqueda
+          </button>
+          <button class="action-pill success" (click)="seleccionarAccion('crear')">
+            <i class="bi bi-clipboard-plus me-1"></i> Crear nuevo
+          </button>
+        </div>
+      </div>
+
+      <div class="list-group" *ngIf="items.length > 0">
         <div *ngFor="let p of items" class="list-group-item">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
 
             <!-- Izquierda: datos -->
             <div class="flex-grow-1">
               <ng-container *ngIf="editingId !== p.id; else editRow">
-                <!-- NUEVO DISEÑO: ID arriba, descripción abajo -->
                 <div class="fw-semibold mb-1">
                   Presupuesto #{{ p.id }}
                   <span class="badge ms-2" [class.bg-success]="p.aceptado" [class.bg-secondary]="!p.aceptado">
@@ -85,13 +102,80 @@
                 </div>
               </ng-container>
 
-              <!-- Edición inline (mantener igual) -->
+              <!-- BÚSQUEDA INTELIGENTE EN EDICIÓN -->
               <ng-template #editRow>
                 <div class="row g-2">
-                  <div class="col-12 col-md-3">
-                    <label class="form-label small">Reparación ID</label>
-                    <input type="number" class="form-control" [(ngModel)]="editBuffer.reparacion_id" />
+                  <div class="col-12">
+                    <label class="form-label small">Reparación</label>
+                    <div class="search-container">
+                      <input type="text" 
+                             class="form-control search-input" 
+                             [(ngModel)]="editBuffer.reparacionBusqueda"
+                             (input)="onBuscarReparacionEdit(editBuffer.reparacionBusqueda)"
+                             (focus)="mostrandoReparacionesEdit = true"
+                             (blur)="ocultarReparacionesEdit()"
+                             placeholder="Buscar reparación..."
+                             name="reparacionBusquedaEdit"
+                             autocomplete="off" />
+                      
+                      <!-- Limpiar selección -->
+                      <button *ngIf="editBuffer.reparacionBusqueda" 
+                              type="button" 
+                              class="btn-clear"
+                              (click)="limpiarReparacionEdit()" 
+                              title="Limpiar búsqueda">
+                        <i class="bi bi-x"></i>
+                      </button>
+
+                      <!-- Dropdown de sugerencias -->
+                      <div *ngIf="mostrandoReparacionesEdit && reparacionesSugeridasEdit.length > 0" 
+                           class="sugerencias-menu">
+                        <div class="sugerencias-header">
+                          <i class="bi bi-search"></i>
+                          Reparaciones encontradas
+                          <span class="sugerencias-count">{{ reparacionesSugeridasEdit.length }}</span>
+                        </div>
+                        <div *ngFor="let reparacion of reparacionesSugeridasEdit" 
+                             class="sugerencia-item"
+                             (mousedown)="seleccionarReparacionEdit(reparacion)">
+                          <div class="sugerencia-content">
+                            <strong>{{ reparacion.descripcion }}</strong>
+                            <div class="sugerencia-details">
+                              Equipo: {{ reparacion.equipo?.descripcion }} | 
+                              Técnico: {{ reparacion.tecnico?.nombre }} | 
+                              Estado: {{ reparacion.estado }}
+                            </div>
+                            <div class="sugerencia-details">
+                              Fecha: {{ reparacion.fecha | date:'dd/MM/yyyy' }} | ID: {{ reparacion.id }}
+                            </div>
+                          </div>
+                          <i class="bi bi-chevron-right"></i>
+                        </div>
+                      </div>
+
+                      <!-- Sin resultados -->
+                      <div *ngIf="mostrandoReparacionesEdit && !buscandoReparacionesEdit && reparacionesSugeridasEdit.length === 0 && editBuffer.reparacionBusqueda" 
+                           class="sugerencias-menu">
+                        <div class="sugerencias-header">
+                          <i class="bi bi-search"></i>
+                          Sin resultados
+                        </div>
+                        <div class="sugerencia-item text-muted">
+                          <div class="sugerencia-content text-center py-3">
+                            <i class="bi bi-exclamation-circle d-block mb-2" style="font-size: 1.5rem;"></i>
+                            No se encontraron reparaciones para "{{ editBuffer.reparacionBusqueda }}"
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Estado de carga -->
+                      <div *ngIf="buscandoReparacionesEdit" class="position-absolute end-0 top-50 translate-middle-y me-2">
+                        <div class="spinner-border spinner-border-sm text-primary loading-small" role="status"></div>
+                      </div>
+                    </div>
+                    
                   </div>
+
                   <div class="col-6 col-md-3">
                     <label class="form-label small">Fecha</label>
                     <input type="date" class="form-control" [(ngModel)]="editBuffer.fecha" />
@@ -111,7 +195,7 @@
               </ng-template>
             </div>
 
-            <!-- Derecha: acciones (mantener igual) -->
+            <!-- Derecha: acciones -->
             <div class="d-flex gap-2">
               <button *ngIf="editingId !== p.id" class="btn btn-sm btn-outline-warning btn-action" (click)="startEdit(p)" title="Editar">
                 <i class="bi bi-pencil-square"></i>
@@ -142,7 +226,7 @@
       </div>
 
       <!-- CTA si hay pocos ítems -->
-      <div *ngIf="!loading && items.length && items.length < 3" class="text-center mt-3">
+      <div *ngIf="!loading && items.length && items.length < 3 && !searchTerm" class="text-center mt-3">
         <button class="action-pill success" (click)="seleccionarAccion('crear')">
           <i class="bi bi-clipboard-plus me-1"></i> Registrar nuevo presupuesto
         </button>

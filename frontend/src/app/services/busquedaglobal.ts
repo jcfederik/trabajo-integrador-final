@@ -24,13 +24,11 @@ export interface SearchableItem {
   // Campos para Factura
   numero?: string;
   letra?: string;
-  monto_total?: number;
+  monto_total?: number | null;
   detalle?: string;
   
-  // // Campos para Presupuesto
-  // monto_total?: number;
-  // aceptado?: boolean;
-  // fecha?: string;
+  // Campos para Presupuesto
+  aceptado?: boolean;
   
   // // Campos para Proveedor
   // razon_social?: string;
@@ -200,13 +198,15 @@ export class SearchService {
       //   );
       //   break;
 
-      // case 'presupuestos':
-      //   fields.push(
-      //     item.monto_total?.toString() || '',
-      //     item.aceptado?.toString() || '',
-      //     item.fecha || ''
-      //   );
-      //   break;
+      case 'presupuestos':
+        fields.push(
+          item.monto_total?.toString() || '',
+          item.aceptado ? 'aceptado' : 'pendiente',
+          item.fecha || '',
+          (item as any).reparacion_descripcion || '',
+          (item as any).descripcion || ''
+        );
+        break;
 
       // case 'proveedores':
       //   fields.push(
