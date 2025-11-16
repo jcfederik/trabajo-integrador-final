@@ -1,13 +1,17 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 export interface Presupuesto {
   id: number;
   reparacion_id: number;
-  fecha: string;         // ISO o 'yyyy-MM-ddTHH:mm:ssZ'
-  monto_total: number|null;
+  fecha: string;
+  monto_total: number | null;
   aceptado: boolean;
+  reparacion?: any;
+  displayText?: string;
+  reparacion_descripcion?: string;
 }
 
 export interface Paginated<T> {
@@ -27,7 +31,9 @@ export class PresupuestoService {
   constructor(private http: HttpClient) {}
 
   list(page = 1, perPage = 10): Observable<Paginated<Presupuesto>> {
-    return this.http.get<Paginated<Presupuesto>>(`${this.base}?page=${page}&per_page=${perPage}`);
+    return this.http.get<Paginated<Presupuesto>>(
+      `${this.base}?page=${page}&per_page=${perPage}&include=reparacion`
+    );
   }
 
   show(id: number): Observable<Presupuesto> {
@@ -44,5 +50,75 @@ export class PresupuestoService {
 
   delete(id: number) {
     return this.http.delete(`${this.base}/${id}`);
+  }
+
+  buscarPresupuestos(termino: string): Observable<Presupuesto[]> {
+    if (!termino.trim()) {
+      return of([]);
+    }
+
+    const params = new HttpParams()
+      .set('q', termino)
+      .set('per_page', '100')
+      .set('include', 'reparacion');
+
+    return this.http.get<any>(`${this.base}/buscar`, { params }).pipe(
+      map(response => {
+        const presupuestos = Array.isArray(response) ? response : [];
+        
+        return presupuestos.map(presupuesto => ({
+          ...presupuesto,
+          displayText: this.formatearDisplayText(presupuesto),
+          reparacion_descripcion: presupuesto.reparacion?.descripcion || 'Reparación no especificada'
+        }));
+      }),
+      catchError(() => {
+        return this.buscarPresupuestosFallback(termino);
+      })
+    );
+  }
+
+  private buscarPresupuestosFallback(termino: string): Observable<Presupuesto[]> {
+    return this.http.get<Paginated<Presupuesto>>(
+      `${this.base}?per_page=100&include=reparacion`
+    ).pipe(
+      map(response => {
+        const todosLosPresupuestos = response.data || [];
+        const terminoLower = termino.toLowerCase();
+        
+        const presupuestosFiltrados = todosLosPresupuestos.filter((presupuesto: Presupuesto) => {
+          return (
+            presupuesto.id.toString().includes(termino) ||
+            (presupuesto.monto_total && presupuesto.monto_total.toString().includes(termino)) ||
+            (presupuesto.aceptado ? 'aceptado' : 'pendiente').includes(terminoLower) ||
+            (presupuesto.reparacion?.descripcion && presupuesto.reparacion.descripcion.toLowerCase().includes(terminoLower)) ||
+            (presupuesto.reparacion?.estado && presupuesto.reparacion.estado.toLowerCase().includes(terminoLower))
+          );
+        });
+
+        return presupuestosFiltrados.map(presupuesto => ({
+          ...presupuesto,
+          displayText: this.formatearDisplayText(presupuesto),
+          reparacion_descripcion: presupuesto.reparacion?.descripcion || 'Reparación no especificada'
+        }));
+      }),
+      catchError(() => {
+        return of([]);
+      })
+    );
+  }
+
+  private formatearDisplayText(presupuesto: Presupuesto): string {
+    const monto = presupuesto.monto_total ? 
+      `$${presupuesto.monto_total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
+      'Sin monto';
+    
+    const estado = presupuesto.aceptado ? 'Aceptado' : 'Pendiente';
+    const fecha = presupuesto.fecha ? new Date(presupuesto.fecha).toLocaleDateString() : 'Sin fecha';
+    const reparacionDesc = presupuesto.reparacion?.descripcion ? 
+      presupuesto.reparacion.descripcion.substring(0, 50) + (presupuesto.reparacion.descripcion.length > 50 ? '...' : '') : 
+      'Reparación no especificada';
+    
+    return `Presupuesto #${presupuesto.id} | ${monto} | ${estado} | ${fecha} | ${reparacionDesc}`;
   }
 }

@@ -1,19 +1,21 @@
 <div class="container py-4">
 
-  <!-- Botonera circular -->
+  <!-- Botonera como píldoras de acción -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
-    <button class="btn btn-icon btn-outline-primary"
+    <button class="action-pill"
             (click)="seleccionarAccion('listar')"
             [class.active]="selectedAction==='listar'"
             aria-label="Listar">
-      <i class="bi bi-card-list fs-5"></i>
+      <i class="bi bi-card-list"></i>
+      Listar
     </button>
 
-    <button class="btn btn-icon btn-outline-success"
+    <button class="action-pill success"
             (click)="seleccionarAccion('crear')"
             [class.active]="selectedAction==='crear'"
             aria-label="Crear">
-      <i class="bi bi-clipboard-plus fs-5"></i>
+      <i class="bi bi-clipboard-plus"></i>
+      Crear
     </button>
   </div>
 
@@ -37,8 +39,8 @@
 
     <!-- Estado vacío -->
     <ng-container *ngIf="!loading && items.length === 0; else listContent">
-      <div class="empty-state card border-0 shadow-sm p-4 mx-auto text-center">
-        <div class="empty-ico-wrap mx-auto mb-3">
+      <div class="empty-state">
+        <div class="icon-wrap">
           <i class="bi bi-clipboard-check"></i>
         </div>
         <h5 class="mb-1">Aún no cargaste presupuestos</h5>
@@ -46,10 +48,10 @@
           Registrá tu primer presupuesto para verlo acá.
         </p>
         <div class="d-flex justify-content-center gap-2">
-          <button class="btn btn-success" (click)="seleccionarAccion('crear')">
+          <button class="action-pill success" (click)="seleccionarAccion('crear')">
             <i class="bi bi-clipboard-plus me-1"></i> Crear presupuesto
           </button>
-          <button class="btn btn-outline-primary" (click)="resetLista()">
+          <button class="action-pill" (click)="resetLista()">
             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
           </button>
         </div>
@@ -65,19 +67,25 @@
             <!-- Izquierda: datos -->
             <div class="flex-grow-1">
               <ng-container *ngIf="editingId !== p.id; else editRow">
-                <div class="fw-semibold">
-                  #{{ p.id }} · Reparación: {{ p.reparacion_id }}
+                <!-- NUEVO DISEÑO: ID arriba, descripción abajo -->
+                <div class="fw-semibold mb-1">
+                  Presupuesto #{{ p.id }}
                   <span class="badge ms-2" [class.bg-success]="p.aceptado" [class.bg-secondary]="!p.aceptado">
                     {{ p.aceptado ? 'Aceptado' : 'Pendiente' }}
                   </span>
                 </div>
                 <div class="text-muted small">
-                  Fecha: {{ p.fecha | date:'yyyy-MM-dd' }} ·
-                  Monto: {{ (p.monto_total ?? 0) | number:'1.2-2' }}
+                  <div class="mb-1">
+                    <strong>Reparación:</strong> {{ getDescripcionReparacion(p.reparacion_id) }}
+                  </div>
+                  <div>
+                    <i class="bi bi-calendar me-1"></i>Fecha: {{ p.fecha | date:'dd/MM/yyyy' }} · 
+                    <i class="bi bi-currency-dollar me-1"></i>Monto: {{ (p.monto_total ?? 0) | number:'1.2-2' }}
+                  </div>
                 </div>
               </ng-container>
 
-              <!-- Edición inline -->
+              <!-- Edición inline (mantener igual) -->
               <ng-template #editRow>
                 <div class="row g-2">
                   <div class="col-12 col-md-3">
@@ -95,7 +103,7 @@
                   <div class="col-12 col-md-3 d-flex align-items-end">
                     <div class="form-check">
                       <input id="chkAceptado{{p.id}}" class="form-check-input" type="checkbox"
-                             [(ngModel)]="editBuffer.aceptado" [ngModelOptions]="{standalone:true}">
+                            [(ngModel)]="editBuffer.aceptado" [ngModelOptions]="{standalone:true}">
                       <label class="form-check-label small" [for]="'chkAceptado'+p.id">Aceptado</label>
                     </div>
                   </div>
@@ -103,22 +111,22 @@
               </ng-template>
             </div>
 
-            <!-- Derecha: acciones -->
+            <!-- Derecha: acciones (mantener igual) -->
             <div class="d-flex gap-2">
-              <button *ngIf="editingId !== p.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(p)" title="Editar">
+              <button *ngIf="editingId !== p.id" class="btn btn-sm btn-outline-warning btn-action" (click)="startEdit(p)" title="Editar">
                 <i class="bi bi-pencil-square"></i>
               </button>
 
               <ng-container *ngIf="editingId === p.id">
-                <button class="btn btn-sm btn-success" (click)="saveEdit(p.id)" title="Guardar">
+                <button class="btn btn-sm btn-success btn-action" (click)="saveEdit(p.id)" title="Guardar">
                   <i class="bi bi-check-lg"></i>
                 </button>
-                <button class="btn btn-sm btn-secondary" (click)="cancelEdit()" title="Cancelar">
+                <button class="btn btn-sm btn-secondary btn-action" (click)="cancelEdit()" title="Cancelar">
                   <i class="bi bi-x-lg"></i>
                 </button>
               </ng-container>
 
-              <button class="btn btn-sm btn-outline-danger" (click)="eliminar(p.id)" title="Eliminar">
+              <button class="btn btn-sm btn-outline-danger btn-action" (click)="eliminar(p.id)" title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
             </div>
@@ -130,17 +138,12 @@
       <!-- Loader incremental -->
       <div class="text-center mt-3" *ngIf="loading && items.length > 0">
         <div class="spinner-border text-primary" role="status"></div>
-      </div>
-
-      <!-- Fin de listado -->
-      <div class="text-center mt-3 text-muted small"
-           *ngIf="!loading && lastPage && items.length">
-        Llegaste al final.
+        <div class="mt-2 text-muted small">Cargando más presupuestos...</div>
       </div>
 
       <!-- CTA si hay pocos ítems -->
       <div *ngIf="!loading && items.length && items.length < 3" class="text-center mt-3">
-        <button class="btn btn-outline-success" (click)="seleccionarAccion('crear')">
+        <button class="action-pill success" (click)="seleccionarAccion('crear')">
           <i class="bi bi-clipboard-plus me-1"></i> Registrar nuevo presupuesto
         </button>
       </div>
@@ -151,31 +154,162 @@
   <div *ngIf="selectedAction==='crear'">
     <h4 class="text-center mb-3">Registrar Presupuesto</h4>
 
-    <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
+    <form (ngSubmit)="crear()" class="form-max-width">
       <div class="row g-3">
-        <div class="col-12 col-md-4">
-          <label class="form-label">Reparación ID</label>
-          <input type="number" class="form-control" [(ngModel)]="nuevo.reparacion_id" name="reparacion_id" required />
+        
+        <!-- BÚSQUEDA INTELIGENTE DE REPARACIÓN -->
+        <div class="col-12">
+          <label class="form-label">Reparación <span class="text-danger">*</span></label>
+          <div class="search-container">
+            <input type="text" 
+                   class="form-control search-input" 
+                   [(ngModel)]="nuevo.reparacionBusqueda" 
+                   (input)="onBuscarReparacion(nuevo.reparacionBusqueda)"
+                   (focus)="mostrandoReparaciones = true"
+                   (blur)="ocultarReparaciones()"
+                   placeholder="Buscar reparación por descripción, equipo o técnico..."
+                   name="reparacionBusqueda"
+                   required
+                   autocomplete="off" />
+            
+            <!-- Limpiar selección -->
+            <button *ngIf="nuevo.reparacionBusqueda" 
+                    type="button" 
+                    class="btn-clear"
+                    (click)="limpiarReparacion()" 
+                    title="Limpiar búsqueda">
+              <i class="bi bi-x"></i>
+            </button>
+
+            <!-- Dropdown de sugerencias -->
+            <div *ngIf="mostrandoReparaciones && reparacionesSugeridas.length > 0" 
+                 class="sugerencias-menu">
+              <div class="sugerencias-header">
+                <i class="bi bi-search"></i>
+                Reparaciones encontradas
+                <span class="sugerencias-count">{{ reparacionesSugeridas.length }}</span>
+              </div>
+              <div *ngFor="let reparacion of reparacionesSugeridas" 
+                   class="sugerencia-item"
+                   (mousedown)="seleccionarReparacion(reparacion)">
+                <div class="sugerencia-content">
+                  <strong>{{ reparacion.descripcion }}</strong>
+                  <div class="sugerencia-details">
+                    Equipo: {{ reparacion.equipo?.descripcion }} | 
+                    Técnico: {{ reparacion.tecnico?.nombre }} | 
+                    Estado: {{ reparacion.estado }}
+                  </div>
+                  <div class="sugerencia-details">
+                    Fecha: {{ reparacion.fecha | date:'dd/MM/yyyy' }} | ID: {{ reparacion.id }}
+                  </div>
+                </div>
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </div>
+
+            <!-- Sin resultados -->
+            <div *ngIf="mostrandoReparaciones && !buscandoReparaciones && reparacionesSugeridas.length === 0 && nuevo.reparacionBusqueda" 
+                 class="sugerencias-menu">
+              <div class="sugerencias-header">
+                <i class="bi bi-search"></i>
+                Sin resultados
+              </div>
+              <div class="sugerencia-item text-muted">
+                <div class="sugerencia-content text-center py-3">
+                  <i class="bi bi-exclamation-circle d-block mb-2" style="font-size: 1.5rem;"></i>
+                  No se encontraron reparaciones para "{{ nuevo.reparacionBusqueda }}"
+                </div>
+              </div>
+            </div>
+
+            <!-- Estado de carga -->
+            <div *ngIf="buscandoReparaciones" class="position-absolute end-0 top-50 translate-middle-y me-2">
+              <div class="spinner-border spinner-border-sm text-primary loading-small" role="status"></div>
+            </div>
+          </div>
+          
+          <!-- Badge de selección -->
+          <div *ngIf="nuevo.reparacionSeleccionada" class="selection-badge">
+            <i class="bi bi-check-circle"></i>
+            Reparación seleccionada: {{ nuevo.reparacionSeleccionada.descripcion }}
+            <small class="ms-2">(ID: {{ nuevo.reparacionSeleccionada.id }})</small>
+          </div>
         </div>
+
         <div class="col-12 col-md-4">
-          <label class="form-label">Fecha</label>
+          <label class="form-label">Fecha <span class="text-danger">*</span></label>
           <input type="date" class="form-control" [(ngModel)]="nuevo.fecha" name="fecha" required />
         </div>
+        
         <div class="col-12 col-md-4">
-          <label class="form-label">Monto total</label>
-          <input type="number" min="0" step="0.01" class="form-control" [(ngModel)]="nuevo.monto_total" name="monto_total" required />
+          <label class="form-label">Monto total <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" min="0" step="0.01" class="form-control" 
+                   [(ngModel)]="nuevo.monto_total" name="monto_total" 
+                   placeholder="0.00" required />
+          </div>
         </div>
-        <div class="col-12">
-          <div class="form-check">
-            <input id="chkAceptadoNuevo" class="form-check-input" type="checkbox" [(ngModel)]="nuevo.aceptado" name="aceptado">
-            <label for="chkAceptadoNuevo" class="form-check-label">Aceptado</label>
+        
+        <div class="col-12 col-md-4 d-flex align-items-end">
+          <div class="form-check form-switch">
+            <input id="chkAceptadoNuevo" class="form-check-input" type="checkbox" 
+                   [(ngModel)]="nuevo.aceptado" name="aceptado"
+                   style="transform: scale(1.2);">
+            <label for="chkAceptadoNuevo" class="form-check-label fw-semibold">
+              Presupuesto Aceptado
+            </label>
+          </div>
+        </div>
+
+        <!-- Información de la reparación seleccionada -->
+        <div *ngIf="nuevo.reparacionSeleccionada" class="col-12">
+          <div class="card border-0 bg-light">
+            <div class="card-body p-3">
+              <h6 class="card-title mb-2">
+                <i class="bi bi-info-circle me-2 text-primary"></i>
+                Información de la Reparación Seleccionada
+              </h6>
+              <div class="row small text-muted">
+                <div class="col-md-6">
+                  <strong>Descripción:</strong> {{ nuevo.reparacionSeleccionada.descripcion }}
+                </div>
+                <div class="col-md-3">
+                  <strong>Equipo:</strong> {{ nuevo.reparacionSeleccionada.equipo?.descripcion || 'No especificado' }}
+                </div>
+                <div class="col-md-3">
+                  <strong>Técnico:</strong> {{ nuevo.reparacionSeleccionada.tecnico?.nombre || 'No asignado' }}
+                </div>
+                <div class="col-md-4">
+                  <strong>Estado:</strong> 
+                  <span [class]="'badge ' + getEstadoBadgeClass(nuevo.reparacionSeleccionada.estado)">
+                    {{ nuevo.reparacionSeleccionada.estado }}
+                  </span>
+                </div>
+                <div class="col-md-4">
+                  <strong>Fecha reparación:</strong> {{ nuevo.reparacionSeleccionada.fecha | date:'dd/MM/yyyy' }}
+                </div>
+                <div class="col-md-4">
+                  <strong>ID:</strong> {{ nuevo.reparacionSeleccionada.id }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <button class="btn btn-success w-100 mt-3" type="submit">
-        <i class="bi bi-check2-circle me-1"></i> Guardar
-      </button>
+      <!-- Botones de acción -->
+      <div class="d-flex gap-2 mt-4">
+        <button class="action-pill success flex-fill" type="submit" [disabled]="!nuevo.reparacion_id">
+          <i class="bi bi-check2-circle me-1"></i> Guardar Presupuesto
+        </button>
+        <button type="button" class="action-pill warning" (click)="limpiarReparacion()">
+          <i class="bi bi-arrow-clockwise me-1"></i> Limpiar
+        </button>
+        <button type="button" class="action-pill" (click)="seleccionarAccion('listar')">
+          <i class="bi bi-arrow-left me-1"></i> Volver
+        </button>
+      </div>
     </form>
   </div>
 </div>

@@ -1,62 +1,65 @@
 <div class="container py-4">
 
-  <!-- Botonera circular -->
-  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
-    <button class="btn btn-icon btn-outline-primary"
+  <!-- Botonera como píldoras de acción -->
+  <div class="botonera-principal">
+    <button class="action-pill"
             (click)="seleccionarAccion('listar')"
             [class.active]="selectedAction==='listar'"
             aria-label="Listar facturas">
-      <i class="bi bi-card-list fs-5"></i>
+      <i class="bi bi-card-list"></i>
+      Listar
     </button>
 
-    <button class="btn btn-icon btn-outline-success"
+    <button class="action-pill success"
             (click)="seleccionarAccion('crear')"
             [class.active]="selectedAction==='crear'"
             aria-label="Crear factura">
-      <i class="bi bi-file-earmark-plus fs-5"></i>
+      <i class="bi bi-file-earmark-plus"></i>
+      Crear
     </button>
 
-    <button class="btn btn-icon btn-outline-secondary"
+    <button class="action-pill"
             (click)="exportarPDF()"
             [disabled]="!facturas.length"
             aria-label="Exportar a PDF">
-      <i class="bi bi-printer fs-5"></i>
+      <i class="bi bi-printer"></i>
+      Exportar
     </button>
   </div>
 
   <!-- ================= LISTAR ================= -->
   <div *ngIf="selectedAction==='listar'">
-    <h4 class="text-center mb-3">Facturas</h4>
+    <h4 class="titulo-seccion">Facturas</h4>
 
     <!-- Skeleton de carga (primera página) -->
-    <div *ngIf="loading && facturas.length === 0" class="list-group">
-      <div class="list-group-item" *ngFor="let s of [1,2,3,4,5]">
-        <div class="placeholder-glow">
-          <span class="placeholder col-4 me-2"></span>
-          <span class="placeholder col-2 me-2"></span>
-          <span class="placeholder col-3"></span>
+    <div *ngIf="loading && facturas.length === 0" class="skeleton-container">
+      <div class="skeleton-item" *ngFor="let s of [1,2,3,4,5]">
+        <div class="skeleton-line-container">
+          <span class="skeleton-line short"></span>
+          <span class="skeleton-line medium"></span>
+          <span class="skeleton-line long"></span>
         </div>
-        <div class="placeholder-glow mt-2">
-          <span class="placeholder col-8"></span>
+        <div class="skeleton-line-container">
+          <span class="skeleton-line full"></span>
         </div>
       </div>
     </div>
 
     <!-- Estado vacío (sin datos) -->
     <ng-container *ngIf="!loading && facturas.length === 0; else listContent">
-      <div class="empty-state card border-0 shadow-sm p-4 mx-auto text-center">
-        <div class="empty-ico-wrap mx-auto mb-3">
+      <div class="empty-state">
+        <div class="empty-icon">
           <i class="bi bi-receipt"></i>
         </div>
-        <h5 class="mb-1">Aún no cargaste facturas</h5>
-        <p class="text-muted mb-3">
+        <h5 class="empty-title">Aún no cargaste facturas</h5>
+        <p class="empty-description">
           Registrá tu primera factura para empezar a ver el historial acá.
         </p>
-        <div class="d-flex justify-content-center gap-2">
-          <button class="btn btn-success" (click)="seleccionarAccion('crear')">
+        <div class="empty-actions">
+          <button class="action-pill success" (click)="seleccionarAccion('crear')">
             <i class="bi bi-file-earmark-plus me-1"></i> Crear factura
           </button>
-          <button class="btn btn-outline-primary" (click)="resetLista()">
+          <button class="action-pill" (click)="resetLista()">
             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
           </button>
         </div>
@@ -65,95 +68,95 @@
 
     <!-- Contenido de lista -->
     <ng-template #listContent>
-      <div class="list-group">
-        <div *ngFor="let f of facturas" class="list-group-item">
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-
+      <div class="lista-facturas">
+        <div *ngFor="let f of facturas" class="item-factura">
+          <div class="item-contenido">
             <!-- Columna izquierda: datos -->
-            <div class="flex-grow-1">
+            <div class="item-datos">
               <ng-container *ngIf="editingId !== f.id; else editRow">
-                <div class="fw-semibold">
-                  {{ f.numero }} <span class="text-muted">({{ f.letra }})</span>
+                <div class="factura-numero">
+                  {{ f.numero }} <span class="factura-letra">({{ f.letra }})</span>
                 </div>
-                <div class="text-muted small">
+                <div class="factura-info">
                   Fecha: {{ f.fecha | date:'yyyy-MM-dd' }} ·
                   Monto: {{ f.monto_total | number:'1.2-2' }} ·
                   Presupuesto: {{ f.presupuesto_id }}
                 </div>
-                <div class="small">
-                  <span class="text-muted">Detalle:</span> {{ f.detalle || '—' }}
+                <div class="factura-detalle">
+                  <span class="detalle-label">Detalle:</span> {{ f.detalle || '—' }}
                 </div>
               </ng-container>
 
               <!-- Edición inline -->
               <ng-template #editRow>
-                <div class="row g-2">
-                  <div class="col-12 col-md-3">
-                    <label class="form-label small">Número</label>
-                    <input class="form-control" [(ngModel)]="editBuffer.numero" />
-                  </div>
-                  <div class="col-6 col-md-2">
-                    <label class="form-label small">Letra</label>
-                    <input class="form-control text-uppercase" maxlength="1" [(ngModel)]="editBuffer.letra" />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <label class="form-label small">Fecha</label>
-                    <input type="date" class="form-control" [(ngModel)]="editBuffer.fecha" />
-                  </div>
-                  <div class="col-12 col-md-2">
-                    <label class="form-label small">Monto</label>
-                    <input type="number" step="0.01" class="form-control" [(ngModel)]="editBuffer.monto_total" />
-                  </div>
-                  <div class="col-12 col-md-2">
-                    <label class="form-label small">Presupuesto ID</label>
-                    <input type="number" class="form-control" [(ngModel)]="editBuffer.presupuesto_id" />
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label small">Detalle</label>
-                    <input class="form-control" [(ngModel)]="editBuffer.detalle" />
+                <div class="formulario-edicion">
+                  <div class="fila-campos">
+                    <div class="campo-grupo">
+                      <label class="etiqueta-campo">Número</label>
+                      <input class="control-formulario" [(ngModel)]="editBuffer.numero" />
+                    </div>
+                    <div class="campo-grupo">
+                      <label class="etiqueta-campo">Letra</label>
+                      <input class="control-formulario letra-mayuscula" maxlength="1" [(ngModel)]="editBuffer.letra" />
+                    </div>
+                    <div class="campo-grupo">
+                      <label class="etiqueta-campo">Fecha</label>
+                      <input type="date" class="control-formulario" [(ngModel)]="editBuffer.fecha" />
+                    </div>
+                    <div class="campo-grupo">
+                      <label class="etiqueta-campo">Monto</label>
+                      <input type="number" step="0.01" class="control-formulario" [(ngModel)]="editBuffer.monto_total" />
+                    </div>
+                    <div class="campo-grupo">
+                      <label class="etiqueta-campo">Presupuesto ID</label>
+                      <input type="number" class="control-formulario" [(ngModel)]="editBuffer.presupuesto_id" />
+                    </div>
+                    <div class="campo-grupo ancho-completo">
+                      <label class="etiqueta-campo">Detalle</label>
+                      <input class="control-formulario" [(ngModel)]="editBuffer.detalle" />
+                    </div>
                   </div>
                 </div>
               </ng-template>
             </div>
 
             <!-- Columna derecha: acciones -->
-            <div class="d-flex gap-2">
-              <button *ngIf="editingId !== f.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(f)" title="Editar">
+            <div class="item-acciones">
+              <button *ngIf="editingId !== f.id" class="boton-accion boton-editar" (click)="startEdit(f)" title="Editar">
                 <i class="bi bi-pencil-square"></i>
               </button>
 
               <ng-container *ngIf="editingId === f.id">
-                <button class="btn btn-sm btn-success" (click)="saveEdit(f.id)" title="Guardar">
+                <button class="boton-accion boton-guardar" (click)="saveEdit(f.id)" title="Guardar">
                   <i class="bi bi-check-lg"></i>
                 </button>
-                <button class="btn btn-sm btn-secondary" (click)="cancelEdit()" title="Cancelar">
+                <button class="boton-accion boton-cancelar" (click)="cancelEdit()" title="Cancelar">
                   <i class="bi bi-x-lg"></i>
                 </button>
               </ng-container>
 
-              <button class="btn btn-sm btn-outline-danger" (click)="eliminar(f.id)" title="Eliminar">
+              <button class="boton-accion boton-eliminar" (click)="eliminar(f.id)" title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
             </div>
-
           </div>
         </div>
       </div>
 
       <!-- Loader incremental -->
-      <div class="text-center mt-3" *ngIf="loading && facturas.length > 0">
-        <div class="spinner-border text-primary" role="status"></div>
+      <div class="cargando-mas" *ngIf="loading && facturas.length > 0">
+        <div class="spinner-carga" role="status"></div>
       </div>
 
       <!-- Fin de listado -->
-      <div class="text-center mt-3 text-muted small"
+      <div class="fin-lista"
            *ngIf="!loading && lastPage && facturas.length">
         Llegaste al final.
       </div>
 
       <!-- CTA cuando hay pocos ítems -->
-      <div *ngIf="!loading && facturas.length && facturas.length < 3" class="text-center mt-3">
-        <button class="btn btn-outline-success" (click)="seleccionarAccion('crear')">
+      <div *ngIf="!loading && facturas.length && facturas.length < 3" class="cta-agregar">
+        <button class="action-pill success" (click)="seleccionarAccion('crear')">
           <i class="bi bi-file-earmark-plus me-1"></i> Registrar nueva factura
         </button>
       </div>
@@ -162,62 +165,142 @@
 
   <!-- ================= CREAR ================= -->
   <div *ngIf="selectedAction==='crear'">
-    <h4 class="text-center mb-3">Registrar Factura</h4>
+    <h4 class="titulo-seccion">Registrar Factura</h4>
 
-    <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
-      <div class="row g-3">
-        <div class="col-12 col-md-4">
-          <label class="form-label">Presupuesto ID</label>
-          <input type="number" class="form-control" [(ngModel)]="nuevo.presupuesto_id" name="presupuesto_id" required />
+    <form (ngSubmit)="crear()" class="formulario-crear">
+      <div class="fila-campos">
+        
+        <!-- BÚSQUEDA INTELIGENTE DE PRESUPUESTO -->
+        <div class="campo-grupo ancho-completo">
+          <label class="etiqueta-campo">Presupuesto <span class="campo-obligatorio">*</span></label>
+          <div class="contenedor-busqueda">
+            <input type="text" 
+                   class="input-busqueda" 
+                   [(ngModel)]="nuevo.presupuestoBusqueda" 
+                   (input)="onBuscarPresupuesto(nuevo.presupuestoBusqueda)"
+                   (focus)="mostrandoPresupuestos = true"
+                   (blur)="ocultarPresupuestos()"
+                   placeholder="Buscar presupuesto por ID, reparación, cliente..."
+                   name="presupuestoBusqueda"
+                   required
+                   autocomplete="off" />
+            
+            <!-- Limpiar selección -->
+            <button *ngIf="nuevo.presupuestoBusqueda" 
+                    type="button" 
+                    class="boton-limpiar"
+                    (click)="limpiarPresupuesto()" 
+                    title="Limpiar búsqueda">
+              <i class="bi bi-x"></i>
+            </button>
+
+            <!-- Dropdown de sugerencias -->
+            <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
+                 class="menu-sugerencias">
+              <div class="cabecera-sugerencias">
+                <i class="bi bi-search"></i>
+                Presupuestos encontrados
+                <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
+              </div>
+                <div *ngFor="let presupuesto of presupuestosSugeridos" 
+                    class="item-sugerencia"
+                    (mousedown)="seleccionarPresupuesto(presupuesto)">
+                  <div class="contenido-sugerencia">
+                    <strong>{{ presupuesto.displayText }}</strong>
+                    <div class="detalles-sugerencia">
+                      Reparación: {{ presupuesto.reparacion_descripcion }} | 
+                      Estado: {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
+                    </div>
+                  </div>
+                  <i class="bi bi-chevron-right"></i>
+                </div>
+            </div>
+
+            <!-- Sin resultados -->
+            <div *ngIf="mostrandoPresupuestos && !buscandoPresupuestos && presupuestosSugeridos.length === 0 && nuevo.presupuestoBusqueda" 
+                 class="menu-sugerencias">
+              <div class="cabecera-sugerencias">
+                <i class="bi bi-search"></i>
+                Sin resultados
+              </div>
+              <div class="item-sugerencia sin-resultados">
+                <div class="contenido-sugerencia">
+                  <i class="bi bi-exclamation-circle icono-advertencia"></i>
+                  No se encontraron presupuestos para "{{ nuevo.presupuestoBusqueda }}"
+                </div>
+              </div>
+            </div>
+
+            <!-- Estado de carga -->
+            <div *ngIf="buscandoPresupuestos" class="indicador-carga">
+              <div class="spinner-mini" role="status"></div>
+            </div>
+          </div>
+          
+          <!-- Badge de selección -->
+          <div *ngIf="nuevo.presupuestoSeleccionado" class="badge-seleccion">
+            <i class="bi bi-check-circle"></i>
+            Presupuesto seleccionado: #{{ nuevo.presupuestoSeleccionado.id }}
+            <small class="monto-seleccion">Monto: {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}</small>
+          </div>
         </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label">Número</label>
-          <input class="form-control" [(ngModel)]="nuevo.numero" name="numero" placeholder="F0001-00000001" required />
+
+        <div class="campo-grupo">
+          <label class="etiqueta-campo">Número</label>
+          <input class="control-formulario" [(ngModel)]="nuevo.numero" name="numero" placeholder="F0001-00000001" required />
         </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label">Letra</label>
-          <input class="form-control text-uppercase" maxlength="1" [(ngModel)]="nuevo.letra" name="letra" required />
+        <div class="campo-grupo">
+          <label class="etiqueta-campo">Letra</label>
+          <input class="control-formulario letra-mayuscula" maxlength="1" [(ngModel)]="nuevo.letra" name="letra" required />
         </div>
-        <div class="col-12 col-md-6">
-          <label class="form-label">Fecha</label>
-          <input type="date" class="form-control" [(ngModel)]="nuevo.fecha" name="fecha" required />
+        <div class="campo-grupo">
+          <label class="etiqueta-campo">Fecha</label>
+          <input type="date" class="control-formulario" [(ngModel)]="nuevo.fecha" name="fecha" required />
         </div>
-        <div class="col-12 col-md-6">
-          <label class="form-label">Monto total</label>
-          <input type="number" min="0" step="0.01" class="form-control" [(ngModel)]="nuevo.monto_total" name="monto_total" required />
+        <div class="campo-grupo">
+          <label class="etiqueta-campo">Monto total</label>
+          <input type="number" min="0" step="0.01" class="control-formulario" [(ngModel)]="nuevo.monto_total" name="monto_total" required />
         </div>
-        <div class="col-12">
-          <label class="form-label">Detalle (opcional)</label>
-          <input class="form-control" [(ngModel)]="nuevo.detalle" name="detalle" />
+        <div class="campo-grupo ancho-completo">
+          <label class="etiqueta-campo">Detalle (opcional)</label>
+          <input class="control-formulario" [(ngModel)]="nuevo.detalle" name="detalle" />
+        </div>
+
+        <!-- Información del presupuesto seleccionado -->
+        <div *ngIf="nuevo.presupuestoSeleccionado" class="campo-grupo ancho-completo">
+          <div class="tarjeta-informacion">
+            <div class="contenido-tarjeta">
+              <h6 class="titulo-tarjeta">
+                <i class="bi bi-info-circle icono-informativo"></i>
+                Información del Presupuesto Seleccionado
+              </h6>
+              <div class="grid-informacion">
+                <div class="item-informacion">
+                  <strong>ID:</strong> {{ nuevo.presupuestoSeleccionado.id }}
+                </div>
+                <div class="item-informacion">
+                  <strong>Monto:</strong> {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}
+                </div>
+                <div class="item-informacion">
+                  <strong>Estado:</strong> 
+                  <span [class]="'badge-estado ' + (nuevo.presupuestoSeleccionado.aceptado ? 'estado-aceptado' : 'estado-pendiente')">
+                    {{ nuevo.presupuestoSeleccionado.aceptado ? 'Aceptado' : 'Pendiente' }}
+                  </span>
+                </div>
+                <div class="item-informacion">
+                  <strong>Reparación:</strong> {{ getDescripcionReparacion(nuevo.presupuestoSeleccionado.reparacion_id) }}
+                </div>
+                <div class="item-informacion">
+                  <strong>Fecha presupuesto:</strong> {{ nuevo.presupuestoSeleccionado.fecha | date:'dd/MM/yyyy' }}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="col-12">
-        <label class="form-label">Presupuesto</label>
-        <div class="input-group">
-            <input type="number" class="form-control"
-                [(ngModel)]="nuevo.presupuesto_id"
-                name="presupuesto_id"
-                placeholder="ID de presupuesto (o seleccionar)"
-                required />
-            <button type="button" class="btn btn-outline-secondary" (click)="abrirPicker()">
-            <i class="bi bi-search"></i> Seleccionar
-            </button>
-        </div>
-        <div class="form-text">
-            Podés ingresar el ID directamente o buscar por número/apellido.
-        </div>
-        </div>
 
-        <!-- Modal Picker -->
-        <app-presupuesto-picker
-        *ngIf="pickerVisible"
-        (closed)="pickerVisible=false"
-        (select)="onPickPresupuesto($event)">
-        </app-presupuesto-picker>
-
-
-      <button class="btn btn-success w-100 mt-3" type="submit">
-        <i class="bi bi-check2-circle me-1"></i> Guardar
+      <button class="boton-enviar" type="submit" [disabled]="!nuevo.presupuesto_id">
+        <i class="bi bi-check2-circle icono-boton"></i> Guardar Factura
       </button>
     </form>
   </div>

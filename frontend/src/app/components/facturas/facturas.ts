@@ -2,14 +2,26 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FacturaService, Factura, Paginated } from '../../services/facturas';
-import { PresupuestoPickerComponent } from '../presupuesto-picker/presupuesto-picker'; // ajustá path
+import { PresupuestoService, Presupuesto } from '../../services/presupuesto.service';
+import { ReparacionService, Reparacion } from '../../services/reparacion.service';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 type Accion = 'listar' | 'crear';
+
+// Nuevo tipo para el formulario
+type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
+  id?: number;
+  fecha: string;
+  monto_total: number | string | null;
+  presupuestoBusqueda: string;
+  presupuestoSeleccionado?: Presupuesto;
+};
 
 @Component({
   selector: 'app-facturas',
   standalone: true,
-  imports: [CommonModule, FormsModule, PresupuestoPickerComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './facturas.html',
   styleUrls: ['./facturas.css']
 })
@@ -27,49 +39,46 @@ export class FacturasComponent implements OnInit, OnDestroy {
   editingId: number | null = null;
   editBuffer: Partial<Factura> = {};
 
-  // creación
-  nuevo: Partial<Factura> = {
-    presupuesto_id: undefined as unknown as number,
+  // creación con búsqueda inteligente
+  nuevo: FacturaForm = {
+    presupuesto_id: undefined as any,
     numero: '',
     letra: 'A',
     fecha: new Date().toISOString().slice(0, 10),
-    monto_total: undefined as unknown as number,
-    detalle: ''
-
-    
+    monto_total: null,
+    detalle: '',
+    presupuestoBusqueda: ''
   };
 
-  constructor(private facService: FacturaService) {}
+  // Para búsqueda de presupuestos
+  presupuestosSugeridos: Presupuesto[] = [];
+  mostrandoPresupuestos = false;
+  buscandoPresupuestos = false;
+  private busquedaPresupuesto = new Subject<string>();
+  private reparacionesCache = new Map<number, string>();
 
-
-  pickerVisible = false;
-
-  abrirPicker() {
-    this.pickerVisible = true;
-    // el componente se auto-carga al mostrarse
-  }
-
-  onPickPresupuesto(ev: { presupuesto: any, reparacion?: any }) {
-    this.pickerVisible = false;
-    // setear el id
-    this.nuevo.presupuesto_id = ev.presupuesto.id;
-
-    // opcional: sugerir campos
-    if (!this.nuevo.detalle && ev.reparacion?.descripcion) {
-      this.nuevo.detalle = `Factura por reparación #${ev.reparacion.id}: ${ev.reparacion.descripcion}`;
-    }
-    if (!this.nuevo.monto_total && ev.presupuesto?.monto_total != null) {
-      this.nuevo.monto_total = ev.presupuesto.monto_total as any;
-    }
-  }
+  constructor(
+    private facService: FacturaService,
+    private presupuestoService: PresupuestoService,
+    private reparacionService: ReparacionService
+  ) {}
 
   ngOnInit(): void {
     this.cargar();
     window.addEventListener('scroll', this.onScroll, { passive: true });
+    
+    // Configurar búsqueda de presupuestos
+    this.busquedaPresupuesto.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(termino => {
+      this.buscarPresupuestos(termino);
+    });
   }
 
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.onScroll);
+    this.busquedaPresupuesto.unsubscribe();
   }
 
   seleccionarAccion(a: Accion) { this.selectedAction = a; }
@@ -95,6 +104,109 @@ export class FacturasComponent implements OnInit, OnDestroy {
     if (nearBottom) this.cargar();
   };
 
+  // ====== BÚSQUEDA INTELIGENTE DE PRESUPUESTOS ======
+
+  onBuscarPresupuesto(termino: string): void {
+    this.busquedaPresupuesto.next(termino);
+  }
+
+  // En el método buscarPresupuestos
+  buscarPresupuestos(termino: string): void {
+    const terminoLimpio = termino || '';
+    
+    console.log('🎯 Buscando presupuestos con:', terminoLimpio);
+    
+    if (!terminoLimpio.trim()) {
+      this.presupuestosSugeridos = [];
+      this.mostrandoPresupuestos = false;
+      return;
+    }
+
+    this.buscandoPresupuestos = true;
+    
+    this.presupuestoService.buscarPresupuestos(terminoLimpio).subscribe({
+      next: (presupuestos: Presupuesto[]) => {
+        console.log('✅ Resultados encontrados:', presupuestos);
+        this.presupuestosSugeridos = presupuestos;
+        this.mostrandoPresupuestos = true;
+        this.buscandoPresupuestos = false;
+        
+        // Las descripciones ya vienen incluidas del servicio
+        if (this.presupuestosSugeridos.length > 0) {
+          console.log('🎯 Presupuestos cargados con descripciones incluidas');
+        }
+      },
+      error: (e) => {
+        console.error('💥 Error en búsqueda:', e);
+        this.buscandoPresupuestos = false;
+        this.presupuestosSugeridos = [];
+        this.mostrandoPresupuestos = false;
+      }
+    });
+  }
+
+  seleccionarPresupuesto(presupuesto: Presupuesto): void {
+    this.nuevo.presupuestoSeleccionado = presupuesto;
+    this.nuevo.presupuesto_id = presupuesto.id;
+    this.nuevo.presupuestoBusqueda = `Presupuesto #${presupuesto.id}`;
+    this.mostrandoPresupuestos = false;
+
+    // Sugerir valores automáticamente
+    if (!this.nuevo.monto_total && presupuesto.monto_total != null) {
+      this.nuevo.monto_total = presupuesto.monto_total;
+    }
+    
+    if (!this.nuevo.detalle) {
+      this.nuevo.detalle = `Factura asociada al presupuesto #${presupuesto.id}`;
+    }
+  }
+
+  limpiarPresupuesto(): void {
+    this.nuevo.presupuestoSeleccionado = undefined;
+    this.nuevo.presupuesto_id = undefined as any;
+    this.nuevo.presupuestoBusqueda = '';
+    this.presupuestosSugeridos = [];
+    this.mostrandoPresupuestos = false;
+  }
+
+  ocultarPresupuestos(): void {
+    setTimeout(() => {
+      this.mostrandoPresupuestos = false;
+    }, 200);
+  }
+
+  // ====== GESTIÓN DE DESCRIPCIONES DE REPARACIONES ======
+
+  // Y actualiza el método getDescripcionReparacion para usar la propiedad del servicio
+  getDescripcionReparacion(reparacionId: number): string {
+    // Si ya tenemos el presupuesto en los sugeridos, usar su descripción
+    const presupuesto = this.presupuestosSugeridos.find(p => p.reparacion_id === reparacionId);
+    if (presupuesto?.reparacion_descripcion) {
+      return presupuesto.reparacion_descripcion;
+    }
+    
+    // Fallback al método original
+    if (this.reparacionesCache.has(reparacionId)) {
+      return this.reparacionesCache.get(reparacionId) || `Reparación #${reparacionId}`;
+    }
+
+    this.cargarDescripcionReparacion(reparacionId);
+    return `Reparación #${reparacionId}`;
+  }
+
+  private cargarDescripcionReparacion(reparacionId: number): void {
+    this.reparacionService.show(reparacionId).subscribe({
+      next: (reparacion) => {
+        const descripcion = reparacion.descripcion || `Reparación #${reparacionId}`;
+        this.reparacionesCache.set(reparacionId, descripcion);
+      },
+      error: (e) => {
+        console.error('Error al cargar reparación', e);
+        this.reparacionesCache.set(reparacionId, `Reparación #${reparacionId}`);
+      }
+    });
+  }
+
   // ====== CREAR ======
   crear(): void {
     const payload = this.limpiar(this.nuevo);
@@ -104,10 +216,21 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.facService.create(payload).subscribe({
       next: () => {
         this.resetLista();
-        this.nuevo = { presupuesto_id: undefined as any, numero: '', letra: 'A', fecha: new Date().toISOString().slice(0,10), monto_total: undefined as any, detalle: '' };
+        this.nuevo = { 
+          presupuesto_id: undefined as any, 
+          numero: '', 
+          letra: 'A', 
+          fecha: new Date().toISOString().slice(0,10), 
+          monto_total: null, 
+          detalle: '',
+          presupuestoBusqueda: ''
+        };
         this.selectedAction = 'listar';
       },
-      error: (e) => { console.error('Error al crear factura', e); alert(e?.error?.error ?? 'Error al crear la factura'); }
+      error: (e) => { 
+        console.error('Error al crear factura', e); 
+        alert(e?.error?.error ?? 'Error al crear la factura'); 
+      }
     });
   }
 
@@ -214,13 +337,27 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.cargar();
   }
 
-  private limpiar(obj: Partial<Factura>): Partial<Factura> {
+  private limpiar(obj: Partial<FacturaForm>): Partial<Factura> {
+    const presupuestoId = typeof obj.presupuesto_id === 'string'
+      ? Number(obj.presupuesto_id)
+      : obj.presupuesto_id;
+
+    let monto: number;
+    if (obj.monto_total == null || obj.monto_total === '') {
+      monto = 0; // valor por defecto
+    } else if (typeof obj.monto_total === 'string') {
+      const trimmed = obj.monto_total.trim();
+      monto = trimmed === '' ? 0 : Number(trimmed.replace(',', '.'));
+    } else {
+      monto = obj.monto_total;
+    }
+
     return {
-      presupuesto_id: typeof obj.presupuesto_id === 'string' ? Number(obj.presupuesto_id) : obj.presupuesto_id,
+      presupuesto_id: presupuestoId!,
       numero: (obj.numero ?? '').toString().trim(),
       letra: (obj.letra ?? '').toString().trim().toUpperCase(),
       fecha: (obj.fecha ?? '').toString().slice(0,10),
-      monto_total: typeof obj.monto_total === 'string' ? Number(obj.monto_total) : obj.monto_total,
+      monto_total: monto,
       detalle: (obj.detalle ?? '').toString().trim()
     };
   }

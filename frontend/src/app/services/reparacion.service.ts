@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 export interface Reparacion {
@@ -10,14 +10,13 @@ export interface Reparacion {
   descripcion: string;
   fecha: string; 
   estado: string;
-  // poblados por with():
   equipo?: any;
   tecnico?: any;
   repuestos?: any[];
-
   equipo_nombre?: string;
   tecnico_nombre?: string;
   reparacion_nombre?: string;
+  displayText?: string;
 }
 
 export interface Paginated<T> {
@@ -56,6 +55,62 @@ export class ReparacionService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  buscarReparaciones(termino: string): Observable<Reparacion[]> {
+    if (!termino.trim()) {
+      return of([]);
+    }
+
+    const params = new HttpParams()
+      .set('q', termino)
+      .set('per_page', '100')
+      .set('include', 'equipo,tecnico');
+
+    return this.http.get<Paginated<Reparacion>>(`${this.base}/buscar`, { params }).pipe(
+      map(response => {
+        const reparaciones = response.data || response;
+        
+        return reparaciones.map(reparacion => ({
+          ...reparacion,
+          displayText: this.formatearDisplayText(reparacion)
+        }));
+      }),
+      catchError(() => {
+        return this.buscarReparacionesFallback(termino);
+      })
+    );
+  }
+
+  private buscarReparacionesFallback(termino: string): Observable<Reparacion[]> {
+    return this.http.get<Paginated<Reparacion>>(
+      `${this.base}?per_page=100&include=equipo,tecnico`
+    ).pipe(
+      map(response => {
+        const todasLasReparaciones = response.data || response;
+        const terminoLower = termino.toLowerCase();
+        
+        const reparacionesFiltradas = todasLasReparaciones.filter((reparacion: Reparacion) => 
+          reparacion.descripcion?.toLowerCase().includes(terminoLower) ||
+          reparacion.estado?.toLowerCase().includes(terminoLower) ||
+          (reparacion.equipo?.descripcion && reparacion.equipo.descripcion.toLowerCase().includes(terminoLower)) ||
+          (reparacion.tecnico?.nombre && reparacion.tecnico.nombre.toLowerCase().includes(terminoLower))
+        );
+
+        return reparacionesFiltradas.map(reparacion => ({
+          ...reparacion,
+          displayText: this.formatearDisplayText(reparacion)
+        }));
+      })
+    );
+  }
+
+  private formatearDisplayText(reparacion: Reparacion): string {
+    const equipoDesc = reparacion.equipo?.descripcion || 'Equipo no especificado';
+    const tecnicoNombre = reparacion.tecnico?.nombre || 'Técnico no asignado';
+    const fecha = reparacion.fecha ? new Date(reparacion.fecha).toLocaleDateString() : 'Sin fecha';
+    
+    return `#${reparacion.id} - ${reparacion.descripcion} | ${equipoDesc} | ${tecnicoNombre} | ${fecha}`;
   }
 
   buscarClientes(termino: string): Observable<any[]> {
@@ -102,9 +157,7 @@ export class ReparacionService {
 
   buscarTecnicos(termino: string): Observable<any[]> {
     return this.http.get<any[]>(`http://127.0.0.1:8000/api/tecnicos/buscar?q=${encodeURIComponent(termino)}`).pipe(
-      catchError((error) => {
-        console.warn('Endpoint de técnicos falló, usando usuarios generales', error);
-        
+      catchError(() => {
         return this.http.get<any>('http://127.0.0.1:8000/api/usuarios?per_page=100').pipe(
           map(response => {
             const todosLosUsuarios = response.data || response;

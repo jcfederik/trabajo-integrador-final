@@ -1,30 +1,386 @@
-/* Botón circular consistente */
+/* Píldoras de acción */
+.action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid var(--bs-primary);
+  color: var(--bs-primary);
+  background: #fff;
+  padding: .55rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: all .2s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.action-pill:hover { 
+  background: rgba(13,110,253,.06); 
+  transform: translateY(-1px);
+}
+
+.action-pill.active { 
+  background: var(--bs-primary); 
+  color: #fff; 
+  border-color: var(--bs-primary); 
+}
+
+.action-pill.success { 
+  border-color: var(--bs-success); 
+  color: var(--bs-success); 
+}
+
+.action-pill.success.active { 
+  background: var(--bs-success); 
+  color: #fff; 
+  border-color: var(--bs-success); 
+}
+
+.action-pill.warning { 
+  border-color: var(--bs-warning); 
+  color: var(--bs-warning); 
+}
+
+.action-pill.warning.active { 
+  background: var(--bs-warning); 
+  color: #fff; 
+  border-color: var(--bs-warning); 
+}
+
+/* Botonera circular - mantener consistencia */
 .btn-icon {
-  width: 60px; height: 60px; border-radius: 50%;
-  padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 60px; 
+  height: 60px; 
+  border-radius: 50%;
+  padding: 0; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
 }
-.btn-icon:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-.btn-icon.active {
-  color: #fff !important; background-color: var(--bs-primary); border-color: var(--bs-primary);
+
+.btn-icon:hover { 
+  transform: translateY(-1px); 
+  box-shadow: 0 4px 12px rgba(0,0,0,.12); 
 }
 
-.list-group-item { border-radius: .5rem; margin-bottom: .35rem; }
-.spinner-border { width: 2rem; height: 2rem; }
-.placeholder { border-radius: .5rem; }
+.btn-icon.active {
+  color: #fff !important; 
+  background-color: var(--bs-primary); 
+  border-color: var(--bs-primary);
+}
+
+/* Items de lista */
+.list-group-item {
+  border-radius: .5rem;
+  margin-bottom: .4rem;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
 
 /* Estado vacío */
-.empty-state { max-width: 640px; border-radius: .75rem; }
-.empty-ico-wrap {
-  width: 72px; height: 72px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: rgba(var(--bs-primary-rgb), .1); color: var(--bs-primary); font-size: 32px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.05) inset;
-  animation: floatIn .25s ease-out both;
+.empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  background: #f8f9fa;
+  border-radius: .75rem;
+  border: 1px dashed #dee2e6;
+  max-width: 640px;
+  margin: 0 auto;
 }
-@keyframes floatIn { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+.empty-state .icon-wrap {
+  width: 64px; 
+  height: 64px;
+  border-radius: 50%;
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  background: #e9f1ff; 
+  color: var(--bs-primary);
+  margin-bottom: .75rem;
+  font-size: 28px;
+}
+
+/* Utilidades */
+.form-max-width {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Contenedor de búsqueda */
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+/* Inputs de búsqueda */
+.search-input {
+  border: 1px solid #bdc3c7;
+  transition: all 0.2s ease;
+  width: 100%;
+  border-radius: .375rem;
+  padding: .5rem .75rem;
+}
+
+.search-input:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Menús de sugerencias mejorados */
+.sugerencias-menu {
+  position: absolute;
+  z-index: 1000;
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: .25rem;
+  background: #2c3e50;
+  border: 1px solid #34495e;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  animation: slideDown 0.2s ease-out;
+  box-sizing: border-box;
+  left: 0;
+  top: 100%;
+}
+
+.sugerencias-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #34495e;
+  color: #ecf0f1;
+  font-weight: 600;
+  border-bottom: 1px solid #4a5f7a;
+  font-size: 0.875rem;
+}
+
+.sugerencias-count {
+  margin-left: auto;
+  background: #3498db;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sugerencia-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: #2c3e50;
+  color: #ecf0f1;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #34495e;
+  cursor: pointer;
+}
+
+.sugerencia-item:hover {
+  background: #34495e;
+  color: #fff;
+}
+
+.sugerencia-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.sugerencia-content {
+  flex: 1;
+  text-align: left;
+}
+
+.sugerencia-content strong {
+  display: block;
+  color: #ecf0f1;
+  margin-bottom: 2px;
+  font-size: 0.9rem;
+}
+
+.sugerencia-details {
+  color: #bdc3c7;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.sugerencia-item i.bi-chevron-right {
+  color: #7f8c8d;
+  font-size: 0.875rem;
+}
+
+/* Botón limpiar */
+.btn-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  color: #7f8c8d;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.btn-clear:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+/* Badge de selección */
+.selection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #d4edda;
+  color: #155724;
+  border-radius: 6px;
+  margin-top: 8px;
+  font-size: 0.875rem;
+  border: 1px solid #c3e6cb;
+}
+
+.selection-badge i {
+  color: #28a745;
+}
+
+/* Estados de carga */
+.spinner-border {
+  width: 2rem;
+  height: 2rem;
+}
+
+.loading-small {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Animaciones */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatIn { 
+  from { 
+    transform: translateY(6px); 
+    opacity: 0; 
+  } 
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  } 
+}
+
+/* Scrollbar personalizado para menús oscuros */
+.sugerencias-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sugerencias-menu::-webkit-scrollbar-track {
+  background: #34495e;
+  border-radius: 0 8px 8px 0;
+}
+
+.sugerencias-menu::-webkit-scrollbar-thumb {
+  background: #5d6d7e;
+  border-radius: 3px;
+}
+
+.sugerencias-menu::-webkit-scrollbar-thumb:hover {
+  background: #7f8c8d;
+}
+
+/* Responsive */
 @media (max-width: 576px) {
-  .list-group-item .row > [class^="col-"] { margin-bottom: .25rem; }
+  .list-group-item .row > [class^="col-"] { 
+    margin-bottom: .25rem; 
+  }
+  
+  .action-pill {
+    padding: .45rem .8rem;
+    font-size: 0.875rem;
+  }
+  
+  .btn-icon {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .empty-state {
+    padding: 32px 12px;
+  }
+}
+
+/* Badges mejorados */
+.badge {
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 0.35em 0.65em;
+}
+
+/* Placeholders para skeleton */
+.placeholder {
+  border-radius: .5rem;
+}
+
+.placeholder-glow .placeholder {
+  animation: placeholder-glow 2s ease-in-out infinite;
+}
+
+/* Mejoras visuales para formularios */
+.form-label {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  border: 1px solid #bdc3c7;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Botones de acción en lista */
+.btn-action {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+/* Estados de empty mejorados */
+.empty-state {
+  animation: floatIn 0.3s ease-out both;
+}
+
+.empty-state .icon-wrap {
+  animation: floatIn 0.4s ease-out 0.1s both;
 }

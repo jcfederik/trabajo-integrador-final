@@ -6,13 +6,18 @@ import {
   Presupuesto,
   Paginated
 } from '../../services/presupuesto.service';
+import { ReparacionService, Reparacion } from '../../services/reparacion.service';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 type Accion = 'listar' | 'crear';
 
-/** Tipo de formulario: compatible con <input> (strings) y con null */
-type PresupuestoForm = Omit<Presupuesto, 'fecha' | 'monto_total'> & {
-  fecha: string;                         // yyyy-MM-dd para <input type="date">
-  monto_total: number | string | null;   // <input type="number"> entrega string
+type PresupuestoForm = Omit<Presupuesto, 'fecha' | 'monto_total' | 'id'> & {
+  id?: number;
+  fecha: string;                         
+  monto_total: number | string | null;
+  reparacionBusqueda: string;
+  reparacionSeleccionada?: Reparacion;
 };
 
 @Component({
@@ -25,38 +30,150 @@ type PresupuestoForm = Omit<Presupuesto, 'fecha' | 'monto_total'> & {
 export class PresupuestosComponent implements OnInit, OnDestroy {
   selectedAction: Accion = 'listar';
 
-  // listado + paginación
   items: Presupuesto[] = [];
   page = 1;
   perPage = 10;
   lastPage = false;
   loading = false;
 
-  // edición inline
   editingId: number | null = null;
   editBuffer: Partial<PresupuestoForm> = {};
 
-  // crear
-  nuevo: Partial<PresupuestoForm> = {
+  nuevo: PresupuestoForm = {
     reparacion_id: undefined as any,
-    fecha: new Date().toISOString().slice(0, 10), // yyyy-MM-dd
+    fecha: new Date().toISOString().slice(0, 10),
     monto_total: null,
-    aceptado: false
+    aceptado: false,
+    reparacionBusqueda: ''
   };
 
-  constructor(private svc: PresupuestoService) {}
+  reparacionesSugeridas: Reparacion[] = [];
+  mostrandoReparaciones = false;
+  buscandoReparaciones = false;
+  private busquedaReparacion = new Subject<string>();
+  private reparacionesCache = new Map<number, string>();
+
+  constructor(
+    private svc: PresupuestoService,
+    private reparacionSvc: ReparacionService
+  ) {}
 
   ngOnInit(): void {
     this.cargar();
     window.addEventListener('scroll', this.onScroll, { passive: true });
+    this.busquedaReparacion.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(termino => {
+      this.buscarReparaciones(termino);
+    });
   }
+
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.onScroll);
+    this.busquedaReparacion.unsubscribe();
   }
 
-  seleccionarAccion(a: Accion) { this.selectedAction = a; }
+  seleccionarAccion(a: Accion) { 
+    this.selectedAction = a; 
+  }
 
-  // ====== LISTA / SCROLL ======
+  onBuscarReparacion(termino: string): void {
+    this.busquedaReparacion.next(termino);
+  }
+
+  buscarReparaciones(termino: string): void {
+    const terminoLimpio = termino || '';
+    
+    if (!terminoLimpio.trim()) {
+      this.reparacionesSugeridas = [];
+      this.mostrandoReparaciones = false;
+      return;
+    }
+
+    this.buscandoReparaciones = true;
+    this.reparacionSvc.buscarReparaciones(terminoLimpio).subscribe({
+      next: (reparaciones) => {
+        this.reparacionesSugeridas = reparaciones.slice(0, 10);
+        this.mostrandoReparaciones = true;
+        this.buscandoReparaciones = false;
+        
+        reparaciones.forEach(reparacion => {
+          if (reparacion.descripcion) {
+            this.reparacionesCache.set(reparacion.id, reparacion.descripcion);
+          }
+        });
+      },
+      error: () => {
+        this.buscandoReparaciones = false;
+      }
+    });
+  }
+
+  seleccionarReparacion(reparacion: Reparacion): void {
+    this.nuevo.reparacionSeleccionada = reparacion;
+    this.nuevo.reparacion_id = reparacion.id;
+    this.nuevo.reparacionBusqueda = reparacion.displayText || reparacion.descripcion;
+    this.mostrandoReparaciones = false;
+    
+    if (reparacion.descripcion) {
+      this.reparacionesCache.set(reparacion.id, reparacion.descripcion);
+    }
+  }
+
+  limpiarReparacion(): void {
+    this.nuevo.reparacionSeleccionada = undefined;
+    this.nuevo.reparacion_id = undefined as any;
+    this.nuevo.reparacionBusqueda = '';
+    this.reparacionesSugeridas = [];
+    this.mostrandoReparaciones = false;
+  }
+
+  ocultarReparaciones(): void {
+    setTimeout(() => {
+      this.mostrandoReparaciones = false;
+    }, 200);
+  }
+
+  getDescripcionReparacion(reparacionId: number): string {
+    if (this.reparacionesCache.has(reparacionId)) {
+      return this.reparacionesCache.get(reparacionId) || `Reparación #${reparacionId}`;
+    }
+
+    const reparacionEnSugerencias = this.reparacionesSugeridas.find(r => r.id === reparacionId);
+    if (reparacionEnSugerencias?.descripcion) {
+      this.reparacionesCache.set(reparacionId, reparacionEnSugerencias.descripcion);
+      return reparacionEnSugerencias.descripcion;
+    }
+
+    this.cargarReparacionIndividual(reparacionId);
+    
+    return `Reparación #${reparacionId}`;
+  }
+
+  private cargarReparacionIndividual(reparacionId: number): void {
+    this.reparacionSvc.show(reparacionId).subscribe({
+      next: (reparacion) => {
+        const descripcion = reparacion.descripcion || `Reparación #${reparacionId}`;
+        this.reparacionesCache.set(reparacionId, descripcion);
+        this.items = [...this.items];
+      },
+      error: () => {
+        this.reparacionesCache.set(reparacionId, `Reparación #${reparacionId}`);
+      }
+    });
+  }
+
+  private cargarTodasLasReparaciones(): void {
+    const reparacionesIds = [...new Set(this.items.map(p => p.reparacion_id))];
+    
+    reparacionesIds.forEach(reparacionId => {
+      if (!this.reparacionesCache.has(reparacionId)) {
+        this.cargarReparacionIndividual(reparacionId);
+      }
+    });
+  }
+
   cargar(): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -67,8 +184,12 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.page++;
         this.lastPage = (res.next_page_url === null) || (this.page > res.last_page);
         this.loading = false;
+        
+        this.cargarTodasLasReparaciones();
       },
-      error: (e) => { console.error('Error al obtener presupuestos', e); this.loading = false; }
+      error: () => { 
+        this.loading = false; 
+      }
     });
   }
 
@@ -84,12 +205,10 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.cargar();
   }
 
-  // ====== CREAR ======
   crear(): void {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
 
-    // normaliza fecha a ISO (date-time) esperado por tu backend
     payload.fecha = this.toISODate(payload.fecha as string);
 
     this.svc.create(payload).subscribe({
@@ -99,36 +218,36 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
           reparacion_id: undefined as any,
           fecha: new Date().toISOString().slice(0, 10),
           monto_total: null,
-          aceptado: false
+          aceptado: false,
+          reparacionBusqueda: ''
         };
         this.selectedAction = 'listar';
       },
       error: (e) => {
-        console.error('Error al crear presupuesto', e);
         alert(e?.error?.error ?? 'Error al crear el presupuesto');
       }
     });
   }
 
-  // ====== ELIMINAR ======
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este presupuesto?')) return;
     this.svc.delete(id).subscribe({
-      next: () => { this.items = this.items.filter(i => i.id !== id); },
+      next: () => { 
+        this.items = this.items.filter(i => i.id !== id); 
+      },
       error: (e) => {
-        console.error('Error al eliminar presupuesto', e);
         alert(e?.error?.error ?? 'No se pudo eliminar');
       }
     });
   }
 
-  // ====== EDICIÓN INLINE ======
   startEdit(item: Presupuesto): void {
     this.editingId = item.id;
     this.editBuffer = {
+      id: item.id,
       reparacion_id: item.reparacion_id,
       fecha: (item.fecha ?? '').slice(0, 10),
-      monto_total: item.monto_total, // puede ser null
+      monto_total: item.monto_total,
       aceptado: item.aceptado
     };
   }
@@ -153,20 +272,16 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.cancelEdit();
       },
       error: (e) => {
-        console.error('Error al actualizar presupuesto', e);
         alert(e?.error?.error ?? 'Error al actualizar');
       }
     });
   }
 
-  // ====== Helpers ======
   private limpiar(obj: Partial<PresupuestoForm>): Partial<Presupuesto> {
-    const reparacionId =
-      typeof obj.reparacion_id === 'string'
-        ? Number(obj.reparacion_id)
-        : obj.reparacion_id;
+    const reparacionId = typeof obj.reparacion_id === 'string'
+      ? Number(obj.reparacion_id)
+      : obj.reparacion_id;
 
-    // parseo robusto del monto (puede venir string del input)
     let monto: number | null;
     if (obj.monto_total == null) {
       monto = null;
@@ -186,24 +301,39 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   }
 
   private valida(p: Partial<Presupuesto>): boolean {
-    // requeridos
     if (!p.reparacion_id || !p.fecha || p.monto_total == null || typeof p.aceptado !== 'boolean') {
       alert('Completá: reparación, fecha, monto_total y aceptado.');
       return false;
     }
-    // tipos / rangos
+    
     if (isNaN(Number(p.reparacion_id)) || Number(p.reparacion_id) <= 0) {
       alert('reparacion_id inválido.');
       return false;
     }
+    
     if (typeof p.monto_total !== 'number' || isNaN(p.monto_total) || p.monto_total < 0) {
       alert('monto_total debe ser numérico y >= 0.');
       return false;
     }
+    
     return true;
   }
 
-  /** Convierte 'yyyy-MM-dd' a ISO (UTC) para evitar desfasajes por timezone */
+  getEstadoBadgeClass(estado: string): string {
+    switch (estado?.toLowerCase()) {
+      case 'pendiente':
+        return 'bg-warning text-dark';
+      case 'en proceso':
+        return 'bg-info text-white';
+      case 'finalizada':
+        return 'bg-success text-white';
+      case 'cancelada':
+        return 'bg-danger text-white';
+      default:
+        return 'bg-secondary text-white';
+    }
+  }
+
   private toISODate(yyyyMMdd: string): string {
     if (!yyyyMMdd) return new Date().toISOString();
     return new Date(yyyyMMdd + 'T00:00:00Z').toISOString();

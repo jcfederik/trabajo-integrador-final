@@ -34,13 +34,6 @@ class ReparacionController extends Controller
      *         required=false,
      *         @OA\Schema(type="integer", example=15)
      *     ),
-     *     @OA\Parameter(
-     *         name="include",
-     *         in="query",
-     *         description="Relaciones a incluir (equipo,tecnico,repuestos)",
-     *         required=false,
-     *         @OA\Schema(type="string", example="equipo,tecnico")
-     *     ),
      *     @OA\Response(
      *         response=200, 
      *         description="Lista de reparaciones obtenida correctamente",
@@ -66,6 +59,71 @@ class ReparacionController extends Controller
             return response()->json($reparaciones, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener las reparaciones', 'detalle' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/reparaciones/buscar",
+     *     summary="Buscar reparaciones por término",
+     *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         description="Término de búsqueda",
+     *         required=true,
+     *         @OA\Schema(type="string", example="placa madre")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=100)
+     *     ),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Reparaciones encontradas",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Reparacion"))
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Término de búsqueda requerido"),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=500, description="Error al buscar reparaciones")
+     * )
+     */
+    public function buscar(Request $request)
+    {
+        $termino = $request->get('q');
+        $perPage = $request->get('per_page', 100);
+
+        if (!$termino) {
+            return response()->json([], 200);
+        }
+
+        try {
+            $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                ->where(function($query) use ($termino) {
+                    $query->where('descripcion', 'LIKE', "%{$termino}%")
+                          ->orWhere('estado', 'LIKE', "%{$termino}%")
+                          ->orWhereHas('equipo', function($q) use ($termino) {
+                              $q->where('descripcion', 'LIKE', "%{$termino}%")
+                                ->orWhere('marca', 'LIKE', "%{$termino}%")
+                                ->orWhere('modelo', 'LIKE', "%{$termino}%")
+                                ->orWhere('nro_serie', 'LIKE', "%{$termino}%");
+                          })
+                          ->orWhereHas('tecnico', function($q) use ($termino) {
+                              $q->where('nombre', 'LIKE', "%{$termino}%")
+                                ->orWhere('email', 'LIKE', "%{$termino}%");
+                          });
+                })
+                ->paginate($perPage);
+
+            return response()->json($reparaciones, 200);
+        } catch (\Exception $e) {
+            return response()->json([], 200);
         }
     }
 

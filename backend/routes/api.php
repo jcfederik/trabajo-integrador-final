@@ -18,56 +18,41 @@ use App\Http\Controllers\{
     DetalleCobroController
 };
 
-/*
-|--------------------------------------------------------------------------
-| RUTAS PÚBLICAS
-|--------------------------------------------------------------------------
-| Solo accesibles sin autenticación JWT
-*/
+// RUTAS PÚBLICAS
 Route::post('/login', [AuthController::class, 'login']);
 
-
-/*
-|--------------------------------------------------------------------------
-| RUTAS PROTEGIDAS CON JWT
-|--------------------------------------------------------------------------
-| Solo accesibles con un token válido
-*/
+// RUTAS PROTEGIDAS CON JWT
 Route::middleware(['jwt.auth'])->group(function () {
 
-    // 🔹 Rutas de autenticación
+    // Rutas de autenticación
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::get('/me', [AuthController::class, 'me']);
 
-    // 🔹 Perfil de usuario autenticado
+    // Perfil de usuario autenticado
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
 
-    // 🔹 Recursos accesibles por cualquier usuario autenticado
+    // Recursos accesibles por cualquier usuario autenticado
     Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
     Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
     Route::apiResource('clientes', ClienteController::class);
-    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
+    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);    
     Route::apiResource('equipos', EquipoController::class);
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
     Route::apiResource('medios-cobro', MedioCobroController::class);
     Route::apiResource('facturas', FacturaController::class);
     Route::apiResource('reparaciones', ReparacionController::class);
+    Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
+    Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
     Route::apiResource('presupuestos', PresupuestoController::class);
     Route::apiResource('compras-repuestos', CompraRepuestoController::class);
     Route::apiResource('proveedores', ProveedorController::class);
     Route::apiResource('repuestos', RepuestoController::class);
     Route::apiResource('especializaciones', EspecializacionController::class);
     Route::apiResource('detalle-cobros', DetalleCobroController::class)
-        ->only(['index', 'show']); // 👈 todos pueden ver, no crear
+        ->only(['index', 'show']);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | RUTAS SOLO PARA ADMINISTRADORES
-    |--------------------------------------------------------------------------
-    | Requieren token JWT válido y rol administrador
-    */
+    // RUTAS SOLO PARA ADMINISTRADORES
     Route::middleware(['admin'])->group(function () {
         Route::apiResource('users', AdminUserController::class);
         Route::post('especializaciones', [EspecializacionController::class, 'store']);
