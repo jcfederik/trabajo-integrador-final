@@ -41,3 +41,90 @@
 
 /* Loader */
 .spinner-border { width: 2rem; height: 2rem; }
+
+/* Estilos específicos para el componente de clientes */
+/* La mayoría de los estilos ya están en los globales */
+
+/* Puedes agregar aquí solo estilos muy específicos del componente de clientes */
+
+/* Ejemplo: estilos específicos para badges de estado de cliente si los necesitas */
+.cliente-activo {
+    background: linear-gradient(135deg, var(--success), #059669);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.cliente-inactivo {
+    background: linear-gradient(135deg, var(--gray), #64748b);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Estilos para el contador de equipos si lo agregas */
+.equipos-count {
+    background: rgba(30, 64, 175, 0.1);
+    color: var(--secondary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid rgba(30, 64, 175, 0.2);
+}
+
+/* Efectos hover específicos para items de cliente */
+.list-group-item:hover .cliente-info {
+    transform: translateX(4px);
+    transition: transform 0.2s ease;
+}
+
+/* Responsive específico para clientes */
+@media (max-width: 768px) {
+    .cliente-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .cliente-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Animación de entrada para nuevos clientes */
+@keyframes slideInClient {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.list-group-item:first-child {
+    animation: slideInClient 0.3s ease-out;
+}
+
+/* Estilos para el formulario de cliente si necesitas ajustes específicos */
+.cliente-form .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* Badge para cliente reciente */
+.cliente-reciente {
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 10px;
+    margin-left: 0.5rem;
+    font-weight: 700;
+}
