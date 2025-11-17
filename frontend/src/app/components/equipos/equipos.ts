@@ -5,10 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 
 import { EquipoService, Equipo, PaginatedResponse } from '../../services/equipos';
+import { ClienteService } from '../../services/cliente.service';   // <--- IMPORTANTE
 import { SearchService } from '../../services/busquedaglobal';
 
 type Accion = 'listar' | 'crear';
-type EquipoUI = Equipo; // Si tu backend expone más campos (marca, modelo, etc.), podés extender: Equipo & { marca?: string; ... }
+type EquipoUI = Equipo;
 
 @Component({
   selector: 'app-equipos',
@@ -18,41 +19,43 @@ type EquipoUI = Equipo; // Si tu backend expone más campos (marca, modelo, etc.
   styleUrls: ['./equipos.css'],
 })
 export class EquiposComponent implements OnInit, OnDestroy {
-  selectedAction: Accion = 'listar';
 
-  // dataset crudo + visible (filtrado)
+  selectedAction: Accion = 'listar';
+  
   private equiposAll: EquipoUI[] = [];
   equipos: EquipoUI[] = [];
 
-  // paginación + estado
+  clientes: any[] = [];   // <---- LISTA DE CLIENTES
+
   page = 1;
   perPage = 15;
   lastPage = false;
   loading = false;
 
-  // edición inline
   editingId: number | null = null;
-  editBuffer: Partial<EquipoUI> = {};
-
-  // creación
-  nuevo: Partial<EquipoUI> = {
-    // ajustá según tu modelo, pero la descripción está en tu validación
-    descripcion: ''
+  editBuffer: Partial<EquipoUI> = {
+    descripcion: '',
+    cliente_id: undefined
   };
 
-  // búsqueda global
+  nuevo: Partial<EquipoUI> = {
+    descripcion: '',
+    cliente_id: undefined
+  };
+
   private searchSub?: Subscription;
   searchTerm = '';
 
   constructor(
     private equipoService: EquipoService,
-    private searchService: SearchService
+    private clienteService: ClienteService,        // <--- INYECTADO
+    public searchService: SearchService
   ) {}
 
   ngOnInit(): void {
     this.resetLista();
+    this.cargarClientes();                           // <--- SE CARGAN CLIENTES
 
-    // integrar con buscador global
     this.searchService.setCurrentComponent('equipos');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       this.searchTerm = (term || '').trim();
@@ -68,9 +71,25 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
+  // ============================
+  // CARGAR CLIENTES
+  // ============================
+  cargarClientes() {
+    this.clienteService.getClientes(1, 999).subscribe({
+      next: (res: any) => {
+        this.clientes = res.data ?? res;
+      },
+      error: (err) => {
+        console.error("Error al cargar clientes", err);
+      }
+    });
+  }
+
   seleccionarAccion(a: Accion) { this.selectedAction = a; }
 
-  // ====== LISTA / SCROLL ======
+  // ============================
+  // FETCH / LISTA
+  // ============================
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -78,20 +97,17 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.equipoService.getEquipos(page, this.perPage).subscribe({
       next: (res: PaginatedResponse<Equipo>) => {
         const batch = (res.data as EquipoUI[]) ?? [];
+
         if (page === 1) {
           this.equiposAll = batch;
         } else {
           this.equiposAll = [...this.equiposAll, ...batch];
         }
 
-        // paginación
         this.page = res.current_page;
         this.lastPage = res.last_page === 0 || res.current_page >= res.last_page;
 
-        // aplicar filtro visible
         this.applyFilter();
-
-        // compartir dataset con buscador
         this.searchService.setSearchData(this.equiposAll);
 
         this.loading = false;
@@ -120,7 +136,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  // Filtrado en cliente (match simple por cualquier campo stringificable)
   private applyFilter(): void {
     const term = this.searchTerm.toLowerCase();
     if (!term) {
@@ -128,7 +143,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Si sólo tenés `descripcion`, con esto basta. Si hay más campos, se matchean igual.
     this.equipos = this.equiposAll.filter(e => {
       try {
         return JSON.stringify(e).toLowerCase().includes(term);
@@ -139,16 +153,17 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== CREAR ======
+  // ============================
+  // CREAR
+  // ============================
   crear(): void {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
 
     this.equipoService.createEquipo(payload).subscribe({
       next: () => {
-        // refresco consistente desde página 1
         this.selectedAction = 'listar';
-        this.nuevo = { descripcion: '' };
+        this.nuevo = { descripcion: '', cliente_id: undefined };
         this.resetLista();
       },
       error: (e) => {
@@ -158,7 +173,9 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== ELIMINAR ======
+  // ============================
+  // ELIMINAR
+  // ============================
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este equipo?')) return;
 
@@ -172,12 +189,14 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== EDICIÓN INLINE ======
+  // ============================
+  // EDICIÓN INLINE
+  // ============================
   startEdit(item: EquipoUI): void {
     this.editingId = item.id;
     this.editBuffer = {
-      // ajustá campos editables según tu modelo:
-      descripcion: (item as any)?.descripcion ?? ''
+      descripcion: (item as any)?.descripcion ?? '',
+      cliente_id: (item as any)?.cliente_id ?? undefined
     };
   }
 
@@ -190,13 +209,13 @@ export class EquiposComponent implements OnInit, OnDestroy {
     const payload = this.limpiar(this.editBuffer);
     if (!this.valida(payload)) return;
 
-    // Asegurate de tener updateEquipo en tu servicio
     this.equipoService.updateEquipo(id, payload).subscribe({
       next: () => {
         const updateLocal = (arr: EquipoUI[]) => {
           const idx = arr.findIndex(x => x.id === id);
           if (idx >= 0) arr[idx] = { ...arr[idx], ...payload } as EquipoUI;
         };
+
         updateLocal(this.equiposAll);
         updateLocal(this.equipos);
 
@@ -210,22 +229,38 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== Helpers ======
+  // ============================
+  // HELPERS
+  // ============================
   private limpiar(obj: Partial<EquipoUI>): Partial<EquipoUI> {
-    // Normalizá sólo lo que sabés que existe. Mínimo ‘descripcion’.
-    const out: Partial<EquipoUI> = {};
-    if ((obj as any).descripcion !== undefined) {
-      (out as any).descripcion = ((obj as any).descripcion ?? '').toString().trim();
-    }
-    return out;
+    return {
+      descripcion: obj.descripcion?.toString().trim(),
+      cliente_id: obj.cliente_id
+    };
   }
 
-  private valida(p: Partial<EquipoUI>): boolean {
-    // Si tu backend exige más campos, agregalos acá
-    if (!(p as any).descripcion) {
+  private valida(p: any): boolean {
+    if (!p.descripcion) {
       alert('Completá la descripción.');
+      return false;
+    }
+    if (!p.cliente_id) {
+      alert('Debes seleccionar un cliente.');
       return false;
     }
     return true;
   }
+
+  getClienteNombre(clienteId: number | null | undefined): string {
+  if (!clienteId) return 'Sin cliente';
+  const cli = this.clientes.find(c => c.id === clienteId);
+  return cli ? cli.nombre : `Cliente #${clienteId}`;
+}
+
+getClienteTelefono(clienteId: number | null | undefined): string | null {
+  if (!clienteId) return null;
+  const cli = this.clientes.find(c => c.id === clienteId);
+  return cli?.telefono ?? null;
+}
+
 }
