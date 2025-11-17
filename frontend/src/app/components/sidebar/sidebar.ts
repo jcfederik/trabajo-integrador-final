@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 interface SidebarItem {
   title: string;
@@ -8,6 +9,7 @@ interface SidebarItem {
   route?: string;
   disabled?: boolean;
   isHeader?: boolean;
+  badge?: string;
 }
 
 @Component({
@@ -18,14 +20,17 @@ interface SidebarItem {
   styleUrls: ['./sidebar.css']
 })
 export class SidebarComponent {
-  isCollapsed = true;
+  isCollapsed = false; // Cambiado a false para que aparezca expandida por defecto
+  currentRoute: string = '';
+
+  @Output() sidebarStateChange = new EventEmitter<boolean>();
 
   menuItems: SidebarItem[] = [
     { title: 'MENÚ PRINCIPAL', isHeader: true },
     { title: 'Dashboard', icon: 'bi-speedometer2', route: '/dashboard' },
     { title: 'Clientes', icon: 'bi-people', route: '/clientes' },
     { title: 'Equipos', icon: 'bi-laptop', route: '/equipos' },
-    { title: 'Reparaciones', icon: 'bi-wrench', route: '/reparaciones' },
+    { title: 'Reparaciones', icon: 'bi-wrench', route: '/reparaciones', badge: 'Nuevo' },
     
     { title: 'FACTURACIÓN', isHeader: true },
     { title: 'Facturas', icon: 'bi-receipt', route: '/facturas' },
@@ -37,11 +42,26 @@ export class SidebarComponent {
     { title: 'Proveedores', icon: 'bi-truck', route: '/proveedores' },
     
     { title: 'ADMINISTRACIÓN', isHeader: true },
-    { title: 'Usuarios', icon: 'bi-person-badge', route: '/usuarios' },
+    { title: 'Usuarios', icon: 'bi-person-badge', route: '/usuarios', disabled: true },
     { title: 'Especializaciones', icon: 'bi-mortarboard', route: '/especializaciones', disabled: true },
   ];
 
+  constructor(private router: Router) {
+    // Escuchar cambios de ruta
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        this.currentRoute = event.url;
+      });
+  }
+
   toggleSidebar() {
     this.isCollapsed = !this.isCollapsed;
+    this.sidebarStateChange.emit(this.isCollapsed);
+  }
+
+  isActive(route: string | undefined): boolean {
+    if (!route) return false;
+    return this.currentRoute.includes(route);
   }
 }

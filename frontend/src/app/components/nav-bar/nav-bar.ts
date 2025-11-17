@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { SearchService } from '../../services/busquedaglobal';
+import { Subscription, filter } from 'rxjs';
 
 @Component({
   selector: 'nav-bar',
@@ -11,42 +12,65 @@ import { SearchService } from '../../services/busquedaglobal';
   templateUrl: './nav-bar.html',
   styleUrls: ['./nav-bar.css']
 })
-export class NavBar implements OnInit {
-  username: string = 'Usuario';
-  searchQuery: string = '';
-  currentComponent: string = '';
-  placeholder: string = 'Buscar...';
+export class NavBar implements OnInit, OnDestroy {
   searchTerm: string = '';
+  placeholder: string = 'Buscar...';
   usuarioActual: string = 'Usuario';
+  isDashboard: boolean = false;
+  
+  private searchSubscription!: Subscription;
+  private componentSubscription!: Subscription;
+  private routerSubscription!: Subscription;
 
-  constructor(public searchService: SearchService, public router: Router) {}
+  constructor(
+    public searchService: SearchService, 
+    public router: Router
+  ) {}
 
   ngOnInit() {
+    this.checkCurrentRoute();
     this.setPlaceholderByRoute();
+    this.loadUserData();
 
-    // 🔥 Nuevo: obtener nombre del usuario guardado
-    const usuarioGuardado = localStorage.getItem('usuario');
-    if (usuarioGuardado) {
-      try {
-        const usuario = JSON.parse(usuarioGuardado);
-        this.usuarioActual = usuario.nombre || 'Usuario';
-      } catch {
-        this.usuarioActual = 'Usuario';
-      }
-    }
-
-    // 🔥 NUEVO: Sincronizar con búsqueda global cuando cambia
-    this.searchService.globalSearchTerm$.subscribe(term => {
+    // Sincronizar con búsqueda global
+    this.searchSubscription = this.searchService.globalSearchTerm$.subscribe(term => {
       if (term !== this.searchTerm) {
         this.searchTerm = term;
       }
     });
 
-    this.searchService.currentComponent$.subscribe(component => {
+    // Actualizar placeholder cuando cambia el componente
+    this.componentSubscription = this.searchService.currentComponent$.subscribe(component => {
       setTimeout(() => {
         this.placeholder = this.getPlaceholder(component);
       });
     });
+
+    // Escuchar cambios de ruta
+    this.routerSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => {
+        setTimeout(() => {
+          this.checkCurrentRoute();
+          this.setPlaceholderByRoute();
+        });
+      });
+  }
+
+  ngOnDestroy() {
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
+    if (this.componentSubscription) {
+      this.componentSubscription.unsubscribe();
+    }
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
+
+  private checkCurrentRoute() {
+    this.isDashboard = this.esDashboard();
   }
 
   private setPlaceholderByRoute() {
@@ -73,53 +97,61 @@ export class NavBar implements OnInit {
       this.placeholder = 'Buscar especializaciones...';
     } else if (currentPath.includes('detalles-cobro')) {
       this.placeholder = 'Buscar detalles de cobro...';
-    } else if (currentPath === '/dashboard' || currentPath === '/') {
-      this.placeholder = 'Buscar módulos... (clientes, equipos, facturas, etc.)'; // 🔥 MODIFICADO
+    } else if (this.isDashboard) {
+      this.placeholder = 'Buscar módulos...';
     } else {
       this.placeholder = 'Buscar...';
     }
   }
 
   private getPlaceholder(component: string): string {
-    switch (component) {
-      case 'equipos': return 'Buscar equipos...';
-      case 'clientes': return 'Buscar clientes...';
-      case 'facturas': return 'Buscar facturas...';
-      case 'proveedores': return 'Buscar proveedores...';
-      case 'repuestos': return 'Buscar repuestos...';
-      case 'presupuestos': return 'Buscar presupuestos...';
-      case 'reparaciones': return 'Buscar reparaciones...';
-      case 'cobros': return 'Buscar cobros...';
-      case 'usuarios': return 'Buscar usuarios...';
-      case 'especializaciones': return 'Buscar especializaciones...';
-      case 'detalles-cobro': return 'Buscar detalles de cobro...';
-      case 'dashboard': return 'Buscar módulos... (clientes, equipos, facturas, etc.)'; // 🔥 NUEVO
-      default: return 'Buscar...';
+    const placeholders: { [key: string]: string } = {
+      'equipos': 'Buscar equipos...',
+      'clientes': 'Buscar clientes...',
+      'facturas': 'Buscar facturas...',
+      'proveedores': 'Buscar proveedores...',
+      'repuestos': 'Buscar repuestos...',
+      'presupuestos': 'Buscar presupuestos...',
+      'reparaciones': 'Buscar reparaciones...',
+      'cobros': 'Buscar cobros...',
+      'usuarios': 'Buscar usuarios...',
+      'especializaciones': 'Buscar especializaciones...',
+      'detalles-cobro': 'Buscar detalles de cobro...',
+      'dashboard': 'Buscar módulos...'
+    };
+    
+    return placeholders[component] || 'Buscar...';
+  }
+
+  private loadUserData() {
+    const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('user');
+    if (usuarioGuardado) {
+      try {
+        const usuario = JSON.parse(usuarioGuardado);
+        this.usuarioActual = usuario.nombre || usuario.name || 'Usuario';
+      } catch {
+        this.usuarioActual = 'Usuario';
+      }
     }
   }
 
   onSearch() {
-    // 🔥 MODIFICADO: Usar búsqueda global en lugar de específica
     this.searchService.setGlobalSearchTerm(this.searchTerm);
     
-    // Si estamos en dashboard, también actualizar la búsqueda del dashboard
-    if (this.esDashboard()) {
+    if (this.isDashboard) {
       this.searchService.setDashboardSearchTerm(this.searchTerm);
     } else {
-      // Para otras páginas, usar la búsqueda normal
       this.searchService.setSearchTerm(this.searchTerm);
     }
   }
 
   clearSearch() {
     this.searchTerm = '';
-    // 🔥 MODIFICADO: Limpiar todas las búsquedas
     this.searchService.clearGlobalSearch();
     this.searchService.clearSearch();
     this.searchService.clearDashboardSearch();
   }
 
-  // ✅ Nuevo: detectar si está en dashboard
   esDashboard(): boolean {
     return this.router.url === '/dashboard' || this.router.url === '/';
   }

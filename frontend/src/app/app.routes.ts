@@ -4,8 +4,7 @@ import { authMatchGuard } from './services/auth-guard'; // ver abajo
 
 export const routes: Routes = [
   // Públicas
-  { path: 'login', loadComponent: () => import('./components/login/login').then(m => m.Login) },
-
+  { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
   // Privadas (SOLO canMatch)
   {
     path: 'dashboard',
