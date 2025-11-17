@@ -53,7 +53,6 @@ export class PresupuestoService {
     return this.http.delete(`${this.base}/${id}`);
   }
 
-  // 🔥 NUEVO MÉTODO PARA BÚSQUEDA GLOBAL - USA EL ENDPOINT /buscar DEL BACKEND
   buscarGlobal(termino: string): Observable<Presupuesto[]> {
     if (!termino.trim()) {
       return of([]);
@@ -66,7 +65,6 @@ export class PresupuestoService {
 
     return this.http.get<any>(`${this.base}/buscar`, { params }).pipe(
       map(response => {
-        // Manejar diferentes formatos de respuesta
         let presupuestos: any[] = [];
         
         if (Array.isArray(response)) {

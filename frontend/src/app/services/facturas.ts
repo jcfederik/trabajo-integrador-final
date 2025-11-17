@@ -3,27 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 
-/* [
-  {
-    "id": 1,
-    "presupuesto_id": 3,
-    "numero": "F0001-00002345",
-    "letra": "A",
-    "fecha": "2025-10-11T14:30:00Z",
-    "monto_total": 15200.5,
-    "detalle": "Reparación general de equipos informáticos",
-    "created_at": "2025-11-03T15:15:41.959Z",
-    "updated_at": "2025-11-03T15:15:41.959Z"
-  }
-] */
-
-
 export interface Factura {
   id: number;
   presupuesto_id: number;
   numero: string;
   letra: string;
-  fecha: string; // ISO (YYYY-MM-DDTHH:mm:ssZ)
+  fecha: string;
   monto_total: number;
   detalle: string;
 }
@@ -58,4 +43,5 @@ export class FacturaService {
   delete(id: number) {
     return this.http.delete(`${this.base}/${id}`);
   }
+  
 }

@@ -166,7 +166,7 @@ export class SearchService {
           item.email || '',
           item.telefono || ''
         );
-        break;
+      break;
 
       case 'equipos':
         fields.push(
@@ -175,7 +175,7 @@ export class SearchService {
           item.modelo || '',
           item.nro_serie || ''
         );
-        break;
+      break;
 
       case 'reparaciones':
         fields.push(
@@ -186,17 +186,18 @@ export class SearchService {
           item.tecnico_nombre || '',
           item.reparacion_nombre || ''
         );
-        break;
+      break;
 
-      // case 'facturas':
-      //   fields.push(
-      //     item.numero || '',
-      //     item.letra || '',
-      //     item.detalle || '',
-      //     item.monto_total?.toString() || '',
-      //     item.fecha || ''
-      //   );
-      //   break;
+      case 'facturas':
+        fields.push(
+          item.numero || '',
+          item.letra || '',
+          item.detalle || '',
+          item.monto_total?.toString() || '',
+          item.fecha || '',
+          (item as any).presupuesto_id?.toString() || ''
+        );
+      break;
 
       case 'presupuestos':
         fields.push(
@@ -206,7 +207,7 @@ export class SearchService {
           (item as any).reparacion_descripcion || '',
           (item as any).descripcion || ''
         );
-        break;
+      break;
 
       // case 'proveedores':
       //   fields.push(

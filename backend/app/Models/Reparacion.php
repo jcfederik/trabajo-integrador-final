@@ -19,7 +19,6 @@ class Reparacion extends Model
         'estado'
     ];
 
-    /** Relaciones */
     public function equipo()
     {
         return $this->belongsTo(Equipo::class, 'equipo_id');
@@ -35,5 +34,15 @@ class Reparacion extends Model
         return $this->belongsToMany(Repuesto::class, 'reparacion_repuesto')
                     ->withPivot('cantidad', 'costo_unitario')
                     ->withTimestamps();
+    }
+
+    public function presupuestos()
+    {
+        return $this->hasMany(Presupuesto::class, 'reparacion_id');
+    }
+
+    public function facturas()
+    {
+        return $this->hasManyThrough(Factura::class, Presupuesto::class, 'reparacion_id', 'presupuesto_id');
     }
 }
