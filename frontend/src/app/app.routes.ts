@@ -49,6 +49,12 @@ export const routes: Routes = [
     canMatch: [authMatchGuard]
   },
 
+  { path: 'proveedores',
+    loadComponent: () => import('./components/proveedores/proveedores.component')
+      .then(m => m.ProveedoresComponent),
+    canMatch: [authMatchGuard]
+  },
+
   // Redirect raíz
   { path: '', pathMatch: 'full', redirectTo: 'login' },
 

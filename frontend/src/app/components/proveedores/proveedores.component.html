@@ -1,0 +1,189 @@
+<div class="container py-4">
+  <!-- Píldoras de acción -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+    <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="selectedAction==='listar'">
+      <i class="bi bi-list"></i> Listar
+    </button>
+    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="selectedAction==='crear'">
+      <i class="bi bi-plus-circle"></i> Crear
+    </button>
+  </div>
+
+  <!-- LISTAR -->
+  <div *ngIf="selectedAction==='listar'">
+    <h4 class="text-center mb-3">Proveedores</h4>
+    
+    <!-- Indicador de búsqueda -->
+    <div *ngIf="searchTerm" class="alert alert-info d-flex justify-content-between align-items-center">
+      <span>Mostrando {{ proveedores.length }} de {{ proveedoresAll.length }} proveedores</span>
+      <button (click)="limpiarBusqueda()" class="btn btn-sm btn-outline-secondary">× Limpiar</button>
+    </div>
+
+    <div class="list-group">
+      <div *ngFor="let p of proveedores" class="list-group-item">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+          <!-- Datos -->
+          <div class="flex-grow-1">
+            <ng-container *ngIf="editingId !== p.id; else editRow">
+              <div class="fw-semibold">
+                #{{ p.id }} — {{ p.razon_social }}
+              </div>
+              <div class="text-muted small">
+                CUIT: {{ p.cuit }} · 
+                Tel: {{ formatearTelefono(p.telefono) }} · 
+                Email: {{ p.email || 'No especificado' }}
+                <span *ngIf="p.direccion">· Dirección: {{ p.direccion }}</span>
+              </div>
+            </ng-container>
+
+            <!-- Edición inline -->
+            <ng-template #editRow>
+              <div class="row g-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Razón Social</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.razon_social" />
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">CUIT</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.cuit" />
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label small">Teléfono</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.telefono" />
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label small">Email</label>
+                  <input type="email" class="form-control" [(ngModel)]="editBuffer.email" />
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label small">Dirección</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.direccion" />
+                </div>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Acciones -->
+          <div class="d-flex gap-2">
+            <button *ngIf="editingId !== p.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(p)">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <ng-container *ngIf="editingId === p.id">
+              <button class="btn btn-sm btn-success" (click)="saveEdit(p.id!)">
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button class="btn btn-sm btn-secondary" (click)="cancelEdit()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </ng-container>
+            <button class="btn btn-sm btn-outline-danger" (click)="eliminar(p.id!)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado vacío -->
+    <div *ngIf="searchTerm && proveedores.length === 0" class="empty-state">
+      <div class="icon-wrap">
+        <i class="bi bi-search"></i>
+      </div>
+      <h5>No se encontraron proveedores</h5>
+      <p class="text-muted">No hay resultados que coincidan con "{{ searchTerm }}"</p>
+    </div>
+
+    <!-- Loading -->
+    <div class="text-center mt-3" *ngIf="loading">
+      <div class="spinner-border text-primary"></div>
+      <div class="mt-2 text-muted">Cargando más proveedores...</div>
+    </div>
+  </div>
+
+  <!-- CREAR -->
+  <div *ngIf="selectedAction==='crear'">
+    <h4 class="text-center mb-3">Registrar Proveedor</h4>
+    <form (ngSubmit)="crear()" class="mx-auto form-max-width">
+      <div class="row g-3">
+        
+        <!-- Razón Social -->
+        <div class="col-12 col-md-6">
+          <label class="form-label">Razón Social</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="nuevo.razon_social" 
+            name="razon_social" 
+            placeholder="Ej: Distribuidora S.A."
+            required
+          />
+        </div>
+
+        <!-- CUIT -->
+        <div class="col-12 col-md-6">
+          <label class="form-label">CUIT</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="nuevo.cuit" 
+            name="cuit" 
+            placeholder="Ej: 30-12345678-9"
+            required
+          />
+        </div>
+
+        <!-- Teléfono -->
+        <div class="col-12 col-md-6">
+          <label class="form-label">Teléfono</label>
+          <input 
+            type="tel" 
+            class="form-control" 
+            [(ngModel)]="nuevo.telefono" 
+            name="telefono" 
+            placeholder="Ej: +54 11 1234-5678"
+          />
+        </div>
+
+        <!-- Email -->
+        <div class="col-12 col-md-6">
+          <label class="form-label">Email</label>
+          <input 
+            type="email" 
+            class="form-control" 
+            [(ngModel)]="nuevo.email" 
+            name="email" 
+            placeholder="Ej: contacto@proveedor.com"
+          />
+        </div>
+
+        <!-- Dirección -->
+        <div class="col-12">
+          <label class="form-label">Dirección</label>
+          <textarea 
+            class="form-control" 
+            [(ngModel)]="nuevo.direccion" 
+            name="direccion" 
+            rows="2"
+            placeholder="Dirección completa del proveedor"
+          ></textarea>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="col-12">
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>Información:</strong> Los proveedores se asociarán a los repuestos y compras del sistema.
+          </div>
+        </div>
+      </div>
+
+      <button 
+        class="btn btn-success w-100 mt-3" 
+        type="submit" 
+        [disabled]="!nuevo.razon_social || !nuevo.cuit"
+      >
+        <i class="bi bi-check-lg"></i> Guardar Proveedor
+      </button>
+    </form>
+  </div>
+</div>
