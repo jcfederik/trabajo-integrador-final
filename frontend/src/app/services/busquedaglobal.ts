@@ -1,6 +1,27 @@
 // src/app/services/search.service.ts
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
+
+export interface Factura {
+  id: number;
+  presupuesto_id: number;
+  numero: string;
+  letra: string;
+  fecha: string;
+  monto_total: number;
+  detalle: string;
+}
+
+export interface Paginated<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  next_page_url: string | null;
+  prev_page_url: string | null;
+  per_page: number;
+  total: number;
+}
 
 export interface SearchableItem {
   id: number;
@@ -51,6 +72,29 @@ export interface SearchableItem {
   // estado?: boolean;
 }
 
+export interface ServerSearchParams {
+  component: string;
+  term: string;
+  page?: number;
+  perPage?: number;
+}
+
+// 🔥 NUEVA INTERFAZ para respuesta de búsqueda global
+export interface GlobalSearchResult {
+  component: string;
+  data: any[];
+  total: number;
+  current_page: number;
+  last_page: number;
+}
+
+// 🔥 NUEVA INTERFAZ para búsqueda global unificada
+export interface GlobalSearchResponse {
+  success: boolean;
+  results: GlobalSearchResult[];
+  total_results: number;
+}
+
 // 🔥 Nueva interfaz para búsqueda de componentes del dashboard
 export interface DashboardComponent {
   title: string;
@@ -65,6 +109,8 @@ export interface DashboardComponent {
   providedIn: 'root'
 })
 export class SearchService {
+  private apiBaseUrl = 'http://127.0.0.1:8000/api';
+
   private currentComponent = new BehaviorSubject<string>('');
   private searchTerm = new BehaviorSubject<string>('');
   private searchData = new BehaviorSubject<any[]>([]);
@@ -76,6 +122,8 @@ export class SearchService {
   searchData$ = this.searchData.asObservable();
   dashboardSearchTerm$ = this.dashboardSearchTerm.asObservable();
   globalSearchTerm$ = this.globalSearchTerm.asObservable();
+
+  constructor(private http: HttpClient){}
 
   setCurrentComponent(component: string) {
     this.currentComponent.next(component);
@@ -295,5 +343,75 @@ export class SearchService {
         return itemValue.toString().toLowerCase().includes(value.toString().toLowerCase());
       });
     });
+  }
+  
+  // 🔥 MÉTODO GLOBAL PARA BÚSQUEDA EN SERVIDOR - ÚNICO PARA TODOS LOS COMPONENTES
+  searchOnServer(component: string, term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    if (!term.trim()) {
+      // Si no hay término, devolver vacío
+      return new Observable(observer => {
+        observer.next({ data: [], current_page: 1, last_page: true, total: 0 });
+        observer.complete();
+      });
+    }
+
+    // URL única para todos los componentes usando el parámetro 'search'
+    const url = `${this.apiBaseUrl}/${component}?search=${encodeURIComponent(term)}&page=${page}&per_page=${perPage}`;
+    
+    console.log(`🔍 Búsqueda en servidor [${component}]:`, term, 'URL:', url);
+    
+    return this.http.get<any>(url);
+  }
+
+  // 🔥 MÉTODOS ESPECÍFICOS PARA CADA COMPONENTE (opcionales, para conveniencia)
+  searchFacturas(term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    return this.searchOnServer('facturas', term, page, perPage);
+  }
+
+  searchClientes(term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    return this.searchOnServer('clientes', term, page, perPage);
+  }
+
+  searchEquipos(term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    return this.searchOnServer('equipos', term, page, perPage);
+  }
+
+  searchReparaciones(term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    return this.searchOnServer('reparaciones', term, page, perPage);
+  }
+
+  searchPresupuestos(term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    return this.searchOnServer('presupuestos', term, page, perPage);
+  }
+
+  // 🔥 MÉTODO PARA BÚSQUEDA GLOBAL EN MÚLTIPLES COMPONENTES
+  globalSearch(term: string, components: string[] = ['clientes', 'equipos', 'reparaciones', 'facturas', 'presupuestos']): Observable<GlobalSearchResponse> {
+    if (!term.trim()) {
+      return new Observable(observer => {
+        observer.next({ success: true, results: [], total_results: 0 });
+        observer.complete();
+      });
+    }
+
+    const url = `${this.apiBaseUrl}/global-search`;
+    const body = {
+      term: term,
+      components: components
+    };
+
+    return this.http.post<GlobalSearchResponse>(url, body);
+  }
+
+  // 🔥 MÉTODO PARA OBTENER SUGERENCIAS RÁPIDAS
+  getQuickSuggestions(term: string, component: string, limit: number = 5): Observable<any> {
+    const url = `${this.apiBaseUrl}/${component}?search=${encodeURIComponent(term)}&per_page=${limit}&page=1`;
+    return this.http.get<any>(url);
+  }
+
+  // 🔥 MÉTODO ORIGINAL (se mantiene por compatibilidad)
+  searchFacturasOnServer(term: string, page = 1, perPage = 10): Observable<Paginated<Factura>> {
+    return this.http.get<Paginated<Factura>>(
+      `${this.apiBaseUrl}/facturas/search?q=${encodeURIComponent(term)}&page=${page}&per_page=${perPage}`
+    );
   }
 }

@@ -51,16 +51,28 @@ class ReparacionController extends Controller
      */
     public function index(Request $request)
     {
-        try {
-            $perPage = $request->get('per_page', 15);
-            $page = $request->get('page', 1);
-            
-            $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])->paginate($perPage, ['*'], 'page', $page);
-            return response()->json($reparaciones, 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener las reparaciones', 'detalle' => $e->getMessage()], 500);
+        $query = Reparacion::query();
+
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'LIKE', "%$search%")
+                ->orWhere('descripcion', 'LIKE', "%$search%")
+                ->orWhere('estado', 'LIKE', "%$search%")
+                ->orWhere('fecha', 'LIKE', "%$search%");
+            });
         }
+
+        // orden
+        $sort = $request->get('sort', 'id');
+        $direction = $request->get('direction', 'desc');
+        $query->orderBy($sort, $direction);
+
+        // paginación
+        $perPage = $request->get('size', 10);
+        return $query->paginate($perPage);
     }
+
 
     /**
      * @OA\Get(

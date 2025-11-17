@@ -55,18 +55,38 @@ class EquipoController extends Controller
      *     )
      * )
      */
-    public function index(Request $request)
+public function index(Request $request)
     {
         try {
-            $perPage = $request->get('per_page', 15);
-            $page = $request->get('page', 1);
-            
-            $equipos = Equipo::paginate($perPage, ['*'], 'page', $page);
+            $perPage = (int) $request->get('per_page', 15);
+            $page = (int) $request->get('page', 1);
+            $search = $request->get('search', '');
+
+            $query = Equipo::query();
+
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('descripcion', 'LIKE', "%{$search}%")
+                      ->orWhere('marca', 'LIKE', "%{$search}%")
+                      ->orWhere('modelo', 'LIKE', "%{$search}%")
+                      ->orWhere('nro_serie', 'LIKE', "%{$search}%")
+                      ->orWhereHas('cliente', function($q2) use ($search) {
+                          $q2->where('nombre', 'LIKE', "%{$search}%");
+                      });
+                });
+            }
+
+            $equipos = $query->with('cliente')
+                           ->orderBy('created_at', 'desc')
+                           ->paginate($perPage, ['*'], 'page', $page);
+
             return response()->json($equipos, 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener equipos', 'detalle' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Error listando equipos', ['err' => $e->getMessage()]);
+            return response()->json(['error' => 'Error al obtener los equipos'], 500);
         }
     }
+
 
     /**
      * @OA\Post(

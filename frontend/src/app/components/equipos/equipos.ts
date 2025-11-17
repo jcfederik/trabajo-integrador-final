@@ -2,10 +2,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { EquipoService, Equipo, PaginatedResponse } from '../../services/equipos';
-import { ClienteService } from '../../services/cliente.service';   // <--- IMPORTANTE
+import { ClienteService } from '../../services/cliente.service';
 import { SearchService } from '../../services/busquedaglobal';
 
 type Accion = 'listar' | 'crear';
@@ -25,12 +26,22 @@ export class EquiposComponent implements OnInit, OnDestroy {
   private equiposAll: EquipoUI[] = [];
   equipos: EquipoUI[] = [];
 
-  clientes: any[] = [];   // <---- LISTA DE CLIENTES
+  clientes: any[] = [];
 
   page = 1;
   perPage = 15;
   lastPage = false;
   loading = false;
+
+  // =============== BÚSQUEDA GLOBAL ===============
+  searchSub!: Subscription;
+  searchTerm = '';
+  mostrandoSugerencias = false;
+  buscandoEquipos = false;
+  private isServerSearch = false;
+  private serverSearchPage = 1;
+  private serverSearchLastPage = false;
+  private busquedaEquipo = new Subject<string>();
 
   editingId: number | null = null;
   editBuffer: Partial<EquipoUI> = {
@@ -43,24 +54,19 @@ export class EquiposComponent implements OnInit, OnDestroy {
     cliente_id: undefined
   };
 
-  private searchSub?: Subscription;
-  searchTerm = '';
-
   constructor(
     private equipoService: EquipoService,
-    private clienteService: ClienteService,        // <--- INYECTADO
+    private clienteService: ClienteService,
     public searchService: SearchService
   ) {}
 
   ngOnInit(): void {
     this.resetLista();
-    this.cargarClientes();                           // <--- SE CARGAN CLIENTES
+    this.cargarClientes();
 
     this.searchService.setCurrentComponent('equipos');
-    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
-      this.searchTerm = (term || '').trim();
-      this.applyFilter();
-    });
+    this.configurarBusquedaGlobal();
+    this.configurarBusquedaEquipos();
 
     window.addEventListener('scroll', this.onScroll, { passive: true });
   }
@@ -68,12 +74,128 @@ export class EquiposComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.onScroll);
     this.searchSub?.unsubscribe();
+    this.busquedaEquipo.unsubscribe();
     this.searchService.clearSearch();
   }
 
-  // ============================
-  // CARGAR CLIENTES
-  // ============================
+  // =============== CONFIGURACIÓN DE BÚSQUEDAS ===============
+  private configurarBusquedaGlobal(): void {
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      this.searchTerm = (term || '').trim();
+      
+      if (this.searchTerm) {
+        this.onBuscarEquipos(this.searchTerm);
+      } else {
+        this.resetBusqueda();
+      }
+    });
+  }
+
+  private configurarBusquedaEquipos(): void {
+    this.busquedaEquipo.pipe(
+      debounceTime(400),
+      distinctUntilChanged()
+    ).subscribe(termino => {
+      this.buscarEnServidor(termino);
+    });
+  }
+
+  // =============== BÚSQUEDA GLOBAL DE EQUIPOS ===============
+  onBuscarEquipos(termino: string): void {
+    const terminoLimpio = (termino || '').trim();
+    
+    if (!terminoLimpio) {
+      this.resetBusqueda();
+      return;
+    }
+
+    this.searchTerm = terminoLimpio;
+    this.mostrandoSugerencias = true;
+    this.buscandoEquipos = true;
+
+    if (terminoLimpio.length <= 2) {
+      // Búsqueda local para términos cortos
+      this.applyFilterLocal();
+      this.buscandoEquipos = false;
+    } else {
+      // Búsqueda en servidor para términos largos
+      this.busquedaEquipo.next(terminoLimpio);
+    }
+  }
+
+  private buscarEnServidor(termino: string): void {
+    this.isServerSearch = true;
+    this.serverSearchPage = 1;
+    this.serverSearchLastPage = false;
+
+    this.searchService.searchOnServer('equipos', termino, 1, this.perPage).subscribe({
+      next: (response: any) => {
+        const equiposEncontrados = response.data || response;
+        
+        this.equiposAll = Array.isArray(equiposEncontrados) ? equiposEncontrados : [];
+        this.equipos = [...this.equiposAll];
+        
+        this.buscandoEquipos = false;
+        this.mostrandoSugerencias = true;
+        
+        // Actualizar datos para búsqueda local
+        const itemsForSearch = this.equiposAll.map(equipo => ({
+          ...equipo,
+          cliente_nombre: this.getClienteNombre(equipo.cliente_id)
+        }));
+        this.searchService.setSearchData(itemsForSearch);
+      },
+      error: (error) => {
+        console.error('Error en búsqueda servidor:', error);
+        this.applyFilterLocal();
+        this.buscandoEquipos = false;
+      }
+    });
+  }
+
+  private applyFilterLocal(): void {
+    if (!this.searchTerm) {
+      this.equipos = [...this.equiposAll];
+      return;
+    }
+
+    const itemsWithClienteInfo = this.equiposAll.map(equipo => ({
+      ...equipo,
+      cliente_nombre: this.getClienteNombre(equipo.cliente_id)
+    }));
+    
+    const filtered = this.searchService.search(itemsWithClienteInfo, this.searchTerm, 'equipos');
+    this.equipos = filtered as EquipoUI[];
+  }
+
+  private applyFilter(): void {
+    if (this.isServerSearch && this.searchTerm) {
+      this.applyFilterLocal();
+    } else {
+      this.equipos = [...this.equiposAll];
+    }
+  }
+
+  cerrarMenuSugerencias(): void {
+    this.mostrandoSugerencias = false;
+  }
+
+  ocultarSugerencias(): void {
+    setTimeout(() => {
+      this.mostrandoSugerencias = false;
+    }, 200);
+  }
+
+  private resetBusqueda(): void {
+    this.isServerSearch = false;
+    this.serverSearchPage = 1;
+    this.serverSearchLastPage = false;
+    this.mostrandoSugerencias = false;
+    this.buscandoEquipos = false;
+    this.equipos = [...this.equiposAll];
+  }
+
+  // =============== CARGA DE DATOS ===============
   cargarClientes() {
     this.clienteService.getClientes(1, 999).subscribe({
       next: (res: any) => {
@@ -87,9 +209,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
 
   seleccionarAccion(a: Accion) { this.selectedAction = a; }
 
-  // ============================
-  // FETCH / LISTA
-  // ============================
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -124,38 +243,63 @@ export class EquiposComponent implements OnInit, OnDestroy {
   onScroll = () => {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
     if (nearBottom && !this.loading && !this.lastPage) {
-      this.fetch(this.page + 1);
+      if (this.isServerSearch && this.searchTerm && !this.serverSearchLastPage) {
+        this.cargarMasResultadosBusqueda();
+      } else if (!this.searchTerm) {
+        this.fetch(this.page + 1);
+      }
     }
   };
 
-  resetLista(): void {
-    this.page = 1;
-    this.lastPage = false;
-    this.equiposAll = [];
-    this.equipos = [];
-    this.fetch(1);
-  }
+  private cargarMasResultadosBusqueda(): void {
+    if (this.loading || this.serverSearchLastPage) return;
+    
+    this.loading = true;
+    this.serverSearchPage++;
 
-  private applyFilter(): void {
-    const term = this.searchTerm.toLowerCase();
-    if (!term) {
-      this.equipos = [...this.equiposAll];
-      return;
-    }
-
-    this.equipos = this.equiposAll.filter(e => {
-      try {
-        return JSON.stringify(e).toLowerCase().includes(term);
-      } catch {
-        const desc = (e as any)?.descripcion ?? '';
-        return desc.toString().toLowerCase().includes(term);
+    this.searchService.searchOnServer('equipos', this.searchTerm, this.serverSearchPage, this.perPage).subscribe({
+      next: (response: any) => {
+        const nuevosEquipos = response.data || response;
+        
+        if (Array.isArray(nuevosEquipos) && nuevosEquipos.length > 0) {
+          this.equiposAll = [...this.equiposAll, ...nuevosEquipos];
+          this.equipos = [...this.equiposAll];
+          
+          // Actualizar datos para búsqueda local
+          const itemsForSearch = this.equiposAll.map(equipo => ({
+            ...equipo,
+            cliente_nombre: this.getClienteNombre(equipo.cliente_id)
+          }));
+          this.searchService.setSearchData(itemsForSearch);
+        } else {
+          this.serverSearchLastPage = true;
+        }
+        
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error cargando más resultados:', error);
+        this.loading = false;
+        this.serverSearchLastPage = true;
       }
     });
   }
 
-  // ============================
-  // CREAR
-  // ============================
+  resetLista(): void {
+    this.equiposAll = [];
+    this.equipos = [];
+    this.page = 1;
+    this.lastPage = false;
+    this.searchTerm = '';
+    this.isServerSearch = false;
+    this.serverSearchPage = 1;
+    this.serverSearchLastPage = false;
+    this.mostrandoSugerencias = false;
+    this.searchService.clearSearch();
+    this.fetch(1);
+  }
+
+  // =============== CREAR ===============
   crear(): void {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
@@ -173,9 +317,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ============================
-  // ELIMINAR
-  // ============================
+  // =============== ELIMINAR ===============
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este equipo?')) return;
 
@@ -189,9 +331,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ============================
-  // EDICIÓN INLINE
-  // ============================
+  // =============== EDICIÓN INLINE ===============
   startEdit(item: EquipoUI): void {
     this.editingId = item.id;
     this.editBuffer = {
@@ -229,9 +369,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ============================
-  // HELPERS
-  // ============================
+  // =============== HELPERS ===============
   private limpiar(obj: Partial<EquipoUI>): Partial<EquipoUI> {
     return {
       descripcion: obj.descripcion?.toString().trim(),
@@ -252,15 +390,14 @@ export class EquiposComponent implements OnInit, OnDestroy {
   }
 
   getClienteNombre(clienteId: number | null | undefined): string {
-  if (!clienteId) return 'Sin cliente';
-  const cli = this.clientes.find(c => c.id === clienteId);
-  return cli ? cli.nombre : `Cliente #${clienteId}`;
-}
+    if (!clienteId) return 'Sin cliente';
+    const cli = this.clientes.find(c => c.id === clienteId);
+    return cli ? cli.nombre : `Cliente #${clienteId}`;
+  }
 
-getClienteTelefono(clienteId: number | null | undefined): string | null {
-  if (!clienteId) return null;
-  const cli = this.clientes.find(c => c.id === clienteId);
-  return cli?.telefono ?? null;
-}
-
+  getClienteTelefono(clienteId: number | null | undefined): string | null {
+    if (!clienteId) return null;
+    const cli = this.clientes.find(c => c.id === clienteId);
+    return cli?.telefono ?? null;
+  }
 }

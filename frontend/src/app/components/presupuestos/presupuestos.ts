@@ -50,8 +50,15 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
+  // =============== BÚSQUEDA GLOBAL ===============
   searchSub!: Subscription;
   searchTerm = '';
+  mostrandoSugerencias = false;
+  buscandoPresupuestos = false;
+  public isServerSearch = false;
+  private serverSearchPage = 1;
+  private serverSearchLastPage = false;
+  private busquedaPresupuesto = new Subject<string>();
 
   editingId: number | null = null;
   editBuffer: PresupuestoEditForm = { reparacionBusqueda: '' };
@@ -88,6 +95,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     window.addEventListener('scroll', this.onScroll, { passive: true });
 
     this.configurarBusquedaGlobal();
+    this.configurarBusquedaPresupuestos();
     this.configurarBusquedaReparaciones();
     this.configurarBusquedaReparacionesEdicion();
 
@@ -98,6 +106,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.onScroll);
+    this.busquedaPresupuesto.unsubscribe();
     this.busquedaReparacion.unsubscribe();
     this.busquedaReparacionEdit.unsubscribe();
     this.searchSub?.unsubscribe();
@@ -111,10 +120,19 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       this.searchTerm = (term || '').trim();
       
       if (this.searchTerm) {
-        this.applyFilter();
+        this.onBuscarPresupuestos(this.searchTerm);
       } else {
-        this.items = [...this.itemsAll];
+        this.resetBusqueda();
       }
+    });
+  }
+
+  private configurarBusquedaPresupuestos(): void {
+    this.busquedaPresupuesto.pipe(
+      debounceTime(400),
+      distinctUntilChanged()
+    ).subscribe(termino => {
+      this.buscarEnServidor(termino);
     });
   }
 
@@ -136,37 +154,109 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== BÚSQUEDA Y FILTRADO ===============
-  private applyFilter(): void {
-    const term = this.searchTerm.toLowerCase();
-    if (!term) {
-      this.items = [...this.itemsAll];
+  // =============== BÚSQUEDA GLOBAL DE PRESUPUESTOS ===============
+  onBuscarPresupuestos(termino: string): void {
+    const terminoLimpio = (termino || '').trim();
+    
+    if (!terminoLimpio) {
+      this.resetBusqueda();
       return;
     }
 
-    this.loading = true;
-    
-    this.svc.buscarGlobal(this.searchTerm).subscribe({
-      next: (presupuestosEncontrados) => {
-        this.items = presupuestosEncontrados;
-        this.loading = false;
+    this.searchTerm = terminoLimpio;
+    this.mostrandoSugerencias = true;
+    this.buscandoPresupuestos = true;
+
+    if (terminoLimpio.length <= 2) {
+      // Búsqueda local para términos cortos
+      this.applyFilterLocal();
+      this.buscandoPresupuestos = false;
+    } else {
+      // Búsqueda en servidor para términos largos
+      this.busquedaPresupuesto.next(terminoLimpio);
+    }
+  }
+
+  private buscarEnServidor(termino: string): void {
+    this.isServerSearch = true;
+    this.serverSearchPage = 1;
+    this.serverSearchLastPage = false;
+
+    this.searchService.searchOnServer('presupuestos', termino, 1, this.perPage).subscribe({
+      next: (response: any) => {
+        const presupuestosEncontrados = response.data || response;
+        
+        this.itemsAll = Array.isArray(presupuestosEncontrados) ? presupuestosEncontrados : [];
+        this.items = [...this.itemsAll];
+        
+        this.buscandoPresupuestos = false;
+        this.mostrandoSugerencias = true;
+        
+        // Actualizar datos para búsqueda local
+        const itemsForSearch = this.itemsAll.map(p => ({
+          ...p,
+          reparacion_descripcion: this.getDescripcionReparacion(p.reparacion_id),
+          estado_legible: p.aceptado ? 'aceptado' : 'pendiente'
+        }));
+        this.searchService.setSearchData(itemsForSearch);
       },
       error: (error) => {
-        console.error('Error en búsqueda global:', error);
-        const itemsWithReparacionInfo = this.itemsAll.map(presupuesto => ({
-          ...presupuesto,
-          reparacion_descripcion: this.getDescripcionReparacion(presupuesto.reparacion_id),
-          estado_legible: presupuesto.aceptado ? 'aceptado' : 'pendiente'
-        }));
-        
-        const filtered = this.searchService.search(itemsWithReparacionInfo, term, 'presupuestos');
-        this.items = filtered as Presupuesto[];
-        this.loading = false;
+        console.error('Error en búsqueda servidor:', error);
+        this.applyFilterLocal();
+        this.buscandoPresupuestos = false;
       }
     });
   }
 
-  // =============== GESTIÓN DE REPARACIONES ===============
+  private applyFilterLocal(): void {
+    if (!this.searchTerm) {
+      this.items = [...this.itemsAll];
+      return;
+    }
+
+    const itemsWithReparacionInfo = this.itemsAll.map(presupuesto => ({
+      ...presupuesto,
+      reparacion_descripcion: this.getDescripcionReparacion(presupuesto.reparacion_id),
+      estado_legible: presupuesto.aceptado ? 'aceptado' : 'pendiente'
+    }));
+    
+    const filtered = this.searchService.search(itemsWithReparacionInfo, this.searchTerm, 'presupuestos');
+    this.items = filtered as Presupuesto[];
+  }
+
+  private applyFilter(): void {
+
+    if (!this.searchTerm || this.searchTerm.trim() === '') {
+      this.items = [...this.itemsAll];
+      return;
+    }
+
+    if (this.isServerSearch) {
+      this.applyFilterLocal();
+    } else {
+      this.items = [...this.itemsAll];
+    }
+  }
+  cerrarMenuSugerencias(): void {
+    this.mostrandoSugerencias = false;
+  }
+
+  ocultarSugerencias(): void {
+    setTimeout(() => {
+      this.mostrandoSugerencias = false;
+    }, 200);
+  }
+
+  private resetBusqueda(): void {
+    this.isServerSearch = false;
+    this.serverSearchPage = 1;
+    this.serverSearchLastPage = false;
+    this.mostrandoSugerencias = false;
+    this.buscandoPresupuestos = false;
+    this.items = [...this.itemsAll];
+  }
+
+  // =============== GESTIÓN DE REPARACIONES - CORREGIDO ===============
   onBuscarReparacion(termino: string): void {
     this.busquedaReparacion.next(termino);
   }
@@ -179,21 +269,34 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     const terminoLimpio = termino || '';
     
     if (!terminoLimpio.trim()) {
+
+      this.searchTerm = '';
+      this.isServerSearch = false;
+      this.searchService.setSearchTerm('');
+
+      this.items = [...this.itemsAll];
+
       this.reparacionesSugeridas = [];
       this.mostrandoReparaciones = false;
+      this.buscandoReparaciones = false;
+
       return;
     }
 
     this.buscandoReparaciones = true;
+    
     this.reparacionSvc.buscarReparaciones(terminoLimpio).subscribe({
-      next: (reparaciones) => {
-        this.reparacionesSugeridas = reparaciones.slice(0, 10);
+      next: (response: any | { data: any[] }) => {
+        const reparaciones = response.data || response;
+        this.reparacionesSugeridas = Array.isArray(reparaciones) ? reparaciones.slice(0, 10) : [];
         this.mostrandoReparaciones = true;
         this.buscandoReparaciones = false;
-        this.actualizarCacheReparaciones(reparaciones);
+        this.actualizarCacheReparaciones(this.reparacionesSugeridas);
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error buscando reparaciones:', error);
         this.buscandoReparaciones = false;
+        this.reparacionesSugeridas = [];
       }
     });
   }
@@ -208,15 +311,20 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     }
 
     this.buscandoReparacionesEdit = true;
+    
+    // ✅ CORREGIDO: Usar el método correcto del servicio
     this.reparacionSvc.buscarReparaciones(terminoLimpio).subscribe({
-      next: (reparaciones) => {
-        this.reparacionesSugeridasEdit = reparaciones.slice(0, 10);
+      next: (response: any | { data: any[] }) => {
+        const reparaciones = response.data || response;
+        this.reparacionesSugeridasEdit = Array.isArray(reparaciones) ? reparaciones.slice(0, 10) : [];
         this.mostrandoReparacionesEdit = true;
         this.buscandoReparacionesEdit = false;
-        this.actualizarCacheReparaciones(reparaciones);
+        this.actualizarCacheReparaciones(this.reparacionesSugeridasEdit);
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error buscando reparaciones en edición:', error);
         this.buscandoReparacionesEdit = false;
+        this.reparacionesSugeridasEdit = [];
       }
     });
   }
@@ -380,8 +488,50 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
   onScroll = () => {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
-    if (nearBottom) this.cargar();
+    
+    if (nearBottom) {
+      if (this.isServerSearch && this.searchTerm && !this.serverSearchLastPage) {
+        this.cargarMasResultadosBusqueda();
+      } else if (!this.searchTerm) {
+        this.cargar();
+      }
+    }
   };
+
+  private cargarMasResultadosBusqueda(): void {
+    if (this.loading || this.serverSearchLastPage) return;
+    
+    this.loading = true;
+    this.serverSearchPage++;
+
+    this.searchService.searchOnServer('presupuestos', this.searchTerm, this.serverSearchPage, this.perPage).subscribe({
+      next: (response: any) => {
+        const nuevosPresupuestos = response.data || response;
+        
+        if (Array.isArray(nuevosPresupuestos) && nuevosPresupuestos.length > 0) {
+          this.itemsAll = [...this.itemsAll, ...nuevosPresupuestos];
+          this.items = [...this.itemsAll];
+          
+          // Actualizar datos para búsqueda local
+          const itemsForSearch = this.itemsAll.map(p => ({
+            ...p,
+            reparacion_descripcion: this.getDescripcionReparacion(p.reparacion_id),
+            estado_legible: p.aceptado ? 'aceptado' : 'pendiente'
+          }));
+          this.searchService.setSearchData(itemsForSearch);
+        } else {
+          this.serverSearchLastPage = true;
+        }
+        
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error cargando más resultados:', error);
+        this.loading = false;
+        this.serverSearchLastPage = true;
+      }
+    });
+  }
 
   resetLista(): void {
     this.itemsAll = [];
@@ -389,6 +539,10 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.page = 1;
     this.lastPage = false;
     this.searchTerm = ''; 
+    this.isServerSearch = false;
+    this.serverSearchPage = 1;
+    this.serverSearchLastPage = false;
+    this.mostrandoSugerencias = false;
     this.searchService.clearSearch();
     this.cargar();
   }

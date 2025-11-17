@@ -53,13 +53,45 @@ class PresupuestoController extends Controller
     public function index(Request $request)
     {
         try {
-            $perPage = $request->get('per_page', 15);
-            $page = $request->get('page', 1);
-            
-            $presupuestos = Presupuesto::paginate($perPage, ['*'], 'page', $page);
+            $perPage = (int) $request->get('per_page', 15);
+            $page = (int) $request->get('page', 1);
+            $search = $request->get('search', '');
+
+            $query = Presupuesto::query();
+
+            // Cargar relaciones básicas de forma segura
+            $query->with(['reparacion' => function($query) {
+                $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
+            }]);
+
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'LIKE', "%{$search}%")
+                      ->orWhere('monto_total', 'LIKE', "%{$search}%")
+                      ->orWhere('fecha', 'LIKE', "%{$search}%")
+                      ->orWhere('aceptado', 'LIKE', "%{$search}%")
+                      ->orWhereHas('reparacion', function($q2) use ($search) {
+                          $q2->where('descripcion', 'LIKE', "%{$search}%")
+                             ->orWhere('estado', 'LIKE', "%{$search}%");
+                      });
+                });
+            }
+
+            // Ordenar por ID descendente (en lugar de created_at que no existe)
+            $presupuestos = $query->orderBy('id', 'desc')
+                                ->paginate($perPage, ['*'], 'page', $page);
+
             return response()->json($presupuestos, 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener los presupuestos', 'detalle' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Error listando presupuestos', [
+                'err' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'params' => $request->all()
+            ]);
+            return response()->json([
+                'error' => 'Error al obtener los presupuestos',
+                'detalle' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -76,7 +108,7 @@ class PresupuestoController extends Controller
      *             @OA\Property(property="reparacion_id", type="integer", example=5),
      *             @OA\Property(property="monto_total", type="number", example=12500.75),
      *             @OA\Property(property="aceptado", type="boolean", example=true),
-     *             @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-11T15:00:00Z")
+     *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11")
      *         )
      *     ),
      *     @OA\Response(
@@ -104,12 +136,26 @@ class PresupuestoController extends Controller
 
         try {
             $data = $validator->validated();
+            // Formatear fecha correctamente
             $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
 
             $presupuesto = Presupuesto::create($data);
-            return response()->json(['mensaje' => 'Presupuesto creado correctamente', 'presupuesto' => $presupuesto], 201);
+            
+            // Cargar relaciones para la respuesta
+            $presupuesto->load(['reparacion' => function($query) {
+                $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
+            }]);
+            
+            return response()->json([
+                'mensaje' => 'Presupuesto creado correctamente', 
+                'presupuesto' => $presupuesto
+            ], 201);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'Error al crear el presupuesto', 'detalle' => $e->getMessage()], 500);
+            \Log::error('Error creando presupuesto', ['err' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Error al crear el presupuesto', 
+                'detalle' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -137,11 +183,22 @@ class PresupuestoController extends Controller
      */
     public function show($id)
     {
-        $presupuesto = Presupuesto::find($id);
-        if (!$presupuesto) {
-            return response()->json(['error' => 'Presupuesto no encontrado'], 404);
+        try {
+            $presupuesto = Presupuesto::with(['reparacion' => function($query) {
+                $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
+            }])->find($id);
+            
+            if (!$presupuesto) {
+                return response()->json(['error' => 'Presupuesto no encontrado'], 404);
+            }
+            return response()->json($presupuesto, 200);
+        } catch (\Throwable $e) {
+            \Log::error('Error mostrando presupuesto', ['err' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Error al obtener el presupuesto',
+                'detalle' => $e->getMessage()
+            ], 500);
         }
-        return response()->json($presupuesto, 200);
     }
 
     /**
@@ -172,10 +229,6 @@ class PresupuestoController extends Controller
     public function buscar(Request $request)
     {
         try {
-            if (!auth()->check()) {
-                return response()->json([], 200);
-            }
-
             $termino = $request->get('q');
             
             if (!$termino || trim($termino) === '') {
@@ -186,11 +239,10 @@ class PresupuestoController extends Controller
             
             $query = Presupuesto::query();
             
-            if ($request->get('include') === 'reparacion') {
-                $query->with(['reparacion.equipo', 'reparacion.tecnico']);
-            } else {
-                $query->with(['reparacion']);
-            }
+            // Cargar relaciones básicas para búsqueda
+            $query->with(['reparacion' => function($q) {
+                $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'estado', 'fecha');
+            }]);
             
             $esBusquedaPorFecha = $this->agregarBusquedaPorFecha($query, $termino);
             
@@ -229,6 +281,7 @@ class PresupuestoController extends Controller
             return response()->json($presupuestos->toArray(), 200);
             
         } catch (\Exception $e) {
+            \Log::error('Error buscando presupuestos', ['err' => $e->getMessage()]);
             return response()->json([], 200);
         }
     }
@@ -294,9 +347,10 @@ class PresupuestoController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
+     *             @OA\Property(property="reparacion_id", type="integer", example=5),
      *             @OA\Property(property="monto_total", type="number", example=15000.00),
      *             @OA\Property(property="aceptado", type="boolean", example=false),
-     *             @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-12T16:00:00Z")
+     *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-12")
      *         )
      *     ),
      *     @OA\Response(
@@ -321,10 +375,24 @@ class PresupuestoController extends Controller
             if (isset($data['fecha'])) {
                 $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
             }
+            
             $presupuesto->update($data);
-            return response()->json(['mensaje' => 'Presupuesto actualizado correctamente', 'presupuesto' => $presupuesto], 200);
+            
+            // Cargar relaciones actualizadas
+            $presupuesto->load(['reparacion' => function($query) {
+                $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
+            }]);
+            
+            return response()->json([
+                'mensaje' => 'Presupuesto actualizado correctamente', 
+                'presupuesto' => $presupuesto
+            ], 200);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'Error al actualizar el presupuesto', 'detalle' => $e->getMessage()], 500);
+            \Log::error('Error actualizando presupuesto', ['err' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Error al actualizar el presupuesto', 
+                'detalle' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -358,7 +426,11 @@ class PresupuestoController extends Controller
             $presupuesto->delete();
             return response()->json(['mensaje' => 'Presupuesto eliminado correctamente'], 200);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al eliminar el presupuesto', 'detalle' => $e->getMessage()], 500);
+            \Log::error('Error eliminando presupuesto', ['err' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Error al eliminar el presupuesto', 
+                'detalle' => $e->getMessage()
+            ], 500);
         }
     }
 }

@@ -44,7 +44,7 @@
           <i class="bi bi-clipboard-check"></i>
         </div>
         <h5 class="mb-1">Aún no cargaste presupuestos</h5>
-        <p class="text-muted mb-3">
+        <p class="text-muted mb-3" *ngIf="!searchTerm">
           Registrá tu primer presupuesto para verlo acá.
         </p>
         <div class="d-flex justify-content-center gap-2">
@@ -69,7 +69,7 @@
           No hay presupuestos que coincidan con "{{ searchTerm }}"
         </p>
         <div class="d-flex justify-content-center gap-2">
-          <button class="action-pill" (click)="searchService.clearSearch()">
+          <button class="action-pill" (click)="resetLista()">
             <i class="bi bi-x-circle me-1"></i> Limpiar búsqueda
           </button>
           <button class="action-pill success" (click)="seleccionarAccion('crear')">
@@ -222,7 +222,9 @@
       <!-- Loader incremental -->
       <div class="text-center mt-3" *ngIf="loading && items.length > 0">
         <div class="spinner-border text-primary" role="status"></div>
-        <div class="mt-2 text-muted small">Cargando más presupuestos...</div>
+        <div class="mt-2 text-muted small">
+          {{ isServerSearch && searchTerm ? 'Cargando más resultados...' : 'Cargando más presupuestos...' }}
+        </div>
       </div>
 
       <!-- CTA si hay pocos ítems -->

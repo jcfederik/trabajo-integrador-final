@@ -10,6 +10,7 @@ import { SearchService } from '../../services/busquedaglobal';
 import { EquipoService } from '../../services/equipos';
 import { ClienteService } from '../../services/cliente.service';
 import { UsuarioService } from '../../services/usuario.service';
+import { Subscription } from 'rxjs';
 
 type Acción = 'listar'|'crear';
 
@@ -60,6 +61,8 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     estado: 'pendiente'
   };
 
+  private subs: Subscription[] = [];
+
   constructor(
     private repService: ReparacionService,
     private searchService: SearchService,
@@ -69,14 +72,33 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.resetList();
     this.cargar();
+
     this.searchService.setCurrentComponent('reparaciones');
     window.addEventListener('scroll', this.onScroll);
-    this.configurarBusqueda();
+
+    const s1 = this.searchService.searchTerm$.subscribe(term => {
+      this.searchTerm = term?.trim() || '';
+      this.page = 1;
+      this.lastPage = false;
+      this.reparaciones = [];
+      this.cargar();
+    });
+
+    const s2 = this.searchService.searchTerm$.subscribe(() => {
+      this.page = 1;
+      this.lastPage = false;
+      this.reparaciones = [];
+      this.cargar();
+    });
+
+    this.subs.push(s1, s2);
   }
 
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.onScroll);
+    this.subs.forEach(s => s.unsubscribe());
   }
 
   seleccionarAccion(a: Acción) {
@@ -84,23 +106,23 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   }
 
   configurarBusqueda() {
-    this.searchService.searchTerm$.subscribe(term => {
-      this.searchTerm = term;
-      this.aplicarFiltroBusqueda();
-    });
+    // ya manejado en ngOnInit (searchTerm$)
   }
 
+  /**
+   * Aplicar filtro local (si querés mantenerlo) o simplemente
+   * usar los datos que vienen del servidor. Aquí mantenemos
+   * reparacionesFiltradas para compatibilidad con la UI existente.
+   */
   aplicarFiltroBusqueda() {
-    if (!this.searchTerm) {
+    // Si hay término de búsqueda usamos lo que vino del servidor (ya filtrado)
+    if (this.searchTerm) {
       this.reparacionesFiltradas = [...this.reparaciones];
-    } else {
-      const resultados = this.searchService.search(
-        this.reparaciones,
-        this.searchTerm,
-        'reparaciones'
-      );
-      this.reparacionesFiltradas = resultados;
+      return;
     }
+
+    // Si no hay búsqueda, se permite filtrado local simple (por compatibilidad)
+    this.reparacionesFiltradas = [...this.reparaciones];
   }
 
   //Buscar clientes
@@ -272,23 +294,40 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     if (this.loading || this.lastPage) return;
     this.loading = true;
 
-    this.repService.list(this.page, this.perPage).subscribe({
+    const search = this.searchTerm?.trim() || '';
+
+    this.repService.list(this.page, this.perPage, search).subscribe({
       next: (res: Paginated<Reparacion>) => {
-        const nuevasReparaciones = res.data;
-        
+        const nuevasReparaciones = res.data || [];
+
         const reparacionesFormateadas = this.formatearReparacionesParaBusqueda(nuevasReparaciones);
-        
-        this.reparaciones = [...this.reparaciones, ...reparacionesFormateadas];
+
+        if (this.page === 1) {
+          // Si es la primera página reemplazamos
+          this.reparaciones = reparacionesFormateadas;
+        } else {
+          // Si no, agregamos
+          this.reparaciones = [...this.reparaciones, ...reparacionesFormateadas];
+        }
+
         this.page++;
         this.lastPage = (res.next_page_url === null);
         this.loading = false;
-        
+
+        // Mostrar los resultados (si usamos filtrado local, mantenerlo)
         this.aplicarFiltroBusqueda();
       },
       error: (e) => {
         this.loading = false;
       }
     });
+  }
+
+  private resetList() {
+    this.page = 1;
+    this.lastPage = false;
+    this.reparaciones = [];
+    this.reparacionesFiltradas = [];
   }
 
   onScroll = () => {

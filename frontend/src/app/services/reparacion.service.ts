@@ -35,10 +35,23 @@ export class ReparacionService {
 
   constructor(private http: HttpClient) {}
 
-  list(page = 1, perPage = 10): Observable<Paginated<Reparacion>> {
-    return this.http.get<Paginated<Reparacion>>(
-      `${this.base}?page=${page}&per_page=${perPage}&include=equipo,tecnico`
-    );
+  /**
+   * LISTADO PRINCIPAL — CON BÚSQUEDA EN SERVIDOR
+   * Igual que EquiposService.list()
+   */
+  list(page = 1, perPage = 10, search: string = ''): Observable<Paginated<Reparacion>> {
+
+    const params: any = {
+      page: page,
+      per_page: perPage,
+      include: 'equipo,tecnico'
+    };
+
+    if (search.trim() !== '') {
+      params.search = search;
+    }
+
+    return this.http.get<Paginated<Reparacion>>(this.base, { params });
   }
 
   show(id: number): Observable<Reparacion> {
@@ -57,28 +70,28 @@ export class ReparacionService {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
 
+  /**
+   * BUSCADOR PARA AUTOCOMPLETAR
+   * (NO ES LA búsqueda de la tabla)
+   */
   buscarReparaciones(termino: string): Observable<Reparacion[]> {
-    if (!termino.trim()) {
-      return of([]);
-    }
+    if (!termino.trim()) return of([]);
 
     const params = new HttpParams()
-      .set('q', termino)
+      .set('search', termino)
       .set('per_page', '100')
       .set('include', 'equipo,tecnico');
 
-    return this.http.get<Paginated<Reparacion>>(`${this.base}/buscar`, { params }).pipe(
+    return this.http.get<Paginated<Reparacion>>(this.base, { params }).pipe(
       map(response => {
         const reparaciones = response.data || response;
-        
-        return reparaciones.map(reparacion => ({
-          ...reparacion,
-          displayText: this.formatearDisplayText(reparacion)
+
+        return reparaciones.map(rep => ({
+          ...rep,
+          displayText: this.formatearDisplayText(rep)
         }));
       }),
-      catchError(() => {
-        return this.buscarReparacionesFallback(termino);
-      })
+      catchError(() => this.buscarReparacionesFallback(termino))
     );
   }
 
@@ -87,19 +100,19 @@ export class ReparacionService {
       `${this.base}?per_page=100&include=equipo,tecnico`
     ).pipe(
       map(response => {
-        const todasLasReparaciones = response.data || response;
-        const terminoLower = termino.toLowerCase();
-        
-        const reparacionesFiltradas = todasLasReparaciones.filter((reparacion: Reparacion) => 
-          reparacion.descripcion?.toLowerCase().includes(terminoLower) ||
-          reparacion.estado?.toLowerCase().includes(terminoLower) ||
-          (reparacion.equipo?.descripcion && reparacion.equipo.descripcion.toLowerCase().includes(terminoLower)) ||
-          (reparacion.tecnico?.nombre && reparacion.tecnico.nombre.toLowerCase().includes(terminoLower))
+        const todas = response.data || response;
+        const t = termino.toLowerCase();
+
+        const filtradas = todas.filter(rep =>
+          rep.descripcion?.toLowerCase().includes(t) ||
+          rep.estado?.toLowerCase().includes(t) ||
+          rep.equipo?.descripcion?.toLowerCase().includes(t) ||
+          rep.tecnico?.nombre?.toLowerCase().includes(t)
         );
 
-        return reparacionesFiltradas.map(reparacion => ({
-          ...reparacion,
-          displayText: this.formatearDisplayText(reparacion)
+        return filtradas.map(rep => ({
+          ...rep,
+          displayText: this.formatearDisplayText(rep)
         }));
       })
     );
@@ -109,19 +122,20 @@ export class ReparacionService {
     const equipoDesc = reparacion.equipo?.descripcion || 'Equipo no especificado';
     const tecnicoNombre = reparacion.tecnico?.nombre || 'Técnico no asignado';
     const fecha = reparacion.fecha ? new Date(reparacion.fecha).toLocaleDateString() : 'Sin fecha';
-    
+
     return `#${reparacion.id} - ${reparacion.descripcion} | ${equipoDesc} | ${tecnicoNombre} | ${fecha}`;
   }
 
+  // Métodos auxiliares ya existentes (sin cambios)
   buscarClientes(termino: string): Observable<any[]> {
     return this.http.get<any>('http://127.0.0.1:8000/api/clientes?per_page=100').pipe(
       map(response => {
-        const todosLosClientes = response.data || response;
-        const terminoLower = termino.toLowerCase();
-        
-        return todosLosClientes.filter((cliente: any) => 
-          cliente.nombre?.toLowerCase().includes(terminoLower) ||
-          cliente.email?.toLowerCase().includes(terminoLower) ||
+        const todos = response.data || response;
+        const t = termino.toLowerCase();
+
+        return todos.filter((cliente: any) =>
+          cliente.nombre?.toLowerCase().includes(t) ||
+          cliente.email?.toLowerCase().includes(t) ||
           (cliente.telefono && cliente.telefono.includes(termino))
         );
       })
@@ -131,13 +145,13 @@ export class ReparacionService {
   buscarEquipos(termino: string): Observable<any[]> {
     return this.http.get<any>('http://127.0.0.1:8000/api/equipos?per_page=100').pipe(
       map(response => {
-        const todosLosEquipos = response.data || response;
-        const terminoLower = termino.toLowerCase();
-        
-        return todosLosEquipos.filter((equipo: any) => 
-          equipo.descripcion?.toLowerCase().includes(terminoLower) ||
-          equipo.marca?.toLowerCase().includes(terminoLower) ||
-          equipo.modelo?.toLowerCase().includes(terminoLower) ||
+        const todos = response.data || response;
+        const t = termino.toLowerCase();
+
+        return todos.filter((equipo: any) =>
+          equipo.descripcion?.toLowerCase().includes(t) ||
+          equipo.marca?.toLowerCase().includes(t) ||
+          equipo.modelo?.toLowerCase().includes(t) ||
           (equipo.nro_serie && equipo.nro_serie.includes(termino))
         );
       })
@@ -147,10 +161,8 @@ export class ReparacionService {
   buscarEquiposPorCliente(clienteId: number): Observable<any[]> {
     return this.http.get<any>('http://127.0.0.1:8000/api/equipos?per_page=100').pipe(
       map(response => {
-        const todosLosEquipos = response.data || response;
-        return todosLosEquipos.filter((equipo: any) => 
-          equipo.cliente_id === clienteId
-        );
+        const todos = response.data || response;
+        return todos.filter((equipo: any) => equipo.cliente_id === clienteId);
       })
     );
   }
@@ -160,13 +172,13 @@ export class ReparacionService {
       catchError(() => {
         return this.http.get<any>('http://127.0.0.1:8000/api/usuarios?per_page=100').pipe(
           map(response => {
-            const todosLosUsuarios = response.data || response;
-            const terminoLower = termino.toLowerCase();
-            
-            return todosLosUsuarios.filter((usuario: any) => 
-              usuario.tipo === 'tecnico' && 
-              (usuario.nombre?.toLowerCase().includes(terminoLower) ||
-               usuario.tipo?.toLowerCase().includes(terminoLower))
+            const todos = response.data || response;
+            const t = termino.toLowerCase();
+
+            return todos.filter((usuario: any) =>
+              usuario.tipo === 'tecnico' &&
+              (usuario.nombre?.toLowerCase().includes(t) ||
+                usuario.tipo?.toLowerCase().includes(t))
             );
           })
         );

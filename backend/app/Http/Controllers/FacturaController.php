@@ -16,9 +16,19 @@ class FacturaController extends Controller
         try {
             $perPage = (int) $request->get('per_page', 15);
             $page    = (int) $request->get('page', 1);
+            $search  = $request->get('search', '');
 
-            // Si el 500 venía por la relación, probá sin with():
             $q = Factura::query()->orderByDesc('fecha');
+
+            if (!empty($search)) {
+                $q->where(function($query) use ($search) {
+                    $query->where('numero', 'LIKE', "%{$search}%")
+                          ->orWhere('letra', 'LIKE', "%{$search}%")
+                          ->orWhere('detalle', 'LIKE', "%{$search}%")
+                          ->orWhere('monto_total', 'LIKE', "%{$search}%")
+                          ->orWhere('presupuesto_id', 'LIKE', "%{$search}%");
+                });
+            }
 
             $facturas = $q->paginate($perPage, ['*'], 'page', $page);
             return response()->json($facturas, 200);

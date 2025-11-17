@@ -15,7 +15,7 @@
     <h4 class="text-center mb-3">Clientes</h4>
 
     <!-- Estado vacío -->
-    <div *ngIf="!loading && clientes.length===0" class="empty-state">
+    <div *ngIf="!loading && clientes.length===0 && !searchTerm" class="empty-state">
       <div class="icon-wrap">
         <i class="bi bi-people"></i>
       </div>
@@ -23,6 +23,18 @@
       <p class="text-muted mb-3">Creá tu primer cliente para comenzar.</p>
       <button class="btn btn-primary" (click)="seleccionarAccion('crear')">
         <i class="bi bi-plus-circle me-2"></i>Nuevo cliente
+      </button>
+    </div>
+
+    <!-- Estado sin resultados de búsqueda -->
+    <div *ngIf="!loading && clientes.length===0 && searchTerm" class="empty-state">
+      <div class="icon-wrap">
+        <i class="bi bi-search"></i>
+      </div>
+      <h5 class="mb-1">No se encontraron clientes</h5>
+      <p class="text-muted mb-3">No hay resultados para "{{ searchTerm }}"</p>
+      <button class="btn btn-outline-secondary" (click)="searchTerm = ''; applyFilter()">
+        <i class="bi bi-arrow-left me-2"></i>Ver todos los clientes
       </button>
     </div>
 
@@ -39,7 +51,6 @@
               </div>
               <div class="text-muted small">
                 <ng-container *ngIf="c.telefono">Tel: {{ c.telefono }} · </ng-container>
-                <ng-container *ngIf="c.direccion">Dir: {{ c.direccion }}</ng-container>
               </div>
             </ng-container>
 
@@ -57,10 +68,6 @@
                 <div class="col-12 col-md-6">
                   <label class="form-label small">Teléfono</label>
                   <input class="form-control" [(ngModel)]="editBuffer.telefono" name="e_tel"/>
-                </div>
-                <div class="col-12 col-md-6">
-                  <label class="form-label small">Dirección</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.direccion" name="e_dir"/>
                 </div>
               </div>
             </ng-template>
@@ -110,10 +117,6 @@
         <div class="col-12 col-md-6">
           <label class="form-label">Teléfono</label>
           <input class="form-control" [(ngModel)]="nuevo.telefono" name="telefono"/>
-        </div>
-        <div class="col-12 col-md-6">
-          <label class="form-label">Dirección</label>
-          <input class="form-control" [(ngModel)]="nuevo.direccion" name="direccion"/>
         </div>
       </div>
 
