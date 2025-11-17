@@ -16,8 +16,8 @@ type EquipoUI = Equipo;
   selector: 'app-equipos',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './equipos.html',
-  styleUrls: ['./equipos.css'],
+  templateUrl: './equipos.component.html',
+  styleUrls: ['./equipos.component.css'],
 })
 export class EquiposComponent implements OnInit, OnDestroy {
 

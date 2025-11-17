@@ -53,7 +53,6 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
       description: 'Inventario de repuestos', 
       route: '/repuestos',
       type: 'repuestos',
-      disabled: true
     },
     { 
       title: 'Presupuestos', 
@@ -167,7 +166,23 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
   getTotalCardsCount(): number {
     return this.cards.length;
   }
+
+  // Agregar estos métodos a la clase DashboardComponent
+
+getActiveCardsCount(): number {
+  return this.cards.filter(card => !card.disabled).length;
 }
+
+getDisabledCardsCount(): number {
+  return this.cards.filter(card => card.disabled).length;
+}
+
+// El resto del código se mantiene igual...
+
+
+}
+
+
 
 interface DashboardCard {
   title: string;

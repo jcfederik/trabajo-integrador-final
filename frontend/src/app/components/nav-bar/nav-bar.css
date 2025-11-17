@@ -1,81 +1,51 @@
-/* src/app/components/nav-bar/nav-bar.css */
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  height: 60px;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #ddd;
+/* Estilos específicos de navbar - Extiende los globales */
+
+/* Estados específicos del buscador */
+.navbar-search .form-control:not(:placeholder-shown) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--primary-light);
 }
 
-/* Logo a la izquierda */
-.navbar-left .logo {
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-/* Buscador centrado */
-.navbar-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.search-container {
-  position: relative;
-  width: 50%;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 35px 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.clear-search-btn {
+/* Clear button para el buscador */
+.search-clear {
   position: absolute;
-  right: 8px;
+  right: 1rem;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  font-size: 18px;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  color: #999;
-  padding: 0;
-  width: 20px;
-  height: 20px;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
-.clear-search-btn:hover {
-  color: #666;
-  background-color: #eee;
-  border-radius: 50%;
+.search-clear:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
-/* Nombre de usuario a la derecha */
-.navbar-right .username {
-  font-weight: 500;
-  text-decoration: none;
-  color: #333;
-  cursor: pointer;
+/* Animación de placeholder cambiante */
+@keyframes placeholderPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
-.navbar-right .username:hover {
-  color: #000;
-}
-.user-link {
-  color: black;
-  text-decoration: none;
-  font-weight: 500;
+.navbar-search .form-control::placeholder {
+  animation: placeholderPulse 3s ease-in-out infinite;
 }
 
-.user-link:hover {
-  text-decoration: underline;
-  color: black;
+/* Efecto de brillo en hover para elementos de navbar */
+.navbar-brand, .user-info, .navbar-search .form-control {
+  transition: all 0.3s ease;
+}
+
+.navbar-brand:hover, .user-info:hover {
+  filter: brightness(1.1);
 }

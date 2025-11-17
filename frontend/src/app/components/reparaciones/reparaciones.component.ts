@@ -1,23 +1,20 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  ReparacionService,
-  Reparacion,
-  Paginated,
-} from '../../services/reparacion.service';
+import { ReparacionService, Reparacion, Paginated } from '../../services/reparacion.service';
 import { SearchService } from '../../services/busquedaglobal';
 import { EquipoService } from '../../services/equipos';
 import { ClienteService } from '../../services/cliente.service';
 import { UsuarioService } from '../../services/usuario.service';
 import { Subscription } from 'rxjs';
+import { SearchSelectorComponent, SearchResult } from '../../components/search-selector/search-selector.component';
 
-type Acción = 'listar'|'crear';
+type Acción = 'listar' | 'crear';
 
 @Component({
   selector: 'app-reparaciones',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SearchSelectorComponent],
   templateUrl: './reparaciones.component.html',
   styleUrls: ['./reparaciones.component.css']
 })
@@ -32,24 +29,18 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
-  //Término de búsqueda global
+  // Término de búsqueda global
   searchTerm: string = '';
 
-  //propiedades para busquedea de equipos y clientes
-  equiposSugeridos: any[] = [];
-  clientesSugeridos: any[] = [];
-  mostrarSugerenciasEquipos = false;
-  mostrarSugerenciasClientes = false;
-  equipoSeleccionado: any = null;
-  clienteSeleccionado: any = null;
-  busquedaEquipo = '';
-  busquedaCliente = '';
+  // Propiedades para selección
+  equipoSeleccionado: SearchResult | null = null;
+  clienteSeleccionado: SearchResult | null = null;
+  tecnicoSeleccionado: SearchResult | null = null;
 
-  //Propiedades para búsqueda de técnicos
-  tecnicosSugeridos: any[] = [];
-  mostrarSugerenciasTecnicos = false;
-  tecnicoSeleccionado: any = null;
-  busquedaTecnico = '';
+  // Referencias a los componentes de búsqueda
+  @ViewChild('clienteSelector') clienteSelector!: SearchSelectorComponent;
+  @ViewChild('equipoSelector') equipoSelector!: SearchSelectorComponent;
+  @ViewChild('tecnicoSelector') tecnicoSelector!: SearchSelectorComponent;
 
   // edición inline
   editingId: number | null = null;
@@ -57,7 +48,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   // creación
   nuevo: Partial<Reparacion> = {
-    fecha: new Date().toISOString().slice(0,10),
+    fecha: new Date().toISOString().slice(0, 10),
     estado: 'pendiente'
   };
 
@@ -65,10 +56,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   constructor(
     private repService: ReparacionService,
-    private searchService: SearchService,
-    private equipoService: EquipoService,
-    private clienteService: ClienteService,
-    private usuarioService: UsuarioService 
+    private searchService: SearchService
   ) {}
 
   ngOnInit(): void {
@@ -125,35 +113,41 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.reparacionesFiltradas = [...this.reparaciones];
   }
 
-  //Buscar clientes
+  // ====== BÚSQUEDA DE CLIENTES ======
   buscarClientes(termino: string) {
     if (termino.length < 2) {
-      this.clientesSugeridos = [];
-      this.mostrarSugerenciasClientes = false;
+      this.clienteSelector.updateSuggestions([]);
       return;
     }
 
     this.loading = true;
-
     this.repService.buscarClientes(termino).subscribe({
-      next: (clientes: any) => {
-        this.clientesSugeridos = clientes;
-        this.mostrarSugerenciasClientes = true;
+      next: (clientes: SearchResult[]) => {
+        this.clienteSelector.updateSuggestions(clientes);
         this.loading = false;
       },
       error: (e) => {
-        this.clientesSugeridos = [];
-        this.mostrarSugerenciasClientes = false;
+        this.clienteSelector.updateSuggestions([]);
         this.loading = false;
       }
     });
   }
 
-  //Buscar equipos
+  seleccionarCliente(cliente: SearchResult) {
+    this.clienteSeleccionado = cliente;
+    this.limpiarEquipo();
+    this.cargarTodosLosEquiposDelCliente();
+  }
+
+  limpiarCliente() {
+    this.clienteSeleccionado = null;
+    this.limpiarEquipo();
+  }
+
+  // ====== BÚSQUEDA DE EQUIPOS ======
   buscarEquipos(termino: string = '') {
     if (!this.clienteSeleccionado) {
-      this.equiposSugeridos = [];
-      this.mostrarSugerenciasEquipos = false;
+      this.equipoSelector.updateSuggestions([]);
       return;
     }
 
@@ -161,122 +155,76 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       this.cargarTodosLosEquiposDelCliente();
       return;
     }
+
     this.repService.buscarEquipos(termino).subscribe({
-      next: (todosLosEquipos: any) => {
-        const equiposDelCliente = todosLosEquipos.filter((equipo: any) => 
-          equipo.cliente_id === this.clienteSeleccionado?.id
+      next: (todosLosEquipos: SearchResult[]) => {
+        const equiposDelCliente = todosLosEquipos.filter(
+          equipo => equipo.cliente_id === this.clienteSeleccionado?.id
         );
-        
-        this.equiposSugeridos = equiposDelCliente;
-        this.mostrarSugerenciasEquipos = true;
+        this.equipoSelector.updateSuggestions(equiposDelCliente);
       },
       error: (e) => {
-        this.equiposSugeridos = [];
+        this.equipoSelector.updateSuggestions([]);
       }
     });
   }
 
-  //Cargar todos los equipos del cliente seleccionado
   cargarTodosLosEquiposDelCliente() {
     if (!this.clienteSeleccionado?.id) return;
 
     this.repService.buscarEquiposPorCliente(this.clienteSeleccionado.id).subscribe({
-      next: (equipos: any) => {
-        this.equiposSugeridos = equipos;
-        this.mostrarSugerenciasEquipos = true;
+      next: (equipos: SearchResult[]) => {
+        this.equipoSelector.updateSuggestions(equipos);
       },
       error: (e) => {
-        this.equiposSugeridos = [];
+        this.equipoSelector.updateSuggestions([]);
       }
     });
   }
 
-  onFocusEquipos() {
-    if (this.clienteSeleccionado && this.equiposSugeridos.length === 0) {
-      this.cargarTodosLosEquiposDelCliente();
-    }
-  }
-
-  seleccionarCliente(cliente: any) {
-    this.clienteSeleccionado = cliente;
-    this.busquedaCliente = cliente.nombre;
-    this.mostrarSugerenciasClientes = false;
-    
-    this.limpiarEquipo();
-    
-    this.cargarTodosLosEquiposDelCliente();
-  }
-
-  // Seleccionar equipo
-  seleccionarEquipo(equipo: any) {
+  seleccionarEquipo(equipo: SearchResult) {
     this.equipoSeleccionado = equipo;
     this.nuevo.equipo_id = equipo.id;
-    this.busquedaEquipo = equipo.descripcion + (equipo.modelo ? ` (${equipo.modelo})` : '');
-    this.mostrarSugerenciasEquipos = false;
   }
 
+  limpiarEquipo() {
+    this.equipoSeleccionado = null;
+    this.nuevo.equipo_id = undefined;
+    this.equipoSelector.updateSuggestions([]);
+  }
+
+  // ====== BÚSQUEDA DE TÉCNICOS ======
   buscarTecnicos(termino: string) {
     if (termino.length < 2) {
-      this.tecnicosSugeridos = [];
-      this.mostrarSugerenciasTecnicos = false;
+      this.tecnicoSelector.updateSuggestions([]);
       return;
     }
 
     this.repService.buscarTecnicos(termino).subscribe({
-      next: (tecnicos: any) => {
-        this.tecnicosSugeridos = tecnicos;
-        this.mostrarSugerenciasTecnicos = true;
+      next: (tecnicos: SearchResult[]) => {
+        this.tecnicoSelector.updateSuggestions(tecnicos);
       },
       error: (e) => {
-        this.tecnicosSugeridos = [];
+        this.tecnicoSelector.updateSuggestions([]);
       }
     });
   }
 
-  //Seleccionar técnico
-  seleccionarTecnico(tecnico: any) {
+  seleccionarTecnico(tecnico: SearchResult) {
     this.tecnicoSeleccionado = tecnico;
     this.nuevo.usuario_id = tecnico.id;
-    this.busquedaTecnico = tecnico.nombre;
-    this.mostrarSugerenciasTecnicos = false;
   }
 
-  //Limpiar selección de técnico
   limpiarTecnico() {
     this.tecnicoSeleccionado = null;
     this.nuevo.usuario_id = undefined;
-    this.busquedaTecnico = '';
-    this.tecnicosSugeridos = [];
-    this.mostrarSugerenciasTecnicos = false;
   }
 
-  // Limpiar selección de equipo
-  limpiarEquipo() {
-    this.equipoSeleccionado = null;
-    this.nuevo.equipo_id = undefined;
-    this.busquedaEquipo = '';
-    this.equiposSugeridos = [];
-    this.mostrarSugerenciasEquipos = false;
-  }
-
-  // Limpiar selección de cliente
-  limpiarCliente() {
-    this.clienteSeleccionado = null;
-    this.busquedaCliente = '';
-    this.clientesSugeridos = [];
-    this.mostrarSugerenciasClientes = false;
-    this.limpiarEquipo(); // Limpiar también el equipo
-  }
-
+  // ====== FORMATEO PARA BÚSQUEDA ======
   formatearReparacionesParaBusqueda(reparaciones: Reparacion[]): Reparacion[] {
     return reparaciones.map(reparacion => {
-      const tecnicoNombre = reparacion.tecnico?.nombre || 
-                          reparacion.tecnico?.name || 
-                          'Sin técnico';
-      
-      const equipoNombre = reparacion.equipo?.descripcion || 
-                          reparacion.equipo?.modelo || 
-                          'Sin equipo';
+      const tecnicoNombre = reparacion.tecnico?.nombre || reparacion.tecnico?.name || 'Sin técnico';
+      const equipoNombre = reparacion.equipo?.descripcion || reparacion.equipo?.modelo || 'Sin equipo';
       
       const reparacionFormateada = {
         ...reparacion,
@@ -292,14 +240,11 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   // ====== LISTA / SCROLL ======
   cargar() {
     if (this.loading || this.lastPage) return;
+    
     this.loading = true;
-
-    const search = this.searchTerm?.trim() || '';
-
-    this.repService.list(this.page, this.perPage, search).subscribe({
+    this.repService.list(this.page, this.perPage).subscribe({
       next: (res: Paginated<Reparacion>) => {
-        const nuevasReparaciones = res.data || [];
-
+        const nuevasReparaciones = res.data;
         const reparacionesFormateadas = this.formatearReparacionesParaBusqueda(nuevasReparaciones);
 
         if (this.page === 1) {
@@ -313,8 +258,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
         this.page++;
         this.lastPage = (res.next_page_url === null);
         this.loading = false;
-
-        // Mostrar los resultados (si usamos filtrado local, mantenerlo)
         this.aplicarFiltroBusqueda();
       },
       error: (e) => {
@@ -345,17 +288,15 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.repService.create(this.nuevo).subscribe({
       next: (response: any) => {
         const nuevaReparacion = response.reparacion || response;
-        
         if (nuevaReparacion) {
           const reparacionFormateada = this.formatearReparacionesParaBusqueda([nuevaReparacion])[0];
-          
           this.reparaciones.unshift(reparacionFormateada);
           this.aplicarFiltroBusqueda();
-          
+
           // Limpiar formulario completamente
-          this.nuevo = { 
-            fecha: new Date().toISOString().slice(0,10), 
-            estado: 'pendiente' 
+          this.nuevo = {
+            fecha: new Date().toISOString().slice(0, 10),
+            estado: 'pendiente'
           };
           this.limpiarCliente();
           this.limpiarEquipo();
@@ -376,12 +317,14 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   // ====== ELIMINAR ======
   eliminar(id: number) {
     if (!confirm('¿Eliminar esta reparación?')) return;
+
     this.repService.delete(id).subscribe({
       next: () => {
         this.reparaciones = this.reparaciones.filter(r => r.id !== id);
         this.aplicarFiltroBusqueda();
       },
       error: (e) => {
+        alert('Error al eliminar la reparación');
       }
     });
   }
@@ -393,7 +336,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       equipo_id: item.equipo_id,
       usuario_id: item.usuario_id,
       descripcion: item.descripcion,
-      fecha: item.fecha?.slice(0,10),
+      fecha: item.fecha?.slice(0, 10),
       estado: item.estado,
     };
   }
@@ -408,7 +351,11 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         const idx = this.reparaciones.findIndex(r => r.id === id);
         if (idx >= 0) {
-          const reparacionActualizada = { ...this.reparaciones[idx], ...this.editBuffer } as Reparacion;
+          const reparacionActualizada = {
+            ...this.reparaciones[idx],
+            ...this.editBuffer
+          } as Reparacion;
+          
           this.reparaciones[idx] = this.formatearReparacionesParaBusqueda([reparacionActualizada])[0];
         }
         this.cancelEdit();
@@ -420,9 +367,61 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Limpiar búsqueda
+  // ====== LIMPIAR BÚSQUEDA GLOBAL ======
   limpiarBusqueda() {
     this.searchService.clearSearch();
   }
-  
+
+  // ====== MÉTODOS PARA CARGAR DATOS INICIALES ======
+  cargarClientesIniciales() {
+    // Cargar algunos clientes recientes o todos si son pocos
+    this.repService.buscarClientes('').subscribe({
+      next: (clientes: SearchResult[]) => {
+        // Limitar a 5 clientes recientes o mostrar todos si son menos de 10
+        const clientesMostrar = clientes.length > 10 ? clientes.slice(0, 5) : clientes;
+        this.clienteSelector.updateSuggestions(clientesMostrar);
+      },
+      error: (e) => {
+        this.clienteSelector.updateSuggestions([]);
+      }
+    });
+  }
+
+  cargarTecnicosIniciales() {
+    // Cargar algunos técnicos
+    this.repService.buscarTecnicos('').subscribe({
+      next: (tecnicos: SearchResult[]) => {
+        const tecnicosMostrar = tecnicos.length > 10 ? tecnicos.slice(0, 5) : tecnicos;
+        this.tecnicoSelector.updateSuggestions(tecnicosMostrar);
+      },
+      error: (e) => {
+        this.tecnicoSelector.updateSuggestions([]);
+      }
+    });
+  }
+
+  cargarEquiposIniciales() {
+    if (this.clienteSeleccionado) {
+      this.cargarTodosLosEquiposDelCliente();
+    }
+  }
+
+  // ====== MÉTODOS DE FOCUS ACTUALIZADOS ======
+  onFocusClientes() {
+    this.cargarClientesIniciales();
+  }
+
+  onFocusTecnicos() {
+    this.cargarTecnicosIniciales();
+  }
+
+  onFocusEquipos() {
+    if (this.clienteSeleccionado) {
+      this.cargarEquiposIniciales();
+    }
+  }
+
+
+
+
 }
