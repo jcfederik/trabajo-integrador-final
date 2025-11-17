@@ -53,7 +53,6 @@ export class DashboardComponent implements OnInit, OnDestroy { // 🔥 MODIFICAD
       description: 'Inventario de repuestos', 
       route: '/repuestos',
       type: 'repuestos',
-      disabled: true
     },
     { 
       title: 'Presupuestos', 

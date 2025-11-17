@@ -1,0 +1,183 @@
+<div class="container py-4">
+  <!-- Píldoras de acción -->
+  <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+    <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="selectedAction==='listar'">
+      <i class="bi bi-list"></i> Listar
+    </button>
+    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="selectedAction==='crear'">
+      <i class="bi bi-plus-circle"></i> Crear
+    </button>
+  </div>
+
+  <!-- LISTAR -->
+  <div *ngIf="selectedAction==='listar'">
+    <h4 class="text-center mb-3">Equipos</h4>
+    
+    <!-- Indicador de búsqueda -->
+    <div *ngIf="searchTerm" class="alert alert-info d-flex justify-content-between align-items-center">
+      <span>Mostrando {{ equipos.length }} de {{ equiposAll.length }} equipos</span>
+      <button (click)="limpiarBusqueda()" class="btn btn-sm btn-outline-secondary">× Limpiar</button>
+    </div>
+
+    <div class="list-group">
+      <div *ngFor="let e of equipos" class="list-group-item">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+          <!-- Datos -->
+          <div class="flex-grow-1">
+            <ng-container *ngIf="editingId !== e.id; else editRow">
+              <div class="fw-semibold">
+                #{{ e.id }} — {{ e.descripcion }}
+              </div>
+              <div class="text-muted small">
+                Cliente: {{ getClienteNombre(e.cliente_id) }} · 
+                Marca: {{ e.marca || 'No especificada' }} · 
+                Modelo: {{ e.modelo || 'No especificado' }}
+                <span *ngIf="e.nro_serie">· Serie: {{ e.nro_serie }}</span>
+              </div>
+            </ng-container>
+
+            <!-- Edición inline -->
+            <ng-template #editRow>
+              <div class="row g-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Descripción</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.descripcion" />
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Cliente ID</label>
+                  <input type="number" class="form-control" [(ngModel)]="editBuffer.cliente_id" />
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label small">Marca</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.marca" />
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label small">Modelo</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.modelo" />
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label small">N° Serie</label>
+                  <input class="form-control" [(ngModel)]="editBuffer.nro_serie" />
+                </div>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Acciones -->
+          <div class="d-flex gap-2">
+            <button *ngIf="editingId !== e.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(e)">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <ng-container *ngIf="editingId === e.id">
+              <button class="btn btn-sm btn-success" (click)="saveEdit(e.id)">
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button class="btn btn-sm btn-secondary" (click)="cancelEdit()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </ng-container>
+            <button class="btn btn-sm btn-outline-danger" (click)="eliminar(e.id)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado vacío -->
+    <div *ngIf="searchTerm && equipos.length === 0" class="empty-state">
+      <div class="icon-wrap">
+        <i class="bi bi-search"></i>
+      </div>
+      <h5>No se encontraron equipos</h5>
+      <p class="text-muted">No hay resultados que coincidan con "{{ searchTerm }}"</p>
+    </div>
+
+    <!-- Loading -->
+    <div class="text-center mt-3" *ngIf="loading">
+      <div class="spinner-border text-primary"></div>
+      <div class="mt-2 text-muted">Cargando más equipos...</div>
+    </div>
+  </div>
+
+  <!-- CREAR -->
+  <div *ngIf="selectedAction==='crear'">
+    <h4 class="text-center mb-3">Registrar Equipo</h4>
+    <form (ngSubmit)="crear()" class="mx-auto form-max-width">
+      <div class="row g-3">
+        
+        <!-- Cliente -->
+        <div class="col-12">
+          <label class="form-label">Cliente</label>
+          <app-search-selector
+            #clienteSelector
+            type="cliente"
+            placeholder="Buscar cliente por nombre"
+            [selectedItem]="clienteSeleccionado"
+            [preloadOnFocus]="true"
+            (search)="buscarClientes($event)"
+            (selectItem)="seleccionarCliente($event)"
+            (clearSelection)="limpiarCliente()"
+            (focus)="cargarClientesIniciales()"
+            (loadInitialData)="cargarClientesIniciales()"
+          ></app-search-selector>
+        </div>
+
+        <!-- Descripción -->
+        <div class="col-12">
+          <label class="form-label">Descripción del equipo</label>
+          <textarea 
+            class="form-control" 
+            [(ngModel)]="nuevo.descripcion" 
+            name="descripcion" 
+            rows="2" 
+            placeholder="Ej: Notebook Lenovo con pantalla rota"
+            required
+          ></textarea>
+        </div>
+
+        <!-- Marca, Modelo, N° Serie -->
+        <div class="col-12 col-md-4">
+          <label class="form-label">Marca</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="nuevo.marca" 
+            name="marca" 
+            placeholder="Ej: Lenovo"
+          />
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label">Modelo</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="nuevo.modelo" 
+            name="modelo" 
+            placeholder="Ej: IdeaPad 320"
+          />
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label">Número de Serie</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="nuevo.nro_serie" 
+            name="nro_serie" 
+            placeholder="Ej: SN-LEN-001"
+          />
+        </div>
+      </div>
+
+      <button 
+        class="btn btn-success w-100 mt-3" 
+        type="submit" 
+        [disabled]="!clienteSeleccionado || !nuevo.descripcion"
+      >
+        <i class="bi bi-check-lg"></i> Guardar Equipo
+      </button>
+    </form>
+  </div>
+</div>

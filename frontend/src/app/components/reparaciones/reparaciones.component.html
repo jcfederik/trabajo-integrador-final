@@ -1,24 +1,18 @@
 <div class="container py-4">
   <!-- Píldoras de acción -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
-    <button class="action-pill"
-            (click)="seleccionarAccion('listar')"
-            [class.active]="selectedAction==='listar'">
-      <i class="bi bi-list"></i>
-      Listar
+    <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="selectedAction==='listar'">
+      <i class="bi bi-list"></i> Listar
     </button>
-    <button class="action-pill success"
-            (click)="seleccionarAccion('crear')"
-            [class.active]="selectedAction==='crear'">
-      <i class="bi bi-plus-circle"></i>
-      Crear
+    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="selectedAction==='crear'">
+      <i class="bi bi-plus-circle"></i> Crear
     </button>
   </div>
 
   <!-- LISTAR -->
   <div *ngIf="selectedAction==='listar'">
     <h4 class="text-center mb-3">Reparaciones</h4>
-
+    
     <!-- Indicador de búsqueda -->
     <div *ngIf="searchTerm" class="alert alert-info d-flex justify-content-between align-items-center">
       <span>Mostrando {{ reparacionesFiltradas.length }} de {{ reparaciones.length }} reparaciones</span>
@@ -28,7 +22,6 @@
     <div class="list-group">
       <div *ngFor="let r of reparacionesFiltradas" class="list-group-item">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-          
           <!-- Datos -->
           <div class="flex-grow-1">
             <ng-container *ngIf="editingId !== r.id; else editRow">
@@ -36,9 +29,9 @@
                 #{{ r.id }} — {{ r.descripcion }}
               </div>
               <div class="text-muted small">
-                Equipo: {{ r.equipo_nombre || (r.equipo?.nombre ?? r.equipo_id) }} ·
-                Técnico: {{ r.tecnico_nombre || (r.tecnico?.nombre ?? r.usuario_id) }} ·
-                Fecha: {{ r.fecha | date:'yyyy-MM-dd' }} ·
+                Equipo: {{ r.equipo_nombre || (r.equipo?.nombre ?? r.equipo_id) }} · 
+                Técnico: {{ r.tecnico_nombre || (r.tecnico?.nombre ?? r.usuario_id) }} · 
+                Fecha: {{ r.fecha | date:'yyyy-MM-dd' }} · 
                 Estado: <span class="badge bg-secondary">{{ r.estado }}</span>
               </div>
             </ng-container>
@@ -110,192 +103,89 @@
   <!-- CREAR -->
   <div *ngIf="selectedAction==='crear'">
     <h4 class="text-center mb-3">Registrar Reparación</h4>
-    
     <form (ngSubmit)="crear()" class="mx-auto form-max-width">
       <div class="row g-3">
         
-    <!-- Cliente -->
-    <div class="col-12">
-      <label class="form-label">Cliente</label>
-      <div class="search-container position-relative">
-        <input 
-          type="text" 
-          class="form-control search-input" 
-          [(ngModel)]="busquedaCliente" 
-          (input)="buscarClientes(busquedaCliente)"
-          (focus)="buscarClientes(busquedaCliente)"
-          placeholder="Buscar cliente por nombre..."
-          name="busquedaCliente"
-          autocomplete="off"
-          spellcheck="false"
-          #clienteInput
-        />
-        <button 
-          *ngIf="busquedaCliente" 
-          type="button" 
-          class="btn-clear"
-          (click)="limpiarCliente()"
-        >
-          ×
-        </button>
-        
-        <div *ngIf="mostrarSugerenciasClientes && clientesSugeridos.length > 0" 
-            class="sugerencias-menu"
-            [style.width.px]="clienteInput.offsetWidth">
-          <div class="sugerencias-header">
-            <i class="bi bi-people"></i>
-            <span>Clientes encontrados</span>
-            <span class="sugerencias-count">{{ clientesSugeridos.length }}</span>
-          </div>
-          <button 
-            type="button"
-            *ngFor="let cliente of clientesSugeridos" 
-            class="sugerencia-item"
-            (click)="seleccionarCliente(cliente)"
-          >
-            <div class="sugerencia-content">
-              <strong>{{ cliente.nombre }}</strong>
-              <small class="sugerencia-details">{{ cliente.email }} {{ cliente.telefono ? '| ' + cliente.telefono : '' }}</small>
-            </div>
-            <i class="bi bi-chevron-right"></i>
-          </button>
+        <!-- Cliente -->
+        <div class="col-12">
+          <label class="form-label">Cliente</label>
+          <app-search-selector
+            #clienteSelector
+            type="cliente"
+            placeholder="Buscar cliente por nombre..."
+            [selectedItem]="clienteSeleccionado"
+            (search)="buscarClientes($event)"
+            (selectItem)="seleccionarCliente($event)"
+            (clearSelection)="limpiarCliente()"
+            (focus)="onFocusClientes()"
+          ></app-search-selector>
         </div>
-      </div>
-      <div *ngIf="clienteSeleccionado" class="selection-badge">
-        <i class="bi bi-check-circle"></i>
-        Cliente seleccionado: <strong>{{ clienteSeleccionado.nombre }}</strong>
-      </div>
-    </div>
 
         <!-- Equipo -->
         <div class="col-12">
           <label class="form-label">Equipo</label>
-          <div class="search-container position-relative">
-            <input 
-              type="text" 
-              class="form-control search-input" 
-              [(ngModel)]="busquedaEquipo" 
-              (input)="buscarEquipos(busquedaEquipo)"
-              (focus)="onFocusEquipos()" 
-              [placeholder]="clienteSeleccionado ? 'Buscar equipo...' : 'Primero seleccione un cliente'"
-              name="busquedaEquipo"
-              [disabled]="!clienteSeleccionado"
-              autocomplete="off"
-              spellcheck="false"
-              #equipoInput
-            />
-            <button 
-              *ngIf="busquedaEquipo" 
-              type="button" 
-              class="btn-clear"
-              (click)="limpiarEquipo()"
-            >
-              ×
-            </button>
-            
-            <div *ngIf="mostrarSugerenciasEquipos && equiposSugeridos.length > 0" 
-                class="sugerencias-menu"
-                [style.width.px]="equipoInput.offsetWidth">
-              <div class="sugerencias-header">
-                <i class="bi bi-pc"></i>
-                <span>Equipos de {{ clienteSeleccionado?.nombre }}</span>
-                <span class="sugerencias-count">{{ equiposSugeridos.length }}</span>
-              </div>
-              <button 
-                type="button"
-                *ngFor="let equipo of equiposSugeridos" 
-                class="sugerencia-item"
-                (click)="seleccionarEquipo(equipo)"
-              >
-                <div class="sugerencia-content">
-                  <strong>{{ equipo.descripcion }}</strong>
-                  <small class="sugerencia-details">
-                    {{ equipo.marca }} {{ equipo.modelo }} 
-                    <span *ngIf="equipo.nro_serie">| Serie: {{ equipo.nro_serie }}</span>
-                  </small>
-                </div>
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <div *ngIf="equipoSeleccionado" class="selection-badge">
-            <i class="bi bi-check-circle"></i>
-            Equipo seleccionado: <strong>{{ equipoSeleccionado.descripcion }}</strong>
-          </div>
+          <app-search-selector
+            #equipoSelector
+            type="equipo"
+            [placeholder]="clienteSeleccionado ? 'Buscar equipo...' : 'Primero seleccione un cliente'"
+            [disabled]="!clienteSeleccionado"
+            [selectedItem]="equipoSeleccionado"
+            (search)="buscarEquipos($event)"
+            (selectItem)="seleccionarEquipo($event)"
+            (clearSelection)="limpiarEquipo()"
+            (focus)="onFocusEquipos()"
+          ></app-search-selector>
           <div *ngIf="!clienteSeleccionado" class="form-text text-warning">
-            <i class="bi bi-info-circle"></i>
-            Primero selecciona un cliente para buscar equipos
+            <i class="bi bi-info-circle"></i> Primero selecciona un cliente para buscar equipos
           </div>
         </div>
 
         <!-- Técnico -->
         <div class="col-12">
           <label class="form-label">Técnico</label>
-          <div class="search-container position-relative">
-            <input 
-              type="text" 
-              class="form-control search-input" 
-              [(ngModel)]="busquedaTecnico" 
-              (input)="buscarTecnicos(busquedaTecnico)"
-              (focus)="buscarTecnicos(busquedaTecnico)"
-              placeholder="Buscar técnico por nombre..."
-              name="busquedaTecnico"
-              autocomplete="off"
-              spellcheck="false"
-              #tecnicoInput
-            />
-            <button 
-              *ngIf="busquedaTecnico" 
-              type="button" 
-              class="btn-clear"
-              (click)="limpiarTecnico()"
-            >
-              ×
-            </button>
-            
-            <div *ngIf="mostrarSugerenciasTecnicos && tecnicosSugeridos.length > 0" 
-                class="sugerencias-menu"
-                [style.width.px]="tecnicoInput.offsetWidth">
-              <div class="sugerencias-header">
-                <i class="bi bi-person-gear"></i>
-                <span>Técnicos disponibles</span>
-                <span class="sugerencias-count">{{ tecnicosSugeridos.length }}</span>
-              </div>
-              <button 
-                type="button"
-                *ngFor="let tecnico of tecnicosSugeridos" 
-                class="sugerencia-item"
-                (click)="seleccionarTecnico(tecnico)"
-              >
-                <div class="sugerencia-content">
-                  <strong>{{ tecnico.nombre }}</strong>
-                  <small class="sugerencia-details">{{ tecnico.tipo }}</small>
-                </div>
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-          <div *ngIf="tecnicoSeleccionado" class="selection-badge">
-            <i class="bi bi-check-circle"></i>
-            Técnico seleccionado: <strong>{{ tecnicoSeleccionado.nombre }}</strong>
-          </div>
+          <app-search-selector
+            #tecnicoSelector
+            type="tecnico"
+            placeholder="Buscar técnico por nombre..."
+            [selectedItem]="tecnicoSeleccionado"
+            (search)="buscarTecnicos($event)"
+            (selectItem)="seleccionarTecnico($event)"
+            (clearSelection)="limpiarTecnico()"
+            (focus)="onFocusTecnicos()"
+          ></app-search-selector>
         </div>
 
         <!-- Descripción y detalles -->
         <div class="col-12">
           <label class="form-label">Descripción de la reparación</label>
-          <textarea class="form-control" [(ngModel)]="nuevo.descripcion" name="descripcion" rows="3" required></textarea>
+          <textarea 
+            class="form-control" 
+            [(ngModel)]="nuevo.descripcion" 
+            name="descripcion" 
+            rows="3" 
+            required
+          ></textarea>
         </div>
-        
+
         <div class="col-6">
           <label class="form-label">Fecha</label>
-          <input type="date" class="form-control" [(ngModel)]="nuevo.fecha" name="fecha" required />
+          <input 
+            type="date" 
+            class="form-control" 
+            [(ngModel)]="nuevo.fecha" 
+            name="fecha" 
+            required 
+          />
         </div>
-        
+
         <div class="col-6">
           <label class="form-label">Estado</label>
-          <select class="form-control" [(ngModel)]="nuevo.estado" name="estado" required>
+          <select 
+            class="form-control" 
+            [(ngModel)]="nuevo.estado" 
+            name="estado" 
+            required
+          >
             <option value="pendiente">Pendiente</option>
             <option value="en proceso">En proceso</option>
             <option value="finalizada">Finalizada</option>
@@ -303,10 +193,12 @@
         </div>
       </div>
 
-      <button class="btn btn-success w-100 mt-3" type="submit" 
-              [disabled]="!clienteSeleccionado || !equipoSeleccionado">
-        <i class="bi bi-check-lg"></i>
-        Guardar Reparación
+      <button 
+        class="btn btn-success w-100 mt-3" 
+        type="submit" 
+        [disabled]="!clienteSeleccionado || !equipoSeleccionado || !tecnicoSeleccionado || !nuevo.descripcion"
+      >
+        <i class="bi bi-check-lg"></i> Guardar Reparación
       </button>
     </form>
   </div>

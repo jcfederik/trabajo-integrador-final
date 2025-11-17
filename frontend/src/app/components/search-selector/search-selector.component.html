@@ -1,0 +1,71 @@
+<div class="search-container position-relative">
+  <input
+    #searchInput
+    type="text"
+    class="form-control search-input"
+    [(ngModel)]="searchTerm"
+    (input)="onSearch(searchTerm)"
+    (focus)="onFocus()"
+    (blur)="onBlur()"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    autocomplete="off"
+    spellcheck="false"
+  />
+  
+  <button 
+    *ngIf="searchTerm" 
+    type="button" 
+    class="btn-clear" 
+    (click)="onClear()"
+  >
+    ×
+  </button>
+
+  <!-- Mensaje de instrucción -->
+  <div *ngIf="showSuggestions && suggestions.length === 0 && !hasSearched" 
+       class="sugerencias-menu instruccion-menu"
+       [style.width.px]="getInputWidth()">
+    <div class="sugerencia-item instruccion">
+      <i class="bi bi-info-circle"></i>
+      <span>Escribe al menos 2 caracteres para buscar</span>
+    </div>
+  </div>
+
+  <!-- Menú de sugerencias -->
+  <div 
+    *ngIf="showSuggestions && suggestions.length > 0" 
+    class="sugerencias-menu"
+    [style.width.px]="getInputWidth()"
+  >
+    <div class="sugerencias-header">
+      <i [class]="'bi ' + getHeaderIcon()"></i>
+      <span>{{ getHeaderText() }}</span>
+      <span class="sugerencias-count">{{ suggestions.length }}</span>
+    </div>
+    
+    <button
+      type="button"
+      *ngFor="let item of suggestions"
+      class="sugerencia-item"
+      (click)="onSelect(item)"
+      (mousedown)="$event.preventDefault()" 
+    >
+      <div class="sugerencia-content">
+        <strong>{{ getDisplayText(item) }}</strong>
+        <small class="sugerencia-details">{{ getDetailsText(item) }}</small>
+      </div>
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Badge de selección -->
+<div *ngIf="selectedItem" class="selection-badge">
+  <i class="bi bi-check-circle"></i>
+  {{ getHeaderText().split(' ')[0] }} seleccionado: 
+  <strong>{{ getDisplayText(selectedItem) }}</strong>
+  <button type="button" class="btn-badge-clear" (click)="onClear()" title="Limpiar selección">
+    <i class="bi bi-x"></i>
+  </button>
+</div>

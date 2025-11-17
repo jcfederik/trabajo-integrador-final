@@ -19,7 +19,7 @@ export const routes: Routes = [
   },
   {
     path: 'equipos',
-    loadComponent: () => import('./components/equipos/equipos').then(m => m.EquiposComponent),
+    loadComponent: () => import('./components/equipos/equipos.component').then(m => m.EquiposComponent),
     canMatch: [authMatchGuard],
   },
   {
@@ -41,6 +41,12 @@ export const routes: Routes = [
   { path: 'medios-cobro',
     loadComponent: () => import('./components/medios-cobro/medios-cobro')
       .then(m => m.MediosCobroComponent),
+    canMatch: [authMatchGuard]
+  },
+
+  { path: 'repuestos',
+    loadComponent: () => import('./components/repuestos/repuestos.component')
+      .then(m => m.RepuestosComponent),
     canMatch: [authMatchGuard]
   },
 
