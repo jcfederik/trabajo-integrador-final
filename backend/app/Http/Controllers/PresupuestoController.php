@@ -17,7 +17,7 @@ class PresupuestoController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/presupuesto",
+     *     path="/api/presupuestos",
      *     summary="Obtener todos los presupuestos con paginación",
      *     tags={"Presupuestos"},
      *     security={{"bearerAuth":{}}},
@@ -43,9 +43,7 @@ class PresupuestoController extends Controller
      *             @OA\Property(property="current_page", type="integer", example=1),
      *             @OA\Property(property="last_page", type="integer", example=5),
      *             @OA\Property(property="per_page", type="integer", example=15),
-     *             @OA\Property(property="total", type="integer", example=75),
-     *             @OA\Property(property="from", type="integer", example=1),
-     *             @OA\Property(property="to", type="integer", example=15)
+     *             @OA\Property(property="total", type="integer", example=75)
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
@@ -67,7 +65,7 @@ class PresupuestoController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/presupuesto",
+     *     path="/api/presupuestos",
      *     summary="Crear un nuevo presupuesto",
      *     tags={"Presupuestos"},
      *     security={{"bearerAuth":{}}},
@@ -91,38 +89,33 @@ class PresupuestoController extends Controller
      *     @OA\Response(response=500, description="Error al crear el presupuesto")
      * )
      */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'reparacion_id' => 'required|exists:reparacion,id',
+            'monto_total'   => 'required|numeric|min:0',
+            'aceptado'      => 'required|boolean',
+            'fecha'         => 'required|date',
+        ]);
 
-public function store(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'reparacion_id' => 'required|exists:reparacion,id',
-        'monto_total'   => 'required|numeric|min:0',
-        'aceptado'      => 'required|boolean',
-        'fecha'         => 'required|date',
-    ]);
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
+        }
 
-    if ($validator->fails()) {
-        return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
+        try {
+            $data = $validator->validated();
+            $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
+
+            $presupuesto = Presupuesto::create($data);
+            return response()->json(['mensaje' => 'Presupuesto creado correctamente', 'presupuesto' => $presupuesto], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Error al crear el presupuesto', 'detalle' => $e->getMessage()], 500);
+        }
     }
-
-    try {
-        $data = $validator->validated();
-
-        // 🔧 Normalizar fecha a formato SQL
-        $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
-
-        $presupuesto = Presupuesto::create($data);
-        return response()->json(['mensaje' => 'Presupuesto creado correctamente', 'presupuesto' => $presupuesto], 201);
-    } catch (\Throwable $e) {
-        \Log::error('Error creando presupuesto', ['err' => $e->getMessage()]);
-        return response()->json(['error' => 'Error al crear el presupuesto', 'detalle' => $e->getMessage()], 500);
-    }
-}
-
 
     /**
      * @OA\Get(
-     *     path="/api/presupuesto/{id}",
+     *     path="/api/presupuestos/{id}",
      *     summary="Obtener un presupuesto específico",
      *     tags={"Presupuestos"},
      *     security={{"bearerAuth":{}}},
@@ -152,8 +145,142 @@ public function store(Request $request)
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/presupuestos/buscar",
+     *     summary="Buscar presupuestos por término",
+     *     tags={"Presupuestos"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         description="Término de búsqueda (ID, descripción de reparación, etc.)",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de presupuestos encontrados",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Presupuesto")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Término de búsqueda requerido"),
+     *     @OA\Response(response=401, description="No autorizado")
+     * )
+     */
+    public function buscar(Request $request)
+    {
+        try {
+            if (!auth()->check()) {
+                return response()->json([], 200);
+            }
+
+            $termino = $request->get('q');
+            
+            if (!$termino || trim($termino) === '') {
+                return response()->json([], 200);
+            }
+
+            $termino = trim($termino);
+            
+            $query = Presupuesto::query();
+            
+            if ($request->get('include') === 'reparacion') {
+                $query->with(['reparacion.equipo', 'reparacion.tecnico']);
+            } else {
+                $query->with(['reparacion']);
+            }
+            
+            $esBusquedaPorFecha = $this->agregarBusquedaPorFecha($query, $termino);
+            
+            if (!$esBusquedaPorFecha) {
+                $query->where(function($query) use ($termino) {
+                    $terminoLower = strtolower($termino);
+                    
+                    if (is_numeric($termino)) {
+                        $query->where('id', $termino)
+                            ->orWhere('monto_total', 'like', "%{$termino}%");
+                    }
+                    
+                    $query->orWhere('monto_total', 'like', "%{$termino}%");
+                    
+                    $estadoBusqueda = null;
+                    if (str_contains($terminoLower, 'aceptado') || str_contains($terminoLower, 'aceptada')) {
+                        $estadoBusqueda = true;
+                    } elseif (str_contains($terminoLower, 'pendiente')) {
+                        $estadoBusqueda = false;
+                    }
+                    
+                    if ($estadoBusqueda !== null) {
+                        $query->orWhere('aceptado', $estadoBusqueda);
+                    }
+                })
+                ->orWhereHas('reparacion', function($query) use ($termino) {
+                    $query->where('descripcion', 'like', "%{$termino}%")
+                        ->orWhere('estado', 'like', "%{$termino}%");
+                });
+            }
+            
+            $presupuestos = $query->orderBy('id', 'desc')
+                ->limit($request->get('per_page', 50))
+                ->get();
+            
+            return response()->json($presupuestos->toArray(), 200);
+            
+        } catch (\Exception $e) {
+            return response()->json([], 200);
+        }
+    }
+
+    private function agregarBusquedaPorFecha($query, $termino)
+    {
+        $formatosFecha = [
+            'Y-m-d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'Y/m/d', 'm/d/Y', 'd/m/y'
+        ];
+        
+        $fechaEncontrada = false;
+        
+        foreach ($formatosFecha as $formato) {
+            try {
+                $fecha = Carbon::createFromFormat($formato, $termino);
+                if ($fecha !== false) {
+                    $query->whereDate('fecha', $fecha->format('Y-m-d'));
+                    $fechaEncontrada = true;
+                    break;
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+        
+        if (!$fechaEncontrada) {
+            if (preg_match('/^(19|20)\d{2}[-.\/](0[1-9]|1[0-2])$/', $termino)) {
+                $fecha = Carbon::createFromFormat('Y-m', str_replace(['/', '.'], '-', $termino));
+                $query->whereYear('fecha', $fecha->year)
+                    ->whereMonth('fecha', $fecha->month);
+                $fechaEncontrada = true;
+            }
+            elseif (preg_match('/^(0[1-9]|1[0-2])[-.\/](19|20)\d{2}$/', $termino)) {
+                $partes = preg_split('/[-.\/]/', $termino);
+                $mes = $partes[0];
+                $anio = $partes[1];
+                $query->whereYear('fecha', $anio)
+                    ->whereMonth('fecha', $mes);
+                $fechaEncontrada = true;
+            }
+            elseif (preg_match('/^(19|20)\d{2}$/', $termino)) {
+                $query->whereYear('fecha', $termino);
+                $fechaEncontrada = true;
+            }
+        }
+        
+        return $fechaEncontrada;
+    }
+
+    /**
      * @OA\Put(
-     *     path="/api/presupuesto/{id}",
+     *     path="/api/presupuestos/{id}",
      *     summary="Actualizar un presupuesto existente",
      *     tags={"Presupuestos"},
      *     security={{"bearerAuth":{}}},
@@ -197,14 +324,13 @@ public function store(Request $request)
             $presupuesto->update($data);
             return response()->json(['mensaje' => 'Presupuesto actualizado correctamente', 'presupuesto' => $presupuesto], 200);
         } catch (\Throwable $e) {
-            \Log::error('Error actualizando presupuesto', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al actualizar el presupuesto', 'detalle' => $e->getMessage()], 500);
         }
-
     }
+
     /**
      * @OA\Delete(
-     *     path="/api/presupuesto/{id}",
+     *     path="/api/presupuestos/{id}",
      *     summary="Eliminar un presupuesto",
      *     tags={"Presupuestos"},
      *     security={{"bearerAuth":{}}},

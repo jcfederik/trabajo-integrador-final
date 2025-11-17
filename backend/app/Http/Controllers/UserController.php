@@ -181,6 +181,60 @@ class UserController extends Controller
         return response()->json(['error' => 'Método no permitido'], 405);
     }
 
+        /**
+     * @OA\Get(
+     *     path="/api/usuarios/buscar",
+     *     summary="Buscar usuarios por nombre o email",
+     *     tags={"Usuario"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         required=true,
+     *         description="Término de búsqueda",
+     *         @OA\Schema(type="string", example="juan")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Usuarios encontrados",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/User")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Término de búsqueda inválido"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado"
+     *     )
+     * )
+     */
+    public function buscar(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'q' => 'required|string|min:2'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Término de búsqueda inválido'], 400);
+        }
+
+        $termino = $request->q;
+        
+        $tecnicos = User::where(function($query) use ($termino) {
+                $query->where('nombre', 'LIKE', "%{$termino}%")
+                    ->orWhere('tipo', 'LIKE', "%{$termino}%");
+            })
+            ->where('tipo', 'tecnico')
+            ->limit(10)
+            ->get();
+
+        return response()->json($tecnicos);
+    }
+
     /**
      * @OA\Delete(
      *     path="/api/profile/{id}",
@@ -197,4 +251,5 @@ class UserController extends Controller
     {
         return response()->json(['error' => 'Método no permitido'], 405);
     }
+    
 }

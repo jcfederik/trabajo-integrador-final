@@ -42,9 +42,7 @@ class ReparacionController extends Controller
      *             @OA\Property(property="current_page", type="integer", example=1),
      *             @OA\Property(property="last_page", type="integer", example=5),
      *             @OA\Property(property="per_page", type="integer", example=15),
-     *             @OA\Property(property="total", type="integer", example=75),
-     *             @OA\Property(property="from", type="integer", example=1),
-     *             @OA\Property(property="to", type="integer", example=15)
+     *             @OA\Property(property="total", type="integer", example=75)
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
@@ -65,6 +63,71 @@ class ReparacionController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/reparaciones/buscar",
+     *     summary="Buscar reparaciones por término",
+     *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         description="Término de búsqueda",
+     *         required=true,
+     *         @OA\Schema(type="string", example="placa madre")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=100)
+     *     ),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Reparaciones encontradas",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Reparacion"))
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Término de búsqueda requerido"),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=500, description="Error al buscar reparaciones")
+     * )
+     */
+    public function buscar(Request $request)
+    {
+        $termino = $request->get('q');
+        $perPage = $request->get('per_page', 100);
+
+        if (!$termino) {
+            return response()->json([], 200);
+        }
+
+        try {
+            $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                ->where(function($query) use ($termino) {
+                    $query->where('descripcion', 'LIKE', "%{$termino}%")
+                          ->orWhere('estado', 'LIKE', "%{$termino}%")
+                          ->orWhereHas('equipo', function($q) use ($termino) {
+                              $q->where('descripcion', 'LIKE', "%{$termino}%")
+                                ->orWhere('marca', 'LIKE', "%{$termino}%")
+                                ->orWhere('modelo', 'LIKE', "%{$termino}%")
+                                ->orWhere('nro_serie', 'LIKE', "%{$termino}%");
+                          })
+                          ->orWhereHas('tecnico', function($q) use ($termino) {
+                              $q->where('nombre', 'LIKE', "%{$termino}%")
+                                ->orWhere('email', 'LIKE', "%{$termino}%");
+                          });
+                })
+                ->paginate($perPage);
+
+            return response()->json($reparaciones, 200);
+        } catch (\Exception $e) {
+            return response()->json([], 200);
+        }
+    }
+
+    /**
      * @OA\Post(
      *     path="/api/reparaciones",
      *     summary="Registrar una nueva reparación",
@@ -77,14 +140,17 @@ class ReparacionController extends Controller
      *             @OA\Property(property="equipo_id", type="integer", example=2),
      *             @OA\Property(property="usuario_id", type="integer", example=5),
      *             @OA\Property(property="descripcion", type="string", example="Reemplazo de placa madre"),
-     *             @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-11T12:00:00Z"),
+     *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
      *             @OA\Property(property="estado", type="string", example="pendiente")
      *         )
      *     ),
      *     @OA\Response(
      *         response=201, 
      *         description="Reparación creada correctamente",
-     *         @OA\JsonContent(ref="#/components/schemas/Reparacion")
+     *         @OA\JsonContent(
+     *             @OA\Property(property="mensaje", type="string", example="Reparación registrada correctamente"),
+     *             @OA\Property(property="reparacion", ref="#/components/schemas/Reparacion")
+     *         )
      *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
      *     @OA\Response(response=401, description="No autorizado"),
@@ -107,7 +173,14 @@ class ReparacionController extends Controller
 
         try {
             $reparacion = Reparacion::create($validator->validated());
-            return response()->json(['mensaje' => 'Reparación registrada correctamente', 'reparacion' => $reparacion], 201);
+            
+            $reparacionConRelaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                ->find($reparacion->id);
+            
+            return response()->json([
+                'mensaje' => 'Reparación registrada correctamente', 
+                'reparacion' => $reparacionConRelaciones
+            ], 201);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al crear la reparación', 'detalle' => $e->getMessage()], 500);
         }
@@ -160,15 +233,20 @@ class ReparacionController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
+     *             @OA\Property(property="equipo_id", type="integer", example=2),
+     *             @OA\Property(property="usuario_id", type="integer", example=5),
      *             @OA\Property(property="descripcion", type="string", example="Cambio de disco rígido y reinstalación de sistema operativo"),
-     *             @OA\Property(property="fecha", type="string", format="date-time", example="2025-10-11T14:00:00Z"),
+     *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
      *             @OA\Property(property="estado", type="string", example="finalizada")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200, 
      *         description="Reparación actualizada correctamente",
-     *         @OA\JsonContent(ref="#/components/schemas/Reparacion")
+     *         @OA\JsonContent(
+     *             @OA\Property(property="mensaje", type="string", example="Reparación actualizada correctamente"),
+     *             @OA\Property(property="reparacion", ref="#/components/schemas/Reparacion")
+     *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
@@ -184,7 +262,14 @@ class ReparacionController extends Controller
 
         try {
             $reparacion->update($request->all());
-            return response()->json(['mensaje' => 'Reparación actualizada correctamente', 'reparacion' => $reparacion], 200);
+            
+            $reparacionActualizada = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                ->find($id);
+                
+            return response()->json([
+                'mensaje' => 'Reparación actualizada correctamente', 
+                'reparacion' => $reparacionActualizada
+            ], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al actualizar la reparación', 'detalle' => $e->getMessage()], 500);
         }
@@ -203,7 +288,13 @@ class ReparacionController extends Controller
      *         description="ID de la reparación a eliminar",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response=200, description="Reparación eliminada correctamente"),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Reparación eliminada correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="mensaje", type="string", example="Reparación eliminada correctamente")
+     *         )
+     *     ),
      *     @OA\Response(response=401, description="No autorizado"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
      *     @OA\Response(response=500, description="Error al eliminar la reparación")

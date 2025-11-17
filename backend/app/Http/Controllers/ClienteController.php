@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Cliente;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * @OA\Tag(
@@ -44,9 +45,7 @@ class ClienteController extends Controller
      *             @OA\Property(property="current_page", type="integer", example=1),
      *             @OA\Property(property="last_page", type="integer", example=5),
      *             @OA\Property(property="per_page", type="integer", example=15),
-     *             @OA\Property(property="total", type="integer", example=75),
-     *             @OA\Property(property="from", type="integer", example=1),
-     *             @OA\Property(property="to", type="integer", example=15)
+     *             @OA\Property(property="total", type="integer", example=75)
      *         )
      *     ),
      *     @OA\Response(
@@ -62,9 +61,8 @@ class ClienteController extends Controller
     public function index(Request $request)
     {
         try {
-            // 🔥 Configurar paginación
-            $perPage = $request->get('per_page', 15); // Por defecto 15 elementos por página
-            $page = $request->get('page', 1); // Por defecto página 1
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
             
             $clientes = Cliente::paginate($perPage, ['*'], 'page', $page);
             
@@ -74,7 +72,6 @@ class ClienteController extends Controller
         }
     }
 
-    // 🔥 Los demás métodos (store, show, update, destroy) se mantienen igual
     /**
      * @OA\Post(
      *     path="/api/clientes",
@@ -254,7 +251,10 @@ class ClienteController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Cliente eliminado correctamente"
+     *         description="Cliente eliminado correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Cliente eliminado")
+     *         )
      *     ),
      *     @OA\Response(
      *         response=401,
@@ -281,5 +281,53 @@ class ClienteController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error inesperado', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/clientes/buscar",
+     *     summary="Buscar clientes por término",
+     *     tags={"Clientes"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         required=true,
+     *         description="Término de búsqueda (mínimo 2 caracteres)",
+     *         @OA\Schema(type="string", example="Ana")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Resultados de búsqueda",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Cliente")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Término de búsqueda inválido"
+     *     )
+     * )
+     */
+    public function buscar(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'q' => 'required|string|min:2'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Término de búsqueda inválido'], 400);
+        }
+
+        $termino = $request->q;
+        
+        $clientes = Cliente::where('nombre', 'LIKE', "%{$termino}%")
+            ->orWhere('email', 'LIKE', "%{$termino}%")
+            ->orWhere('telefono', 'LIKE', "%{$termino}%")
+            ->limit(10)
+            ->get();
+
+        return response()->json($clientes);
     }
 }
