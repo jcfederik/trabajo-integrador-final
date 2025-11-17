@@ -18,8 +18,9 @@
       Crear
     </button>
 
+    <!-- 🔥 CAMBIADO: Ahora abre el modal de exportación -->
     <button class="action-pill"
-            (click)="exportarPDF()"
+            (click)="abrirModalExportacion()"
             [disabled]="!facturas.length"
             aria-label="Exportar a PDF">
       <i class="bi bi-printer"></i>
@@ -87,10 +88,86 @@
                 </div>
               </ng-container>
 
-              <!-- Edición inline -->
+              <!-- Edición inline MEJORADA -->
               <ng-template #editRow>
                 <div class="formulario-edicion">
                   <div class="fila-campos">
+                    
+                    <!-- BÚSQUEDA DE PRESUPUESTO EN EDICIÓN -->
+                    <div class="campo-grupo ancho-completo">
+                      <label class="etiqueta-campo">Presupuesto <span class="campo-obligatorio">*</span></label>
+                      <div class="contenedor-busqueda">
+                        <input type="text" 
+                              class="input-busqueda" 
+                              [(ngModel)]="editBuffer.presupuestoBusqueda" 
+                              (input)="onBuscarPresupuesto(editBuffer.presupuestoBusqueda, true)"
+                              (focus)="mostrandoPresupuestos = true"
+                              (blur)="ocultarPresupuestos()"
+                              placeholder="Buscar presupuesto por ID, reparación, cliente..."
+                              name="presupuestoBusquedaEdit"
+                              required
+                              autocomplete="off" />
+                        
+                        <!-- Limpiar selección -->
+                        <button *ngIf="editBuffer.presupuestoBusqueda" 
+                                type="button" 
+                                class="boton-limpiar"
+                                (click)="limpiarPresupuesto(true)" 
+                                title="Limpiar búsqueda">
+                          <i class="bi bi-x"></i>
+                        </button>
+
+                        <!-- Dropdown de sugerencias (compartido) -->
+                        <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
+                            class="menu-sugerencias">
+                          <div class="cabecera-sugerencias">
+                            <i class="bi bi-search"></i>
+                            Presupuestos encontrados
+                            <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
+                          </div>
+                          <div *ngFor="let presupuesto of presupuestosSugeridos" 
+                              class="item-sugerencia"
+                              (mousedown)="seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()"> <!-- 🔥 AGREGADO cerrarMenuSugerencias() -->
+                            <div class="contenido-sugerencia">
+                              <strong>{{ presupuesto.displayText }}</strong>
+                              <div class="detalles-sugerencia">
+                                Reparación: {{ presupuesto.reparacion_descripcion }} | 
+                                Estado: {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
+                              </div>
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                          </div>
+                        </div>
+
+                        <!-- Sin resultados -->
+                        <div *ngIf="mostrandoPresupuestos && !buscandoPresupuestos && presupuestosSugeridos.length === 0 && editBuffer.presupuestoBusqueda" 
+                            class="menu-sugerencias">
+                          <div class="cabecera-sugerencias">
+                            <i class="bi bi-search"></i>
+                            Sin resultados
+                          </div>
+                          <div class="item-sugerencia sin-resultados">
+                            <div class="contenido-sugerencia">
+                              <i class="bi bi-exclamation-circle icono-advertencia"></i>
+                              No se encontraron presupuestos para "{{ editBuffer.presupuestoBusqueda }}"
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Estado de carga -->
+                        <div *ngIf="buscandoPresupuestos" class="indicador-carga">
+                          <div class="spinner-mini" role="status"></div>
+                        </div>
+                      </div>
+                      
+                      <!-- Badge de selección -->
+                      <div *ngIf="editBuffer.presupuestoSeleccionado" class="badge-seleccion">
+                        <i class="bi bi-check-circle"></i>
+                        Presupuesto seleccionado: #{{ editBuffer.presupuestoSeleccionado.id }}
+                        <small class="monto-seleccion">Monto: {{ (editBuffer.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}</small>
+                      </div>
+                    </div>
+
                     <div class="campo-grupo">
                       <label class="etiqueta-campo">Número</label>
                       <input class="control-formulario" [(ngModel)]="editBuffer.numero" />
@@ -106,10 +183,6 @@
                     <div class="campo-grupo">
                       <label class="etiqueta-campo">Monto</label>
                       <input type="number" step="0.01" class="control-formulario" [(ngModel)]="editBuffer.monto_total" />
-                    </div>
-                    <div class="campo-grupo">
-                      <label class="etiqueta-campo">Presupuesto ID</label>
-                      <input type="number" class="control-formulario" [(ngModel)]="editBuffer.presupuesto_id" />
                     </div>
                     <div class="campo-grupo ancho-completo">
                       <label class="etiqueta-campo">Detalle</label>
@@ -204,7 +277,7 @@
               </div>
                 <div *ngFor="let presupuesto of presupuestosSugeridos" 
                     class="item-sugerencia"
-                    (mousedown)="seleccionarPresupuesto(presupuesto)">
+                    (mousedown)="seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()"> <!-- 🔥 AGREGADO cerrarMenuSugerencias() -->
                   <div class="contenido-sugerencia">
                     <strong>{{ presupuesto.displayText }}</strong>
                     <div class="detalles-sugerencia">
@@ -304,4 +377,10 @@
       </button>
     </form>
   </div>
+
+  <app-export-modal 
+      *ngIf="mostrarModalExportacion"
+      (cerrar)="cerrarModalExportacion()"
+      (exportarTodas)="exportarTodasFacturas()"> 
+  </app-export-modal>
 </div>

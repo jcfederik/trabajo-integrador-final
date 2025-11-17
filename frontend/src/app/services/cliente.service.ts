@@ -1,7 +1,7 @@
-// src/app/services/cliente.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Factura } from './facturas';
 
 export interface Cliente {
   id: number;
@@ -10,7 +10,6 @@ export interface Cliente {
   telefono?: string;
 }
 
-// 🔥 Interfaz para la respuesta paginada
 export interface PaginatedResponse<T> {
   data: T[];
   current_page: number;
@@ -27,7 +26,6 @@ export class ClienteService {
 
   constructor(private http: HttpClient) {}
 
-  // 🔹 Obtener clientes paginados
   getClientes(page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Cliente>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -36,23 +34,36 @@ export class ClienteService {
     return this.http.get<PaginatedResponse<Cliente>>(this.apiUrl, { params });
   }
 
-  // 🔹 Obtener cliente por ID
   getCliente(id: number): Observable<Cliente> {
     return this.http.get<Cliente>(`${this.apiUrl}/${id}`);
   }
 
-  // 🔹 Crear cliente
   createCliente(cliente: Partial<Cliente>): Observable<Cliente> {
     return this.http.post<Cliente>(this.apiUrl, cliente);
   }
 
-  // 🔹 Actualizar cliente
   updateCliente(id: number, cliente: Partial<Cliente>): Observable<Cliente> {
     return this.http.put<Cliente>(`${this.apiUrl}/${id}`, cliente);
   }
 
-  // 🔹 Eliminar cliente
   deleteCliente(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  getFacturasPorCliente(clienteId: number, page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Factura>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('per_page', perPage.toString());
+
+    return this.http.get<PaginatedResponse<Factura>>(`${this.apiUrl}/${clienteId}/facturas`, { params });
+  }
+
+  getTodasFacturasPorCliente(clienteId: number): Observable<Factura[]> {
+    return this.http.get<Factura[]>(`${this.apiUrl}/${clienteId}/facturas/todas`);
+  }
+
+  buscarClientes(termino: string): Observable<Cliente[]> {
+    const params = new HttpParams().set('q', termino);
+    return this.http.get<Cliente[]>(`${this.apiUrl}/buscar`, { params });
+  } 
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Cliente;
+use App\Models\Factura;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
@@ -312,22 +313,166 @@ class ClienteController extends Controller
      */
     public function buscar(Request $request)
     {
+        \Log::info('🔍 Búsqueda de clientes iniciada', ['termino' => $request->q]);
+        
         $validator = Validator::make($request->all(), [
             'q' => 'required|string|min:2'
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('❌ Validación fallida', ['errors' => $validator->errors()]);
             return response()->json(['error' => 'Término de búsqueda inválido'], 400);
         }
 
         $termino = $request->q;
         
-        $clientes = Cliente::where('nombre', 'LIKE', "%{$termino}%")
-            ->orWhere('email', 'LIKE', "%{$termino}%")
-            ->orWhere('telefono', 'LIKE', "%{$termino}%")
-            ->limit(10)
+        \Log::info('🔎 Buscando clientes con término', ['termino' => $termino]);
+        
+        try {
+            $clientes = Cliente::where('nombre', 'LIKE', "%{$termino}%")
+                ->orWhere('email', 'LIKE', "%{$termino}%")
+                ->orWhere('telefono', 'LIKE', "%{$termino}%")
+                ->limit(10)
+                ->get();
+
+            \Log::info('✅ Resultados encontrados', ['count' => $clientes->count()]);
+            
+            return response()->json($clientes);
+            
+        } catch (\Exception $e) {
+            \Log::error('💥 Error en búsqueda de clientes', [
+                'termino' => $termino,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json(['error' => 'Error interno del servidor'], 500);
+        }
+    }
+    
+    /**
+     * @OA\Get(
+     *     path="/api/clientes/{id}/facturas",
+     *     summary="Obtener todas las facturas de un cliente específico",
+     *     tags={"Clientes"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID del cliente",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Facturas del cliente obtenidas correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Factura")),
+     *             @OA\Property(property="current_page", type="integer", example=1),
+     *             @OA\Property(property="last_page", type="integer", example=5),
+     *             @OA\Property(property="per_page", type="integer", example=15),
+     *             @OA\Property(property="total", type="integer", example=75)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Cliente no encontrado"
+     *     )
+     * )
+     */
+    public function facturasPorCliente(Request $request, $id)
+    {
+        try {
+            $cliente = Cliente::findOrFail($id);
+            
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+
+            // Obtener facturas del cliente usando las relaciones
+            $facturas = Factura::whereHas('presupuesto.reparacion.equipo', function($query) use ($id) {
+                $query->where('cliente_id', $id);
+            })
+            ->with([
+                'presupuesto.reparacion.equipo.cliente',
+                'presupuesto.reparacion' // Cargar relaciones para mostrar info
+            ])
+            ->orderBy('fecha', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json($facturas);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'Cliente no encontrado'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Error obteniendo facturas del cliente', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Error al obtener facturas del cliente', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/clientes/{id}/facturas/todas",
+     *     summary="Obtener TODAS las facturas de un cliente (sin paginación)",
+     *     tags={"Clientes"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID del cliente",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Todas las facturas del cliente",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Factura")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Cliente no encontrado"
+     *     )
+     * )
+     */
+    public function todasFacturasPorCliente($id)
+    {
+        try {
+            $cliente = Cliente::findOrFail($id);
+
+            // Obtener TODAS las facturas del cliente sin paginación
+            $facturas = Factura::whereHas('presupuesto.reparacion.equipo', function($query) use ($id) {
+                $query->where('cliente_id', $id);
+            })
+            ->with([
+                'presupuesto.reparacion.equipo.cliente',
+                'presupuesto.reparacion'
+            ])
+            ->orderBy('fecha', 'desc')
             ->get();
 
-        return response()->json($clientes);
+            return response()->json($facturas);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'Cliente no encontrado'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Error obteniendo todas las facturas del cliente', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Error al obtener facturas del cliente', 'message' => $e->getMessage()], 500);
+        }
     }
 }

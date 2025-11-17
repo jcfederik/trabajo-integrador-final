@@ -1,5 +1,5 @@
 <?php
-// app/Models/Factura.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -9,9 +9,7 @@ class Factura extends Model
 {
     use HasFactory;
 
-    // 👇 tu tabla real es singular
     protected $table = 'factura';
-
     public $timestamps = false;
 
     protected $fillable = [
@@ -30,6 +28,18 @@ class Factura extends Model
 
     public function presupuesto()
     {
-        return $this->belongsTo(\App\Models\Presupuesto::class, 'presupuesto_id');
+        return $this->belongsTo(Presupuesto::class, 'presupuesto_id');
+    }
+
+    public function cliente()
+    {
+        return $this->hasOneThrough(
+            Cliente::class,
+            Presupuesto::class,
+            'id', 
+            'id', 
+            'presupuesto_id', 
+            'reparacion_id' 
+        )->via('presupuesto');
     }
 }
