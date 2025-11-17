@@ -22,7 +22,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
 
   selectedAction: Accion = 'listar';
   
-  private equiposAll: EquipoUI[] = [];
+  protected equiposAll: EquipoUI[] = [];
   equipos: EquipoUI[] = [];
 
   clientes: any[] = [];

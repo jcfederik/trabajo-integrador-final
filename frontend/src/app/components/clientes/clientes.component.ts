@@ -223,21 +223,17 @@ export class ClientesComponent implements OnInit, OnDestroy {
         const clienteCompleto = { ...payload, id: nuevoCliente.id } as Cliente;
         this.clientesAll.unshift(clienteCompleto);
         this.applyFilter();
-        
         this.searchService.setSearchData(this.clientesAll);
-        
-        this.nuevo = { 
-          nombre: '', 
-          email: '', 
-          telefono: ''
-        };
+
+        this.nuevo = { nombre: '', email: '', telefono: '' };
         this.selectedAction = 'listar';
       },
-      error: (e) => { 
-        alert(e?.error?.error ?? 'Error al crear el cliente'); 
+      error: (e) => {
+        alert(e?.error?.error ?? 'Error al crear el cliente');
       }
     });
   }
+
 
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este cliente?')) return;
@@ -282,18 +278,19 @@ export class ClientesComponent implements OnInit, OnDestroy {
           const idx = arr.findIndex(c => c.id === id);
           if (idx >= 0) arr[idx] = { ...arr[idx], ...payload } as Cliente;
         };
-        
+
         updateLocal(this.clientesAll);
         updateLocal(this.clientes);
-        
+
         this.searchService.setSearchData(this.clientesAll);
         this.cancelEdit();
       },
-      error: (e) => { 
-        alert(e?.error?.error ?? 'Error al actualizar'); 
+      error: (e) => {
+        alert(e?.error?.error ?? 'Error al actualizar');
       }
     });
   }
+
 
   private limpiar(obj: Partial<Cliente>): Partial<Cliente> {
     return {
@@ -304,10 +301,22 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   private valida(p: Partial<Cliente>): boolean {
-    if (!p.nombre || !p.email) {
-      alert('Completá nombre y email.');
+    if (!p.nombre || !p.nombre.trim()) {
+      alert('El nombre es obligatorio.');
       return false;
     }
+
+    if (!p.email || !p.email.trim()) {
+      alert('El email es obligatorio.');
+      return false;
+    }
+
+    if (!p.telefono || !p.telefono.trim()) {
+      alert('El teléfono es obligatorio.');
+      return false;
+    }
+
     return true;
   }
+
 }
