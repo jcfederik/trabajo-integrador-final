@@ -420,8 +420,4 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       this.cargarEquiposIniciales();
     }
   }
-
-
-
-
 }
