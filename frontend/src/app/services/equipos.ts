@@ -5,11 +5,16 @@ import { Observable } from 'rxjs';
 
 export interface Equipo {
   id: number;
+  cliente_id: number;
   descripcion: string;
   marca?: string;
   modelo?: string;
   nro_serie?: string;
+  created_at?: string;
+  updated_at?: string;
 }
+
+
 
 // 🔥 Interfaz para la respuesta paginada
 export interface PaginatedResponse<T> {
@@ -56,4 +61,6 @@ export class EquipoService {
   deleteEquipo(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+    
 }
