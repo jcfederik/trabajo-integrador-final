@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ProveedoresService, Proveedor, PaginatedResponse } from '../../services/proveedores.service';
 import { SearchService } from '../../services/busquedaglobal';
-import { SearchSelectorComponent, SearchResult } from '../../components/search-selector/search-selector.component';
 
 type Accion = 'listar' | 'crear';
 type ProveedorUI = Proveedor;
@@ -12,7 +11,7 @@ type ProveedorUI = Proveedor;
 @Component({
   selector: 'app-proveedores',
   standalone: true,
-  imports: [CommonModule, FormsModule, SearchSelectorComponent],
+  imports: [CommonModule, FormsModule ],
   templateUrl: './proveedores.component.html',
   styleUrls: ['./proveedores.component.css']
 })

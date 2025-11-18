@@ -92,11 +92,16 @@ export class EquiposComponent implements OnInit, OnDestroy {
   }
 
   // ====== CONFIGURACIÓN DE BÚSQUEDA ======
-  configurarBusqueda() {
+  private configurarBusqueda(): void {
     this.searchService.setCurrentComponent('equipos');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       this.searchTerm = (term || '').trim();
-      this.applyFilter();
+      
+      if (this.searchTerm) {
+        this.onBuscarEquipos(this.searchTerm);
+      } else {
+        this.resetBusqueda();
+      }
     });
   }
 
@@ -110,7 +115,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
   }
 
   // ====== BÚSQUEDA DE CLIENTES ======
-  buscarClientes(termino: string) {
+  buscarClientes(termino: string): void {
     if (termino.length < 2) {
       this.clienteSelector.updateSuggestions([]);
       return;
@@ -121,29 +126,31 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.clienteSelector.updateSuggestions(clientes);
       },
       error: (e) => {
+        console.error('Error al buscar clientes', e);
         this.clienteSelector.updateSuggestions([]);
       }
     });
   }
 
-  cargarClientesIniciales() {
+  cargarClientesIniciales(): void {
     this.clienteService.getClientes(1, 10).subscribe({
       next: (res: any) => {
         const clientes = res.data ?? res;
         this.clienteSelector.updateSuggestions(clientes.slice(0, 5));
       },
       error: (e) => {
+        console.error('Error al cargar clientes iniciales', e);
         this.clienteSelector.updateSuggestions([]);
       }
     });
   }
 
-  seleccionarCliente(cliente: SearchResult) {
+  seleccionarCliente(cliente: SearchResult): void {
     this.clienteSeleccionado = cliente;
     this.nuevo.cliente_id = cliente.id;
   }
 
-  limpiarCliente() {
+  limpiarCliente(): void {
     this.clienteSeleccionado = null;
     this.nuevo.cliente_id = undefined;
   }
@@ -291,7 +298,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.fetch(this.page === 0 ? 1 : this.page); 
   }
 
-  onScroll = () => {
+  onScroll = (): void => {
     if (this.loading) return;
     
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
@@ -459,7 +466,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
   }
 
   private validarPayload(p: any): boolean {
-    if (!p.descripcion) {
+    if (!p.descripcion || p.descripcion.trim() === '') {
       alert('Completá la descripción del equipo.');
       return false;
     }
@@ -470,7 +477,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  private cargarClientes() {
+  private cargarClientes(): void {
     this.clienteService.getClientes(1, 999).subscribe({
       next: (res: any) => {
         this.clientes = res.data ?? res;
@@ -493,11 +500,11 @@ export class EquiposComponent implements OnInit, OnDestroy {
     return cli?.telefono ?? null;
   }
 
-  seleccionarAccion(a: Accion) { 
+  seleccionarAccion(a: Accion): void { 
     this.selectedAction = a; 
   }
 
-  limpiarBusqueda() {
+  limpiarBusqueda(): void {
     this.searchService.clearSearch();
   }
 }
