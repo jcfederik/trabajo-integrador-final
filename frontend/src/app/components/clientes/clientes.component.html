@@ -2,10 +2,10 @@
   <!-- Píldoras de acción -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
     <button class="action-pill" [class.active]="selectedAction==='listar'" (click)="seleccionarAccion('listar')">
-      <i class="bi bi-list-ul"></i> Listar
+      <i class="bi bi-list-ul me-2"></i> Listar
     </button>
     <button class="action-pill success" [class.active]="selectedAction==='crear'" (click)="seleccionarAccion('crear')">
-      <i class="bi bi-plus-circle"></i> Crear
+      <i class="bi bi-plus-circle me-2"></i> Crear
     </button>
   </div>
 
@@ -109,8 +109,8 @@
 
   <!-- CREAR -->
   <div *ngIf="selectedAction==='crear'">
-    <h4 class="text-center mb-3">Registrar Cliente</h4>
-    <form (ngSubmit)="crear()" class="mx-auto form-max-width">
+    <h4 class="text-center mb-3">Nuevo Cliente</h4>
+    <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
       <div class="row g-3">
         
         <!-- Nombre -->
@@ -155,7 +155,7 @@
         <!-- Información adicional -->
         <div class="col-12">
           <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i>
+            <i class="bi bi-info-circle me-2"></i>
             <strong>Información:</strong> Los clientes podrán asociarse a equipos y reparaciones en el sistema.
           </div>
         </div>
@@ -164,9 +164,9 @@
       <button 
         class="btn btn-success w-100 mt-3" 
         type="submit" 
-        [disabled]="!nuevo.nombre || !nuevo.email"
+        [disabled]="!nuevo.nombre?.trim() || !nuevo.email?.trim()"
       >
-        <i class="bi bi-check-lg"></i> Guardar Cliente
+        <i class="bi bi-save me-2"></i> Guardar Cliente
       </button>
     </form>
   </div>

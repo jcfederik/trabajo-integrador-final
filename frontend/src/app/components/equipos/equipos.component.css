@@ -20,6 +20,11 @@
 .list-group-item {
   border-radius: .5rem;
   margin-bottom: .4rem;
+  transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
 }
 
 /* Estado vacío */
@@ -33,11 +38,34 @@
 .empty-state .icon-wrap {
   width: 64px; height: 64px;
   border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: #e9f1ff; color: var(--bs-primary);
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  background: #e9f1ff; 
+  color: var(--bs-primary);
   margin-bottom: .75rem;
   font-size: 28px;
 }
 
 /* Loader */
-.spinner-border { width: 2rem; height: 2rem; }
+.spinner-border { 
+  width: 2rem; 
+  height: 2rem; 
+}
+
+/* Formularios */
+.form-max-width {
+  max-width: 680px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .action-pill {
+    padding: .5rem .75rem;
+    font-size: 0.9rem;
+  }
+  
+  .list-group-item {
+    padding: 1rem;
+  }
+}
