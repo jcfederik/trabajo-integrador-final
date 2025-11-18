@@ -1,5 +1,4 @@
 <div class="container py-4">
-
   <!-- Píldoras de acción -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
     <button class="action-pill" [class.active]="selectedAction==='listar'" (click)="seleccionarAccion('listar')">
@@ -14,43 +13,50 @@
   <div *ngIf="selectedAction==='listar'">
     <h4 class="text-center mb-3">Clientes</h4>
 
-    <!-- Estado vacío -->
-    <div *ngIf="!loading && clientes.length===0 && !searchTerm" class="empty-state">
+    <!-- Indicador de búsqueda -->
+    <div *ngIf="searchTerm" class="alert alert-info d-flex justify-content-between align-items-center">
+      <span>Mostrando {{ clientes.length }} de {{ clientesAll.length }} clientes</span>
+      <button (click)="limpiarBusqueda()" class="btn btn-sm btn-outline-secondary">× Limpiar</button>
+    </div>
+
+    <!-- Estado vacío sin búsqueda -->
+    <div *ngIf="!loading && clientes.length === 0 && !searchTerm" class="empty-state">
       <div class="icon-wrap">
         <i class="bi bi-people"></i>
       </div>
-      <h5 class="mb-1">Sin clientes por ahora</h5>
+      <h5>Sin clientes por ahora</h5>
       <p class="text-muted mb-3">Creá tu primer cliente para comenzar.</p>
       <button class="btn btn-primary" (click)="seleccionarAccion('crear')">
-        <i class="bi bi-plus-circle me-2"></i>Nuevo cliente
+        <i class="bi bi-plus-circle me-2"></i> Nuevo cliente
       </button>
     </div>
 
-    <!-- Estado sin resultados de búsqueda -->
-    <div *ngIf="!loading && clientes.length===0 && searchTerm" class="empty-state">
+    <!-- Estado vacío con búsqueda -->
+    <div *ngIf="searchTerm && clientes.length === 0" class="empty-state">
       <div class="icon-wrap">
         <i class="bi bi-search"></i>
       </div>
-      <h5 class="mb-1">No se encontraron clientes</h5>
-      <p class="text-muted mb-3">No hay resultados para "{{ searchTerm }}"</p>
-      <button class="btn btn-outline-secondary" (click)="searchTerm = ''; applyFilter()">
-        <i class="bi bi-arrow-left me-2"></i>Ver todos los clientes
+      <h5>No se encontraron clientes</h5>
+      <p class="text-muted">No hay resultados que coincidan con "{{ searchTerm }}"</p>
+      <button class="btn btn-outline-primary" (click)="limpiarBusqueda()">
+        <i class="bi bi-arrow-left me-2"></i> Ver todos los clientes
       </button>
     </div>
 
-    <div class="list-group" *ngIf="clientes.length">
+    <!-- Lista de clientes -->
+    <div class="list-group" *ngIf="clientes.length > 0">
       <div *ngFor="let c of clientes" class="list-group-item">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
 
-          <!-- Columna izquierda: datos -->
+          <!-- Datos del cliente -->
           <div class="flex-grow-1">
             <ng-container *ngIf="editingId !== c.id; else editRow">
               <div class="fw-semibold">
-                {{ c.nombre }} <span class="text-muted">·</span>
-                <span class="small text-muted">{{ c.email }}</span>
+                #{{ c.id }} — {{ c.nombre }}
               </div>
               <div class="text-muted small">
-                <ng-container *ngIf="c.telefono">Tel: {{ c.telefono }} · </ng-container>
+                Email: {{ c.email || 'No especificado' }} · 
+                Teléfono: {{ c.telefono || 'No especificado' }}
               </div>
             </ng-container>
 
@@ -59,21 +65,21 @@
               <div class="row g-2">
                 <div class="col-12 col-md-6">
                   <label class="form-label small">Nombre</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.nombre" name="e_nombre"/>
+                  <input class="form-control" [(ngModel)]="editBuffer.nombre" name="e_nombre" placeholder="Nombre del cliente"/>
                 </div>
                 <div class="col-12 col-md-6">
                   <label class="form-label small">Email</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.email" name="e_email"/>
+                  <input type="email" class="form-control" [(ngModel)]="editBuffer.email" name="e_email" placeholder="ejemplo@email.com"/>
                 </div>
                 <div class="col-12 col-md-6">
                   <label class="form-label small">Teléfono</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.telefono" name="e_tel"/>
+                  <input class="form-control" [(ngModel)]="editBuffer.telefono" name="e_tel" placeholder="+54 11 1234-5678"/>
                 </div>
               </div>
             </ng-template>
           </div>
 
-          <!-- Columna derecha: acciones -->
+          <!-- Acciones -->
           <div class="d-flex gap-2">
             <button *ngIf="editingId !== c.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(c)" title="Editar">
               <i class="bi bi-pencil-square"></i>
@@ -90,40 +96,78 @@
               <i class="bi bi-trash"></i>
             </button>
           </div>
-
         </div>
       </div>
     </div>
 
-    <!-- Loader -->
+    <!-- Loading -->
     <div class="text-center mt-3" *ngIf="loading">
-      <div class="spinner-border text-primary" role="status"></div>
+      <div class="spinner-border text-primary"></div>
+      <div class="mt-2 text-muted">Cargando más clientes...</div>
     </div>
   </div>
 
   <!-- CREAR -->
   <div *ngIf="selectedAction==='crear'">
-    <h4 class="text-center mb-3">Nuevo cliente</h4>
+    <h4 class="text-center mb-3">Nuevo Cliente</h4>
     <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
       <div class="row g-3">
+        
+        <!-- Nombre -->
         <div class="col-12 col-md-6">
           <label class="form-label">Nombre</label>
-          <input class="form-control" [(ngModel)]="nuevo.nombre" name="nombre" required/>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="nuevo.nombre" 
+            name="nombre" 
+            placeholder="Nombre completo del cliente"
+            required
+          />
         </div>
+
+        <!-- Email -->
         <div class="col-12 col-md-6">
           <label class="form-label">Email</label>
-          <input class="form-control" [(ngModel)]="nuevo.email" name="email" required/>
+          <input 
+            type="email" 
+            class="form-control" 
+            [(ngModel)]="nuevo.email" 
+            name="email" 
+            placeholder="cliente@email.com"
+            required
+          />
         </div>
-        <div class="col-12 col-md-6">
+
+        <!-- Teléfono -->
+        <div class="col-12">
           <label class="form-label">Teléfono</label>
-          <input class="form-control" [(ngModel)]="nuevo.telefono" name="telefono"/>
+          <input 
+            type="tel" 
+            class="form-control" 
+            [(ngModel)]="nuevo.telefono" 
+            name="telefono" 
+            placeholder="+54 11 1234-5678"
+          />
+          <div class="form-text">Opcional - Para contacto directo</div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="col-12">
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Información:</strong> Los clientes podrán asociarse a equipos y reparaciones en el sistema.
+          </div>
         </div>
       </div>
 
-      <button class="btn btn-success w-100 mt-3" type="submit">
-        <i class="bi bi-save me-2"></i>Guardar
+      <button 
+        class="btn btn-success w-100 mt-3" 
+        type="submit" 
+        [disabled]="!nuevo.nombre?.trim() || !nuevo.email?.trim()"
+      >
+        <i class="bi bi-save me-2"></i> Guardar Cliente
       </button>
     </form>
   </div>
-
 </div>
