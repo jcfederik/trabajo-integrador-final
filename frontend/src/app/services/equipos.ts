@@ -1,7 +1,8 @@
-// src/app/services/equipo.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { SearchResult } from '../components/search-selector/search-selector.component';
 
 export interface Equipo {
   id: number;
@@ -12,23 +13,9 @@ export interface Equipo {
   nro_serie?: string;
   created_at?: string;
   updated_at?: string;
-  cliente?: any; // Para cuando se incluye la relación con cliente
+  cliente?: any;
 }
 
-export interface SearchResult {
-  id: number;
-  nombre?: string;
-  descripcion?: string;
-  email?: string;
-  telefono?: string;
-  tipo?: string;
-  marca?: string;
-  modelo?: string;
-  nro_serie?: string;
-  cliente_id?: number;
-}
-
-// 🔥 Interfaz para la respuesta paginada
 export interface PaginatedResponse<T> {
   data: T[];
   current_page: number;
@@ -80,41 +67,72 @@ export class EquipoService {
     let params = new HttpParams();
     
     if (termino && termino.trim().length > 0) {
-      params = params.set('search', termino.trim());
+      params = params.set('q', termino.trim());
     }
 
-    return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
+    return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params }).pipe(
+      catchError(error => {
+        console.warn('Error en búsqueda específica de equipos:', error);
+        return of([]);
+      })
+    );
   }
 
-  // 🔹 BUSCAR EQUIPOS POR CLIENTE (para el formulario de reparaciones)
+  // 🔹 BUSCAR EQUIPOS POR CLIENTE (CORREGIDO - usando el listado general)
   buscarEquiposPorCliente(clienteId: number): Observable<SearchResult[]> {
-    let params = new HttpParams().set('cliente_id', clienteId.toString());
-    
-    return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
+    // Obtener TODOS los equipos y filtrar por cliente_id localmente
+    return this.getEquipos(1, 1000).pipe( // Número alto para obtener todos
+      map(response => {
+        const equipos = response.data;
+        // Filtrar equipos del cliente específico
+        const equiposDelCliente = equipos.filter(equipo => equipo.cliente_id === clienteId);
+        return equiposDelCliente.map(equipo => this.mapEquipoToSearchResult(equipo));
+      }),
+      catchError(error => {
+        console.warn('Error cargando equipos del cliente:', error);
+        return of([]);
+      })
+    );
   }
 
-  // 🔹 BUSCAR EQUIPOS con filtro por cliente y término
+  // 🔹 BUSCAR EQUIPOS con filtro por cliente y término (CORREGIDO)
   buscarEquiposConFiltro(termino: string, clienteId?: number): Observable<SearchResult[]> {
-    let params = new HttpParams();
-    
-    if (termino && termino.trim().length > 0) {
-      params = params.set('search', termino.trim());
-    }
-    
+    // Si hay clienteId, obtener sus equipos y filtrar localmente
     if (clienteId) {
-      params = params.set('cliente_id', clienteId.toString());
+      return this.buscarEquiposPorCliente(clienteId).pipe(
+        map(equipos => {
+          if (!termino.trim()) {
+            return equipos; // Devolver todos si no hay término
+          }
+          
+          // Filtrar localmente por término
+          const t = termino.toLowerCase();
+          return equipos.filter(equipo =>
+            equipo.descripcion?.toLowerCase().includes(t) ||
+            equipo.marca?.toLowerCase().includes(t) ||
+            equipo.modelo?.toLowerCase().includes(t) ||
+            equipo.nro_serie?.toLowerCase().includes(t)
+          );
+        })
+      );
     }
 
-    return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
+    // Si no hay clienteId, buscar equipos generales
+    return this.buscarEquipos(termino);
   }
 
-  // 🔹 Obtener equipos de un cliente específico (sin búsqueda)
-  getEquiposPorCliente(clienteId: number, page: number = 1, perPage: number = 50): Observable<PaginatedResponse<Equipo>> {
-    let params = new HttpParams()
-      .set('cliente_id', clienteId.toString())
-      .set('page', page.toString())
-      .set('per_page', perPage.toString());
-
-    return this.http.get<PaginatedResponse<Equipo>>(`${this.apiUrl}/por-cliente`, { params });
+  // 🔹 Mapear Equipo a SearchResult
+  private mapEquipoToSearchResult(equipo: Equipo): SearchResult {
+    return {
+      id: equipo.id,
+      descripcion: equipo.descripcion,
+      marca: equipo.marca,
+      modelo: equipo.modelo,
+      nro_serie: equipo.nro_serie,
+      cliente_id: equipo.cliente_id,
+      nombre: equipo.cliente?.nombre // Para compatibilidad
+    };
   }
+
+
 }

@@ -326,4 +326,154 @@ class ReparacionController extends Controller
             return response()->json(['error' => 'Error al eliminar la reparación', 'detalle' => $e->getMessage()], 500);
         }
     }
+
+/**
+ * @OA\Get(
+ *     path="/api/reparaciones/completo",
+ *     summary="Obtener lista completa de reparaciones con equipo, cliente y técnico",
+ *     description="Devuelve la reparación con todas las relaciones cargadas: equipo, cliente dentro del equipo y técnico asignado.",
+ *     tags={"Reparaciones"},
+ *    security={{"bearerAuth":{}}},
+
+ *     @OA\Parameter(
+ *         name="search",
+ *         in="query",
+ *         description="Texto para filtrar por descripción, equipo, cliente o técnico",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="page",
+ *         in="query",
+ *         description="Número de página",
+ *         required=false,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="per_page",
+ *         in="query",
+ *         description="Cantidad de resultados por página",
+ *         required=false,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="sort",
+ *         in="query",
+ *         description="Campo por el que se ordena (id, fecha, estado, etc.)",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="direction",
+ *         in="query",
+ *         description="Dirección del orden (asc o desc)",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lista completa de reparaciones",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="data", type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer"),
+ *                     @OA\Property(property="descripcion", type="string"),
+ *                     @OA\Property(property="estado", type="string"),
+ *                     @OA\Property(property="fecha", type="string", format="date"),
+ *
+ *                     @OA\Property(property="equipo_nombre", type="string", example="Notebook Lenovo"),
+ *                     @OA\Property(property="cliente_nombre", type="string", example="Juan Pérez"),
+ *                     @OA\Property(property="tecnico_nombre", type="string", example="Carlos Gómez"),
+ *
+ *                     @OA\Property(
+ *                         property="equipo",
+ *                         type="object",
+ *                         @OA\Property(property="id", type="integer"),
+ *                         @OA\Property(property="descripcion", type="string"),
+ *                         @OA\Property(property="marca", type="string"),
+ *                         @OA\Property(property="modelo", type="string"),
+ *
+ *                         @OA\Property(
+ *                             property="cliente",
+ *                             type="object",
+ *                             @OA\Property(property="id", type="integer"),
+ *                             @OA\Property(property="nombre", type="string"),
+ *                             @OA\Property(property="telefono", type="string"),
+ *                             @OA\Property(property="email", type="string")
+ *                         )
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="tecnico",
+ *                         type="object",
+ *                         @OA\Property(property="id", type="integer"),
+ *                         @OA\Property(property="nombre", type="string"),
+ *                         @OA\Property(property="email", type="string")
+ *                     )
+ *                 )
+ *             ),
+ *
+ *             @OA\Property(property="links", type="object"),
+ *             @OA\Property(property="meta", type="object")
+ *         )
+ *     )
+ * )
+ */
+
+public function completo(Request $request)
+{
+    // 1. Cargar reparaciones con relaciones completas
+    $query = Reparacion::with([
+        'equipo.cliente',
+        'tecnico'
+    ]);
+
+    // 2. Filtros de búsqueda
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where(function ($q) use ($search) {
+            $q->where('descripcion', 'LIKE', "%$search%")
+              ->orWhereHas('equipo', function($q) use ($search) {
+                  $q->where('descripcion', 'LIKE', "%$search%")
+                    ->orWhere('marca', 'LIKE', "%$search%")
+                    ->orWhere('modelo', 'LIKE', "%$search%")
+                    ->orWhereHas('cliente', function($q) use ($search) {
+                        $q->where('nombre', 'LIKE', "%$search%");
+                    });
+              })
+              ->orWhereHas('tecnico', function($q) use ($search) {
+                  $q->where('nombre', 'LIKE', "%$search%");
+              });
+        });
+    }
+
+    // 3. Orden
+    $query->orderBy(
+        $request->input('sort', 'id'),
+        $request->input('direction', 'desc')
+    );
+
+    // 4. Paginación
+    $reparaciones = $query->paginate($request->input('per_page', 10));
+
+    // 5. Transformación SIN perder objetos
+    $reparaciones->getCollection()->transform(function ($r) {
+        return [
+            ...$r->toArray(), // mantiene equipo, cliente, técnico completos
+
+            // Campos extras
+            'equipo_nombre'   => $r->equipo->descripcion ?? 'Sin equipo',
+            'cliente_nombre'  => $r->equipo->cliente->nombre ?? 'No especificado',
+            'tecnico_nombre'  => $r->tecnico->nombre ?? 'Sin técnico',
+        ];
+    });
+
+    return response()->json($reparaciones);
+}
+
+
 }

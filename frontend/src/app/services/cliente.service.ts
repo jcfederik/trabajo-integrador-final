@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { SearchResult } from '../components/search-selector/search-selector.component';
 import { Factura } from './facturas';
 
 export interface Cliente {
@@ -65,5 +67,47 @@ export class ClienteService {
   buscarClientes(termino: string): Observable<Cliente[]> {
     const params = new HttpParams().set('q', termino);
     return this.http.get<Cliente[]>(`${this.apiUrl}/buscar`, { params });
-  } 
+  }
+
+  // 🔹 NUEVO MÉTODO: Para el search-selector (devuelve SearchResult[])
+buscarClientesParaSelector(termino: string): Observable<SearchResult[]> {
+  if (!termino.trim()) {
+    // Si no hay término, cargar primeros clientes
+    return this.getClientes(1, 5).pipe(
+      map(response => response.data.map(cliente => this.mapClienteToSearchResult(cliente))),
+      catchError(() => of([]))
+    );
+  }
+
+  // Usar el endpoint de búsqueda que SÍ existe
+  return this.buscarClientes(termino).pipe(
+    map(clientes => clientes.map(cliente => this.mapClienteToSearchResult(cliente))),
+    catchError(error => {
+      console.warn('Error en búsqueda específica de clientes:', error);
+      // Fallback: usar listado normal con filtro
+      return this.getClientes(1, 10).pipe(
+        map(response => {
+          const clientes = response.data;
+          const t = termino.toLowerCase();
+          const filtrados = clientes.filter(cliente =>
+            cliente.nombre?.toLowerCase().includes(t) ||
+            cliente.email?.toLowerCase().includes(t) ||
+            cliente.telefono?.toLowerCase().includes(t)
+          );
+          return filtrados.map(cliente => this.mapClienteToSearchResult(cliente));
+        })
+      );
+    })
+  );
+}
+
+  // 🔹 Mapear Cliente a SearchResult
+  private mapClienteToSearchResult(cliente: Cliente): SearchResult {
+    return {
+      id: cliente.id,
+      nombre: cliente.nombre,
+      email: cliente.email,
+      telefono: cliente.telefono
+    };
+  }
 }

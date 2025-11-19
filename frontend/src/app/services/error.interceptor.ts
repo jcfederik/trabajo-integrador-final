@@ -1,3 +1,4 @@
+// error.interceptor.ts (actualizado)
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
@@ -10,11 +11,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error) => {
-      console.error('🚨 HTTP Error Interceptor:', {
-        url: error.url,
-        status: error.status,
-        message: error.message
-      });
+      // No loguear errores 404 de búsquedas vacías (son normales)
+      const shouldSkipLog = 
+        (error.url?.includes('/buscar?q=') && error.status === 404) ||
+        (error.url?.includes('/buscar?q=') && error.status === 400);
+
+      if (!shouldSkipLog) {
+        console.error('🚨 HTTP Error Interceptor:', {
+          url: error.url,
+          status: error.status,
+          message: error.message
+        });
+      }
 
       switch (error.status) {
         case 401: // Unauthorized
@@ -27,11 +35,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
         case 403: // Forbidden
           console.error('⛔ Acceso denegado - Sin permisos suficientes');
-          // Podrías redirigir a una página de "acceso denegado"
           break;
 
         case 404: // Not Found
-          console.error('🔍 Recurso no encontrado');
+          if (!shouldSkipLog) {
+            console.error('🔍 Recurso no encontrado');
+          }
           break;
 
         case 422: // Unprocessable Entity (validación)
@@ -40,11 +49,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
         case 500: // Server Error
           console.error('💥 Error interno del servidor');
-          // Podrías mostrar un mensaje al usuario
           break;
 
         default:
-          console.error('❌ Error HTTP no manejado:', error.status);
+          if (!shouldSkipLog) {
+            console.error('❌ Error HTTP no manejado:', error.status);
+          }
       }
 
       // Propagar el error para que los componentes lo manejen
