@@ -1,4 +1,4 @@
-/* Píldoras de acción (coherentes con otros módulos) */
+/* Píldoras de acción */
 .action-pill {
   display: inline-flex;
   align-items: center;
@@ -16,15 +16,58 @@
 .action-pill.success { border-color: var(--bs-success); color: var(--bs-success); }
 .action-pill.success.active { background: var(--bs-success); color: #fff; border-color: var(--bs-success); }
 
+/* SOLUCIÓN CRÍTICA PARA EL Z-INDEX */
+.equipos-list {
+  position: relative;
+  z-index: 1;
+}
+
+.equipo-item {
+  position: relative;
+  z-index: 1;
+}
+
+/* Contenedor del buscador con alto z-index */
+.search-selector-wrapper {
+  position: relative;
+  z-index: 1000 !important;
+}
+
+/* Forzar z-index alto en el componente de búsqueda */
+app-search-selector {
+  position: relative;
+  z-index: 1001 !important;
+}
+
+/* Asegurar que el dropdown esté por encima de TODO */
+.search-selector-dropdown {
+  z-index: 1050 !important;
+  position: absolute;
+  width: 100%;
+}
+
+/* Override cualquier hover que afecte el z-index */
+.equipo-item:hover {
+  z-index: 1 !important;
+}
+
+.list-group-item:hover {
+  z-index: 1 !important;
+}
+
 /* Ítems de lista */
 .list-group-item {
   border-radius: .5rem;
   margin-bottom: .4rem;
   transition: all 0.2s ease;
+  position: relative;
+  padding: 1rem;
+  z-index: 1;
 }
 
 .list-group-item:hover {
   background-color: #f8f9fa;
+  z-index: 1 !important; /* Mantener bajo el dropdown */
 }
 
 /* Estado vacío */
@@ -58,6 +101,12 @@
   max-width: 680px;
 }
 
+/* Contenedor de acciones */
+.action-buttons-container {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .action-pill {
@@ -67,5 +116,9 @@
   
   .list-group-item {
     padding: 1rem;
+  }
+  
+  .d-flex.gap-2 {
+    gap: 0.5rem !important;
   }
 }

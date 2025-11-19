@@ -12,9 +12,21 @@ export interface Equipo {
   nro_serie?: string;
   created_at?: string;
   updated_at?: string;
+  cliente?: any; // Para cuando se incluye la relación con cliente
 }
 
-
+export interface SearchResult {
+  id: number;
+  nombre?: string;
+  descripcion?: string;
+  email?: string;
+  telefono?: string;
+  tipo?: string;
+  marca?: string;
+  modelo?: string;
+  nro_serie?: string;
+  cliente_id?: number;
+}
 
 // 🔥 Interfaz para la respuesta paginada
 export interface PaginatedResponse<T> {
@@ -25,6 +37,7 @@ export interface PaginatedResponse<T> {
   total: number;
   from: number;
   to: number;
+  next_page_url?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -62,5 +75,46 @@ export class EquipoService {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
+  // 🔹 BUSCAR EQUIPOS (para el search-selector)
+  buscarEquipos(termino: string): Observable<SearchResult[]> {
+    let params = new HttpParams();
     
+    if (termino && termino.trim().length > 0) {
+      params = params.set('search', termino.trim());
+    }
+
+    return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
+  }
+
+  // 🔹 BUSCAR EQUIPOS POR CLIENTE (para el formulario de reparaciones)
+  buscarEquiposPorCliente(clienteId: number): Observable<SearchResult[]> {
+    let params = new HttpParams().set('cliente_id', clienteId.toString());
+    
+    return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
+  }
+
+  // 🔹 BUSCAR EQUIPOS con filtro por cliente y término
+  buscarEquiposConFiltro(termino: string, clienteId?: number): Observable<SearchResult[]> {
+    let params = new HttpParams();
+    
+    if (termino && termino.trim().length > 0) {
+      params = params.set('search', termino.trim());
+    }
+    
+    if (clienteId) {
+      params = params.set('cliente_id', clienteId.toString());
+    }
+
+    return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
+  }
+
+  // 🔹 Obtener equipos de un cliente específico (sin búsqueda)
+  getEquiposPorCliente(clienteId: number, page: number = 1, perPage: number = 50): Observable<PaginatedResponse<Equipo>> {
+    let params = new HttpParams()
+      .set('cliente_id', clienteId.toString())
+      .set('page', page.toString())
+      .set('per_page', perPage.toString());
+
+    return this.http.get<PaginatedResponse<Equipo>>(`${this.apiUrl}/por-cliente`, { params });
+  }
 }

@@ -29,8 +29,8 @@
                 #{{ r.id }} — {{ r.nombre }}
               </div>
               <div class="text-muted small">
-                Stock: <span [class.text-warning]="r.stock < 10" [class.text-danger]="r.stock === 0">
-                  {{ r.stock }} unidades
+                  Stock: <span [class]="getStockClass(r.stock)">
+    {{ r.stock }} unidades
                 </span> · 
                 Costo: {{ formatearPrecio(r.costo_base) }}
               </div>
