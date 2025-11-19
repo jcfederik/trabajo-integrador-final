@@ -22,10 +22,6 @@
   z-index: 1;
 }
 
-.equipo-item {
-  position: relative;
-  z-index: 1;
-}
 
 /* Contenedor del buscador con alto z-index */
 .search-selector-wrapper {
@@ -46,14 +42,6 @@ app-search-selector {
   width: 100%;
 }
 
-/* Override cualquier hover que afecte el z-index */
-.equipo-item:hover {
-  z-index: 1 !important;
-}
-
-.list-group-item:hover {
-  z-index: 1 !important;
-}
 
 /* Ítems de lista */
 .list-group-item {
@@ -62,12 +50,7 @@ app-search-selector {
   transition: all 0.2s ease;
   position: relative;
   padding: 1rem;
-  z-index: 1;
-}
-
-.list-group-item:hover {
-  background-color: #f8f9fa;
-  z-index: 1 !important; /* Mantener bajo el dropdown */
+  z-index: 0;
 }
 
 /* Estado vacío */
@@ -121,4 +104,23 @@ app-search-selector {
   .d-flex.gap-2 {
     gap: 0.5rem !important;
   }
+}
+
+/* ITEM que está en edición debe estar arriba de todos */
+.list-group-item.editing {
+  position: relative;
+  z-index: 2000 !important; 
+}
+
+/* el dropdown del search selector */
+app-search-selector {
+  position: relative;
+  z-index: 3000 !important; 
+}
+
+/* menú desplegable del buscador */
+.sugerencias-menu,
+.search-selector-dropdown {
+  z-index: 4000 !important;
+  position: absolute;
 }

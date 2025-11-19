@@ -45,7 +45,10 @@
 
     <!-- Lista de equipos -->
     <div class="list-group equipos-list" *ngIf="equipos.length > 0">
-      <div *ngFor="let e of equipos" class="list-group-item equipo-item">
+<div 
+  *ngFor="let e of equipos"
+  class="list-group-item equipo-item"
+  [class.editing]="editingId === e.id">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
           
           <!-- Datos del equipo -->
