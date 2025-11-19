@@ -51,14 +51,14 @@ export interface SearchableItem {
   // Campos para Presupuesto
   aceptado?: boolean;
   
-  // // Campos para Proveedor
-  // razon_social?: string;
-  // cuit?: string;
-  // direccion?: string;
+  // Campos para Proveedor
+  razon_social?: string;
+  cuit?: string;
+  direccion?: string;
   
-  // // Campos para Repuesto
-  // stock?: number;
-  // costo_base?: number;
+  // Campos para Repuesto
+  stock?: number;
+  costo_base?: number;
   
   // // Campos para MedioCobro
   // nombre?: string;
@@ -157,7 +157,6 @@ export class SearchService {
     this.globalSearchTerm.next('');
   }
 
-  // 🔥 MÉTODO PARA BUSCAR COMPONENTES DEL DASHBOARD
   searchDashboardComponents(components: DashboardComponent[], searchTerm: string): DashboardComponent[] {
     if (!searchTerm) return components;
     
@@ -257,23 +256,23 @@ export class SearchService {
         );
       break;
 
-      // case 'proveedores':
-      //   fields.push(
-      //     item.razon_social || '',
-      //     item.cuit || '',
-      //     item.direccion || '',
-      //     item.telefono || '',
-      //     item.email || ''
-      //   );
-      //   break;
+      case 'proveedores':
+        fields.push(
+          item.razon_social || '',
+          item.cuit || '',
+          item.direccion || '',
+          item.telefono || '',
+          item.email || ''
+        );
+        break;
 
-      // case 'repuestos':
-      //   fields.push(
-      //     item.nombre || '',
-      //     item.stock?.toString() || '',
-      //     item.costo_base?.toString() || ''
-      //   );
-      //   break;
+      case 'repuestos':
+        fields.push(
+          item.nombre || '',
+          item.stock?.toString() || '',
+          item.costo_base?.toString() || ''
+        );
+        break;
 
       // case 'medios-cobro':
       //   fields.push(
@@ -310,7 +309,6 @@ export class SearchService {
     return fields;
   }
 
-  // 🔥 MÉTODO RÁPIDO - Búsqueda simple por un campo específico
   searchByField<T extends SearchableItem>(
     items: T[], 
     term: string, 
@@ -328,7 +326,6 @@ export class SearchService {
     });
   }
 
-  // 🔥 MÉTODO PARA BÚSQUEDA AVANZADA CON MÚLTIPLES CAMPOS
   advancedSearch<T extends SearchableItem>(
     items: T[], 
     searchCriteria: Partial<SearchableItem>
@@ -345,17 +342,13 @@ export class SearchService {
     });
   }
   
-  // 🔥 MÉTODO GLOBAL PARA BÚSQUEDA EN SERVIDOR - ÚNICO PARA TODOS LOS COMPONENTES
   searchOnServer(component: string, term: string, page: number = 1, perPage: number = 10): Observable<any> {
     if (!term.trim()) {
-      // Si no hay término, devolver vacío
-      return new Observable(observer => {
-        observer.next({ data: [], current_page: 1, last_page: true, total: 0 });
-        observer.complete();
-      });
+      const url = `${this.apiBaseUrl}/${component}?page=${page}&per_page=${perPage}`;
+      return this.http.get<any>(url);
     }
 
-    // URL única para todos los componentes usando el parámetro 'search'
+
     const url = `${this.apiBaseUrl}/${component}?search=${encodeURIComponent(term)}&page=${page}&per_page=${perPage}`;
     
     console.log(`🔍 Búsqueda en servidor [${component}]:`, term, 'URL:', url);
@@ -363,10 +356,19 @@ export class SearchService {
     return this.http.get<any>(url);
   }
 
-  // 🔥 MÉTODOS ESPECÍFICOS PARA CADA COMPONENTE (opcionales, para conveniencia)
+  // MÉTODOS ESPECÍFICOS PARA CADA COMPONENTE
   searchFacturas(term: string, page: number = 1, perPage: number = 10): Observable<any> {
     return this.searchOnServer('facturas', term, page, perPage);
   }
+
+  searchProveedores(term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    return this.searchOnServer('proveedor', term, page, perPage);
+  }
+  
+  searchRepuestos(term: string, page: number = 1, perPage: number = 10): Observable<any> {
+    return this.searchOnServer('repuestos', term, page, perPage);
+  }
+
 
   searchClientes(term: string, page: number = 1, perPage: number = 10): Observable<any> {
     return this.searchOnServer('clientes', term, page, perPage);
@@ -384,8 +386,7 @@ export class SearchService {
     return this.searchOnServer('presupuestos', term, page, perPage);
   }
 
-  // 🔥 MÉTODO PARA BÚSQUEDA GLOBAL EN MÚLTIPLES COMPONENTES
-  globalSearch(term: string, components: string[] = ['clientes', 'equipos', 'reparaciones', 'facturas', 'presupuestos']): Observable<GlobalSearchResponse> {
+  globalSearch(term: string, components: string[] = ['clientes', 'equipos', 'reparaciones', 'facturas', 'presupuestos', 'proveedores', 'repuestos']): Observable<GlobalSearchResponse> {
     if (!term.trim()) {
       return new Observable(observer => {
         observer.next({ success: true, results: [], total_results: 0 });

@@ -54,7 +54,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
-    window.addEventListener('scroll', this.onScroll, { passive: true });
+
   }
 
   ngOnDestroy(): void {
@@ -64,20 +64,33 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   }
 
   // ====== CONFIGURACIÓN DE BÚSQUEDA ======
-  configurarBusqueda() {
+    configurarBusqueda() {
     this.searchService.setCurrentComponent('repuestos');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
-      this.searchTerm = (term || '').trim();
-      this.applyFilter();
+      const newTerm = (term || '').trim();
+      
+      if (this.searchTerm !== newTerm) {
+        this.searchTerm = newTerm;
+        this.page = 1;
+        this.lastPage = false;
+        this.repuestosAll = [];
+        
+        if (!this.searchTerm) {
+          this.fetch(1);
+        } else {
+          this.fetch(1);
+        }
+      }
     });
   }
+
 
   // ====== LISTA / PAGINACIÓN ======
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
 
-    this.repuestoService.getRepuestos(page, this.perPage).subscribe({
+    this.repuestoService.getRepuestos(page, this.perPage, this.searchTerm).subscribe({
       next: (res: PaginatedResponse<Repuesto>) => {
         const batch = res.data ?? [];
 
@@ -90,8 +103,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         this.page = res.current_page ?? page;
         this.lastPage = res.last_page === 0 || (res.current_page ?? page) >= (res.last_page ?? page);
 
-        this.applyFilter();
-        this.searchService.setSearchData(this.repuestosAll);
+        this.repuestos = [...this.repuestosAll];
         this.loading = false;
       },
       error: (e) => {
@@ -120,54 +132,41 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  private applyFilter(): void {
-    const term = this.searchTerm.toLowerCase();
-    if (!term) {
-      this.repuestos = [...this.repuestosAll];
-      return;
-    }
-
-    this.repuestos = this.searchService.search(this.repuestosAll, term, 'repuestos');
-  }
-
   // ====== CREAR REPUESTO ======
-// ====== CREAR REPUESTO ======
-crear(): void {
-  const payload = this.limpiarPayload(this.nuevo);
-  if (!this.validarPayload(payload)) return;
+  crear(): void {
+    const payload = this.limpiarPayload(this.nuevo);
+    if (!this.validarPayload(payload)) return;
 
-  console.log('Enviando payload:', payload); // Para debug
+    console.log('Enviando payload:', payload);
 
-  this.repuestoService.createRepuesto(payload).subscribe({
-    next: (response: any) => {
-      console.log('Respuesta del servidor:', response); // Para debug
-      
-      // Diferentes formatos de respuesta posibles
-      const nuevoRepuesto = response.repuesto || response.data || response;
-      
-      this.selectedAction = 'listar';
-      this.nuevo = { nombre: '', stock: 0, costo_base: 0 };
-      this.resetLista();
-      alert('Repuesto creado exitosamente!');
-    },
-    error: (e) => {
-      console.error('Error completo al crear repuesto:', e);
-      
-      // Manejar diferentes formatos de error
-      let mensajeError = 'Error al crear repuesto';
-      
-      if (e.error?.error) {
-        mensajeError = e.error.error;
-      } else if (e.error?.message) {
-        mensajeError = e.error.message;
-      } else if (e.message) {
-        mensajeError = e.message;
+    this.repuestoService.createRepuesto(payload).subscribe({
+      next: (response: any) => {
+        console.log('Respuesta del servidor:', response);
+        
+        const nuevoRepuesto = response.repuesto || response.data || response;
+        
+        this.selectedAction = 'listar';
+        this.nuevo = { nombre: '', stock: 0, costo_base: 0 };
+        this.resetLista();
+        alert('Repuesto creado exitosamente!');
+      },
+      error: (e) => {
+        console.error('Error completo al crear repuesto:', e);
+        
+        let mensajeError = 'Error al crear repuesto';
+        
+        if (e.error?.error) {
+          mensajeError = e.error.error;
+        } else if (e.error?.message) {
+          mensajeError = e.error.message;
+        } else if (e.message) {
+          mensajeError = e.message;
+        }
+        
+        alert(mensajeError);
       }
-      
-      alert(mensajeError);
-    }
-  });
-}
+    });
+  }
 
   // ====== ELIMINAR REPUESTO ======
   eliminar(id: number): void {
@@ -176,7 +175,7 @@ crear(): void {
     this.repuestoService.deleteRepuesto(id).subscribe({
       next: () => {
         this.repuestosAll = this.repuestosAll.filter(x => x.id !== id);
-        this.applyFilter();
+        this.repuestos = this.repuestos.filter(x => x.id !== id);
         this.searchService.setSearchData(this.repuestosAll);
         alert('Repuesto eliminado exitosamente!');
       },
@@ -202,54 +201,52 @@ crear(): void {
     this.editBuffer = {};
   }
 
-// ====== EDICIÓN INLINE ======
-saveEdit(id: number): void {
-  const payload = this.limpiarPayload(this.editBuffer);
-  if (!this.validarPayload(payload)) return;
+  saveEdit(id: number): void {
+    const payload = this.limpiarPayload(this.editBuffer);
+    if (!this.validarPayload(payload)) return;
 
-  console.log('Actualizando repuesto:', id, payload); // Para debug
+    console.log('Actualizando repuesto:', id, payload);
 
-  this.repuestoService.updateRepuesto(id, payload).subscribe({
-    next: (response: any) => {
-      console.log('Respuesta de actualización:', response); // Para debug
-      
-      // Diferentes formatos de respuesta posibles
-      const repuestoActualizado = response.repuesto || response.data || response;
-      
-      const updateLocal = (arr: Repuesto[]) => {
-        const idx = arr.findIndex(x => x.id === id);
-        if (idx >= 0) {
-          arr[idx] = { 
-            ...arr[idx], 
-            ...repuestoActualizado 
-          } as Repuesto;
+    this.repuestoService.updateRepuesto(id, payload).subscribe({
+      next: (response: any) => {
+        console.log('Respuesta de actualización:', response);
+        
+        const repuestoActualizado = response.repuesto || response.data || response;
+        
+        const updateLocal = (arr: Repuesto[]) => {
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx >= 0) {
+            arr[idx] = { 
+              ...arr[idx], 
+              ...repuestoActualizado 
+            } as Repuesto;
+          }
+        };
+
+        updateLocal(this.repuestosAll);
+        updateLocal(this.repuestos);
+
+        this.searchService.setSearchData(this.repuestosAll);
+        this.cancelEdit();
+        alert('Repuesto actualizado exitosamente!');
+      },
+      error: (e) => {
+        console.error('Error completo al actualizar repuesto:', e);
+        
+        let mensajeError = 'No se pudo actualizar el repuesto';
+        
+        if (e.error?.error) {
+          mensajeError = e.error.error;
+        } else if (e.error?.message) {
+          mensajeError = e.error.message;
+        } else if (e.message) {
+          mensajeError = e.message;
         }
-      };
-
-      updateLocal(this.repuestosAll);
-      updateLocal(this.repuestos);
-
-      this.searchService.setSearchData(this.repuestosAll);
-      this.cancelEdit();
-      alert('Repuesto actualizado exitosamente!');
-    },
-    error: (e) => {
-      console.error('Error completo al actualizar repuesto:', e);
-      
-      let mensajeError = 'No se pudo actualizar el repuesto';
-      
-      if (e.error?.error) {
-        mensajeError = e.error.error;
-      } else if (e.error?.message) {
-        mensajeError = e.error.message;
-      } else if (e.message) {
-        mensajeError = e.message;
+        
+        alert(mensajeError);
       }
-      
-      alert(mensajeError);
-    }
-  });
-}
+    });
+  }
 
   // ====== HELPERS ======
   private limpiarPayload(obj: Partial<Repuesto>): Partial<Repuesto> {
@@ -288,6 +285,14 @@ saveEdit(id: number): void {
   }
 
   limpiarBusqueda() {
-    this.searchService.clearSearch();
+    this.searchService.setSearchTerm('');
+    this.searchTerm = '';
+    this.page = 1;
+    this.lastPage = false;
+    this.repuestosAll = [];
+    this.repuestos = [];
+
+    this.fetch(1);
   }
+
 }
