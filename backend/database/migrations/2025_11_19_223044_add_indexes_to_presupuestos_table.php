@@ -9,7 +9,6 @@ return new class extends Migration
     public function up()
     {
         Schema::table('presupuesto', function (Blueprint $table) {
-            // 🎯 ÍNDICES PRINCIPALES para tus consultas más frecuentes
             
             // 1. Índice para búsquedas por reparación (muy frecuente)
             $table->index('reparacion_id', 'idx_presupuestos_reparacion_id');

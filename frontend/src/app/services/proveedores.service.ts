@@ -31,13 +31,11 @@ export class ProveedoresService {
 
   constructor(private http: HttpClient) {}
 
-  // Método actualizado para aceptar 3 parámetros (page, perPage, search)
   getProveedores(page: number = 1, perPage: number = 15, search: string = ''): Observable<PaginatedResponse<Proveedor>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('per_page', perPage.toString());
 
-    // Agregar parámetro de búsqueda si existe
     if (search && search.trim() !== '') {
       params = params.set('search', search.trim());
     }

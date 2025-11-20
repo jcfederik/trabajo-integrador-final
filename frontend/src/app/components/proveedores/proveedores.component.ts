@@ -16,21 +16,24 @@ type ProveedorUI = Proveedor;
   styleUrls: ['./proveedores.component.css']
 })
 export class ProveedoresComponent implements OnInit, OnDestroy {
+
+  // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
   
   proveedoresAll: ProveedorUI[] = [];
   proveedores: ProveedorUI[] = [];
 
+  // =============== PAGINACIÓN ===============
   page = 1;
   perPage = 15;
   lastPage = false;
   loading = false;
 
-  // Búsqueda global
+  // =============== BÚSQUEDA GLOBAL ===============
   private searchSub?: Subscription;
   searchTerm = '';
 
-  // Edición inline
+  // =============== EDICIÓN ===============
   editingId: number | null = null;
   editBuffer: Partial<ProveedorUI> = {
     razon_social: '',
@@ -40,7 +43,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     email: ''
   };
 
-  // Creación
+  // =============== CREACIÓN ===============
   nuevo: Partial<ProveedorUI> = {
     razon_social: '',
     cuit: '',
@@ -54,6 +57,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     private searchService: SearchService
   ) {}
 
+  // =============== LIFECYCLE ===============
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
@@ -66,7 +70,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // ====== CONFIGURACIÓN DE BÚSQUEDA ======
+  // =============== CONFIGURACIÓN DE BÚSQUEDA ===============
   configurarBusqueda() {
     this.searchService.setCurrentComponent('proveedores');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -78,7 +82,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== LISTA / PAGINACIÓN ======
+  // =============== CARGA Y PAGINACIÓN ===============
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -96,13 +100,11 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
         this.page = res.current_page ?? page;
         this.lastPage = res.last_page === 0 || (res.current_page ?? page) >= (res.last_page ?? page);
 
-        // Para proveedores, mostramos directamente los resultados del servidor
         this.proveedores = [...this.proveedoresAll];
         this.searchService.setSearchData(this.proveedoresAll);
         this.loading = false;
       },
       error: (e) => {
-        console.error('Error al obtener proveedores', e);
         this.loading = false;
       }
     });
@@ -127,7 +129,16 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  // ====== CREAR PROVEEDOR ======
+  // =============== NAVEGACIÓN ===============
+  seleccionarAccion(a: Accion) { 
+    this.selectedAction = a; 
+  }
+
+  limpiarBusqueda() {
+    this.searchService.clearSearch();
+  }
+
+  // =============== CREACIÓN ===============
   crear(): void {
     const payload = this.limpiarPayload(this.nuevo);
     if (!this.validarPayload(payload)) return;
@@ -147,13 +158,12 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
         alert('Proveedor creado exitosamente!');
       },
       error: (e) => {
-        console.error('Error al crear proveedor', e);
-        alert(e?.error?.error ?? 'Error al crear proveedor');
+        alert('Error al crear proveedor');
       }
     });
   }
 
-  // ====== ELIMINAR PROVEEDOR ======
+  // =============== ELIMINACIÓN ===============
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este proveedor?')) return;
 
@@ -165,13 +175,12 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
         alert('Proveedor eliminado exitosamente!');
       },
       error: (e) => { 
-        console.error('Error al eliminar proveedor', e);
         alert('Error al eliminar el proveedor');
       }
     });
   }
 
-  // ====== EDICIÓN INLINE ======
+  // =============== EDICIÓN INLINE ===============
   startEdit(item: ProveedorUI): void {
     this.editingId = item.id!;
     this.editBuffer = {
@@ -214,13 +223,12 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
         alert('Proveedor actualizado exitosamente!');
       },
       error: (e) => {
-        console.error('Error al actualizar proveedor', e);
-        alert(e?.error?.error ?? 'No se pudo actualizar el proveedor');
+        alert('No se pudo actualizar el proveedor');
       }
     });
   }
 
-  // ====== HELPERS ======
+  // =============== VALIDACIÓN Y UTILIDADES ===============
   private limpiarPayload(obj: Partial<ProveedorUI>): Partial<ProveedorUI> {
     return {
       razon_social: obj.razon_social?.toString().trim(),
@@ -246,13 +254,5 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
   formatearTelefono(telefono: string | undefined): string {
     if (!telefono) return 'No especificado';
     return telefono;
-  }
-
-  seleccionarAccion(a: Accion) { 
-    this.selectedAction = a; 
-  }
-
-  limpiarBusqueda() {
-    this.searchService.clearSearch();
   }
 }

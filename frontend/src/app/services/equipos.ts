@@ -1,4 +1,3 @@
-// src/app/services/equipo.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -12,7 +11,7 @@ export interface Equipo {
   nro_serie?: string;
   created_at?: string;
   updated_at?: string;
-  cliente?: any; // Para cuando se incluye la relación con cliente
+  cliente?: any;
 }
 
 export interface SearchResult {
@@ -28,7 +27,6 @@ export interface SearchResult {
   cliente_id?: number;
 }
 
-// 🔥 Interfaz para la respuesta paginada
 export interface PaginatedResponse<T> {
   data: T[];
   current_page: number;
@@ -46,7 +44,7 @@ export class EquipoService {
 
   constructor(private http: HttpClient) {}
 
-  // 🔹 Obtener equipos paginados
+  // ====== CRUD OPERATIONS ======
   getEquipos(page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Equipo>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -55,60 +53,48 @@ export class EquipoService {
     return this.http.get<PaginatedResponse<Equipo>>(this.apiUrl, { params });
   }
 
-  // 🔹 Obtener equipo por ID
   getEquipo(id: number): Observable<Equipo> {
     return this.http.get<Equipo>(`${this.apiUrl}/${id}`);
   }
 
-  // 🔹 Crear equipo
   createEquipo(equipo: Partial<Equipo>): Observable<Equipo> {
     return this.http.post<Equipo>(this.apiUrl, equipo);
   }
 
-  // 🔹 Actualizar equipo
   updateEquipo(id: number, equipo: Partial<Equipo>): Observable<Equipo> {
     return this.http.put<Equipo>(`${this.apiUrl}/${id}`, equipo);
   }
 
-  // 🔹 Eliminar equipo
   deleteEquipo(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
-  // 🔹 BUSCAR EQUIPOS (para el search-selector)
+  // ====== SEARCH OPERATIONS ======
   buscarEquipos(termino: string): Observable<SearchResult[]> {
     let params = new HttpParams();
-    
     if (termino && termino.trim().length > 0) {
       params = params.set('search', termino.trim());
     }
-
     return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
   }
 
-  // 🔹 BUSCAR EQUIPOS POR CLIENTE (para el formulario de reparaciones)
   buscarEquiposPorCliente(clienteId: number): Observable<SearchResult[]> {
     let params = new HttpParams().set('cliente_id', clienteId.toString());
-    
     return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
   }
 
-  // 🔹 BUSCAR EQUIPOS con filtro por cliente y término
   buscarEquiposConFiltro(termino: string, clienteId?: number): Observable<SearchResult[]> {
     let params = new HttpParams();
-    
     if (termino && termino.trim().length > 0) {
       params = params.set('search', termino.trim());
     }
-    
     if (clienteId) {
       params = params.set('cliente_id', clienteId.toString());
     }
-
     return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
   }
 
-  // 🔹 Obtener equipos de un cliente específico (sin búsqueda)
+  // ====== CLIENT-SPECIFIC OPERATIONS ======
   getEquiposPorCliente(clienteId: number, page: number = 1, perPage: number = 50): Observable<PaginatedResponse<Equipo>> {
     let params = new HttpParams()
       .set('cliente_id', clienteId.toString())

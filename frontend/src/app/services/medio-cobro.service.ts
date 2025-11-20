@@ -23,6 +23,7 @@ export class MedioCobroService {
 
   constructor(private http: HttpClient) {}
 
+  // ====== CRUD OPERATIONS ======
   getMedios(page = 1, per_page = 10): Observable<PaginatedResponse<MedioCobro>> {
     return this.http.get<PaginatedResponse<MedioCobro>>(`${this.apiUrl}?page=${page}&per_page=${per_page}`);
   }

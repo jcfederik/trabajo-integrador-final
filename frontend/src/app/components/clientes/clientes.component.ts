@@ -16,33 +16,36 @@ type ClienteUI = Cliente;
   styleUrls: ['./clientes.component.css']
 })
 export class ClientesComponent implements OnInit, OnDestroy {
-  
+
+  // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
   clientesAll: ClienteUI[] = [];
   clientes: ClienteUI[] = [];
 
+  // =============== PAGINACIÓN ===============
   page = 1;
   perPage = 10;
   lastPage = false;
   loading = false;
 
+  // =============== EDICIÓN ===============
   editingId: number | null = null;
-
   editBuffer: Partial<Cliente> = {
     nombre: '',
     email: '',
     telefono: ''
   };
 
+  // =============== CREACIÓN ===============
   nuevo: Partial<Cliente> = {
     nombre: '',
     email: '',
     telefono: ''
   };
 
+  // =============== BÚSQUEDA GLOBAL ===============
   private searchSub?: Subscription;
   searchTerm = '';
-
   private isServerSearch = false;
   private serverSearchPage = 1;
   private serverSearchLastPage = false;
@@ -55,6 +58,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     private searchService: SearchService
   ) {}
 
+  // =============== LIFECYCLE ===============
   ngOnInit(): void {
     this.cargar();
     window.addEventListener('scroll', this.onScroll, { passive: true });
@@ -72,10 +76,16 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
+  // =============== NAVEGACIÓN ===============
   seleccionarAccion(a: Accion) {
     this.selectedAction = a;
   }
 
+  limpiarBusqueda() {
+    this.searchService.clearSearch();
+  }
+
+  // =============== CARGA Y PAGINACIÓN ===============
   cargar(): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -121,6 +131,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.searchTerm ? this.applyFilter() : this.cargar();
   }
 
+  // =============== BÚSQUEDA Y FILTRADO ===============
   applyFilter(): void {
     const term = this.searchTerm.toLowerCase();
 
@@ -176,6 +187,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     });
   }
 
+  // =============== CREACIÓN ===============
   crear(): void {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
@@ -191,10 +203,11 @@ export class ClientesComponent implements OnInit, OnDestroy {
         this.nuevo = { nombre: '', email: '', telefono: '' };
         this.selectedAction = 'listar';
       },
-      error: (e) => alert(e?.error?.error ?? 'Error al crear el cliente')
+      error: (e) => alert('Error al crear el cliente')
     });
   }
 
+  // =============== ELIMINACIÓN ===============
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este cliente?')) return;
 
@@ -205,10 +218,11 @@ export class ClientesComponent implements OnInit, OnDestroy {
         this.searchService.setSearchData(this.clientesAll);
         alert('Cliente eliminado exitosamente!');
       },
-      error: (e) => alert(e?.error?.error ?? 'No se pudo eliminar')
+      error: (e) => alert('No se pudo eliminar')
     });
   }
 
+  // =============== EDICIÓN INLINE ===============
   startEdit(item: Cliente): void {
     this.editingId = item.id;
     this.editBuffer = {
@@ -242,10 +256,11 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
         alert('Cliente actualizado exitosamente!');
       },
-      error: (e) => alert(e?.error?.error ?? 'Error al actualizar')
+      error: (e) => alert('Error al actualizar')
     });
   }
 
+  // =============== VALIDACIÓN Y UTILIDADES ===============
   private limpiar(obj: Partial<Cliente>): Partial<Cliente> {
     return {
       nombre: (obj.nombre ?? '').trim(),
@@ -259,9 +274,5 @@ export class ClientesComponent implements OnInit, OnDestroy {
     if (!p.email) { alert('El email es obligatorio.'); return false; }
     if (!p.telefono) { alert('El teléfono es obligatorio.'); return false; }
     return true;
-  }
-
-  limpiarBusqueda() {
-    this.searchService.clearSearch();
   }
 }

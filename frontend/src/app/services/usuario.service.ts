@@ -8,7 +8,7 @@ export interface Usuario {
   email: string;
   is_admin: boolean;
   tipo?: string;
-  nombre?: string; // Para compatibilidad con SearchResult
+  nombre?: string;
 }
 
 export interface SearchResult {
@@ -30,19 +30,18 @@ export class UsuarioService {
 
   constructor(private http: HttpClient) {}
 
-  // Buscar usuarios/técnicos por nombre
+  // ====== SEARCH OPERATIONS ======
   buscarUsuarios(termino: string): Observable<Usuario[]> {
     const params = new HttpParams().set('q', termino);
     return this.http.get<Usuario[]>(`${this.apiUrl}/buscar`, { params });
   }
 
-  // 🔹 NUEVO MÉTODO: Buscar específicamente técnicos
   buscarTecnicos(termino: string): Observable<SearchResult[]> {
     const params = new HttpParams().set('q', termino);
     return this.http.get<SearchResult[]>(`${this.apiUrl}/buscar`, { params });
   }
 
-  // 🔹 NUEVO MÉTODO: Obtener técnicos paginados
+  // ====== PAGINATED OPERATIONS ======
   getTecnicos(page: number = 1, perPage: number = 10): Observable<any> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -51,12 +50,10 @@ export class UsuarioService {
     return this.http.get<any>(`${this.apiUrl}?tipo=tecnico`, { params });
   }
 
-  // Obtener todos los usuarios (para cuando no hay término)
   getUsuarios(): Observable<Usuario[]> {
     return this.http.get<Usuario[]>(this.apiUrl);
   }
 
-  // 🔹 NUEVO MÉTODO: Obtener usuarios paginados
   getUsuariosPaginados(page: number = 1, perPage: number = 15): Observable<any> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -65,7 +62,7 @@ export class UsuarioService {
     return this.http.get<any>(this.apiUrl, { params });
   }
 
-  // 🔹 NUEVO MÉTODO: Cargar usuarios iniciales (para precarga)
+  // ====== INITIAL DATA LOADING ======
   cargarUsuariosIniciales(limit: number = 5): Observable<SearchResult[]> {
     const params = new HttpParams()
       .set('per_page', limit.toString())

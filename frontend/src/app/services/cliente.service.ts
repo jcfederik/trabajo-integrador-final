@@ -1,3 +1,4 @@
+// cliente.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -26,6 +27,7 @@ export class ClienteService {
 
   constructor(private http: HttpClient) {}
 
+  // ====== CRUD OPERATIONS ======
   getClientes(page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Cliente>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -50,6 +52,7 @@ export class ClienteService {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
+  // ====== FACTURAS MANAGEMENT ======
   getFacturasPorCliente(clienteId: number, page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Factura>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -62,6 +65,7 @@ export class ClienteService {
     return this.http.get<Factura[]>(`${this.apiUrl}/${clienteId}/facturas/todas`);
   }
 
+  // ====== SEARCH OPERATIONS ======
   buscarClientes(termino: string): Observable<Cliente[]> {
     const params = new HttpParams().set('q', termino);
     return this.http.get<Cliente[]>(`${this.apiUrl}/buscar`, { params });

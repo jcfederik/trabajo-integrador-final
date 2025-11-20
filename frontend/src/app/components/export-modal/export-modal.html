@@ -60,12 +60,11 @@
             
             <!-- Información de búsqueda avanzada -->
             <div *ngIf="terminoBusqueda" class="mt-2">
-              <small class="text-muted">
-                <i class="bi bi-info-circle"></i>
-                Búsqueda en: <strong>nombre</strong>, <strong>email</strong> y <strong>teléfono</strong>
-              </small>
+                <small class="text-muted">
+                    <i class="bi bi-search"></i>
+                    Buscando: "{{ terminoBusqueda }}"
+                </small>
             </div>
-          </div>
           
           <!-- Indicador de resultados -->
           <div *ngIf="terminoBusqueda" class="mb-2">
@@ -132,6 +131,8 @@
             <p class="small">No se encontraron clientes en el sistema</p>
           </div>
         </div>
+    </div>
+
 
         <!-- Vista: Facturas del cliente -->
         <div *ngIf="vistaActual === 'facturas-cliente'">
@@ -152,7 +153,6 @@
                     (click)="seleccionarFactura(factura)">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <!-- 🔥 ACTUALIZADO: Aplicar las clases CSS para separar número y letra -->
                   <strong class="factura-numero">{{ factura.numero }}</strong> 
                   <span class="badge bg-secondary factura-letra">{{ factura.letra }}</span>
                   <div class="text-muted small">

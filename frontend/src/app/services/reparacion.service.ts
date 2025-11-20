@@ -35,12 +35,8 @@ export class ReparacionService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * LISTADO PRINCIPAL — CON BÚSQUEDA EN SERVIDOR
-   * Igual que EquiposService.list()
-   */
+  // ====== CRUD OPERATIONS ======
   list(page = 1, perPage = 10, search: string = ''): Observable<Paginated<Reparacion>> {
-
     const params: any = {
       page: page,
       per_page: perPage,
@@ -70,10 +66,7 @@ export class ReparacionService {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
 
-  /**
-   * BUSCADOR PARA AUTOCOMPLETAR
-   * (NO ES LA búsqueda de la tabla)
-   */
+  // ====== SEARCH OPERATIONS ======
   buscarReparaciones(termino: string): Observable<Reparacion[]> {
     if (!termino.trim()) return of([]);
 
@@ -85,7 +78,6 @@ export class ReparacionService {
     return this.http.get<Paginated<Reparacion>>(this.base, { params }).pipe(
       map(response => {
         const reparaciones = response.data || response;
-
         return reparaciones.map(rep => ({
           ...rep,
           displayText: this.formatearDisplayText(rep)
@@ -126,7 +118,7 @@ export class ReparacionService {
     return `#${reparacion.id} - ${reparacion.descripcion} | ${equipoDesc} | ${tecnicoNombre} | ${fecha}`;
   }
 
-  // Métodos auxiliares ya existentes (sin cambios)
+  // ====== RELATED DATA SEARCH ======
   buscarClientes(termino: string): Observable<any[]> {
     return this.http.get<any>('http://127.0.0.1:8000/api/clientes?per_page=100').pipe(
       map(response => {

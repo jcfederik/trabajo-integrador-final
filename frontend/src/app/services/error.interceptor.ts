@@ -10,44 +10,27 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error) => {
-      console.error('🚨 HTTP Error Interceptor:', {
-        url: error.url,
-        status: error.status,
-        message: error.message
-      });
-
       switch (error.status) {
-        case 401: // Unauthorized
-          console.warn('🔐 Token inválido o expirado');
+        case 401:
           authService.logout();
           router.navigate(['/login'], { 
             queryParams: { returnUrl: router.url } 
           });
           break;
 
-        case 403: // Forbidden
-          console.error('⛔ Acceso denegado - Sin permisos suficientes');
-          // Podrías redirigir a una página de "acceso denegado"
+        case 403:
           break;
 
-        case 404: // Not Found
-          console.error('🔍 Recurso no encontrado');
+        case 404:
           break;
 
-        case 422: // Unprocessable Entity (validación)
-          console.error('📝 Error de validación:', error.error);
+        case 422:
           break;
 
-        case 500: // Server Error
-          console.error('💥 Error interno del servidor');
-          // Podrías mostrar un mensaje al usuario
+        case 500:
           break;
-
-        default:
-          console.error('❌ Error HTTP no manejado:', error.status);
       }
 
-      // Propagar el error para que los componentes lo manejen
       return throwError(() => error);
     })
   );
