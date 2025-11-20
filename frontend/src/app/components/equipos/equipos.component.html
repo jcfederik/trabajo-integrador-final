@@ -1,16 +1,16 @@
 <div class="container py-4">
   <!-- Píldoras de acción -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
-    <button class="action-pill" [class.active]="selectedAction==='listar'" (click)="seleccionarAccion('listar')">
+    <button class="action-pill" [class.active]="isListar()" (click)="seleccionarAccion('listar')">
       <i class="bi bi-list-ul me-2"></i> Listar
     </button>
-    <button class="action-pill success" [class.active]="selectedAction==='crear'" (click)="seleccionarAccion('crear')">
+    <button class="action-pill success" [class.active]="isCrear()" (click)="seleccionarAccion('crear')">
       <i class="bi bi-plus-circle me-2"></i> Crear
     </button>
   </div>
 
   <!-- LISTAR -->
-  <div *ngIf="selectedAction==='listar'">
+  <div *ngIf="isListar()">
     <h4 class="text-center mb-3">Equipos</h4>
 
     <!-- Indicador de búsqueda -->
@@ -44,14 +44,17 @@
     </div>
 
     <!-- Lista de equipos -->
-    <div class="list-group" *ngIf="equipos.length > 0">
-      <div *ngFor="let e of equipos" class="list-group-item">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-
+    <div class="list-group equipos-list" *ngIf="equipos.length > 0">
+<div 
+  *ngFor="let e of equipos"
+  class="list-group-item equipo-item"
+  [class.editing]="editingId === e.id">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+          
           <!-- Datos del equipo -->
-          <div class="flex-grow-1">
+          <div class="flex-grow-1 w-100">
             <ng-container *ngIf="editingId !== e.id; else editRow">
-              <div class="fw-semibold">
+              <div class="fw-semibold mb-1">
                 #{{ e.id }} — {{ e.descripcion }}
               </div>
               <div class="text-muted small">
@@ -65,14 +68,28 @@
             <!-- Edición inline -->
             <ng-template #editRow>
               <div class="row g-2">
-                <div class="col-12 col-md-6">
+                <div class="col-12">
                   <label class="form-label small">Descripción</label>
                   <input class="form-control" [(ngModel)]="editBuffer.descripcion" placeholder="Descripción del equipo"/>
                 </div>
-                <div class="col-12 col-md-6">
-                  <label class="form-label small">Cliente ID</label>
-                  <input type="number" class="form-control" [(ngModel)]="editBuffer.cliente_id" placeholder="ID del cliente"/>
+                
+                <!-- BUSCADOR DE CLIENTE EN EDICIÓN -->
+                <div class="col-12">
+                  <label class="form-label small">Cliente</label>
+                  <app-search-selector
+                    #clienteEditSelector
+                    type="cliente"
+                    placeholder="Buscar cliente para asignar..."
+                    [selectedItem]="clienteEditSeleccionado"
+                    [preloadOnFocus]="true"
+                    (search)="buscarClientesEdit($event)"
+                    (selectItem)="seleccionarClienteEdit($event)"
+                    (clearSelection)="limpiarClienteEdit()"
+                    (focus)="cargarClientesInicialesEdit()"
+                    (loadInitialData)="cargarClientesInicialesEdit()"
+                  ></app-search-selector>
                 </div>
+                
                 <div class="col-12 col-md-4">
                   <label class="form-label small">Marca</label>
                   <input class="form-control" [(ngModel)]="editBuffer.marca" placeholder="Ej: Lenovo"/>
@@ -90,7 +107,7 @@
           </div>
 
           <!-- Acciones -->
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 action-buttons-container">
             <button *ngIf="editingId !== e.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(e)" title="Editar">
               <i class="bi bi-pencil-square"></i>
             </button>
@@ -118,27 +135,27 @@
   </div>
 
   <!-- CREAR -->
-  <div *ngIf="selectedAction==='crear'">
+  <div *ngIf="isCrear()">
     <h4 class="text-center mb-3">Registrar Equipo</h4>
-    <form (ngSubmit)="crear()" class="mx-auto" style="max-width: 680px;">
+    <form (ngSubmit)="crear()" class="mx-auto form-max-width">
       <div class="row g-3">
         
         <!-- Cliente -->
-        <div class="col-12">
-          <label class="form-label">Cliente</label>
-          <app-search-selector
-            #clienteSelector
-            type="cliente"
-            placeholder="Buscar cliente por nombre"
-            [selectedItem]="clienteSeleccionado"
-            [preloadOnFocus]="true"
-            (search)="buscarClientes($event)"
-            (selectItem)="seleccionarCliente($event)"
-            (clearSelection)="limpiarCliente()"
-            (focus)="cargarClientesIniciales()"
-            (loadInitialData)="cargarClientesIniciales()"
-          ></app-search-selector>
-        </div>
+      <div class="col-12">
+        <label class="form-label">Cliente</label>
+        <app-search-selector
+          #clienteSelector
+          type="cliente"
+          placeholder="Buscar cliente por nombre"
+          [selectedItem]="clienteSeleccionado"
+          [preloadOnFocus]="true"
+          (search)="buscarClientes($event)"
+          (selectItem)="seleccionarCliente($event)"
+          (clearSelection)="limpiarCliente()"
+          (focus)="cargarClientesIniciales()"
+          (loadInitialData)="cargarClientesIniciales()"
+        ></app-search-selector>
+      </div>
 
         <!-- Descripción -->
         <div class="col-12">
