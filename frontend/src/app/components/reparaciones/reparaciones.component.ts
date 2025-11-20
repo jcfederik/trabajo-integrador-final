@@ -9,6 +9,7 @@ import { UsuarioService } from '../../services/usuario.service';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { SearchSelectorComponent, SearchResult } from '../../components/search-selector/search-selector.component';
+import { AlertService } from '../../services/alert.service';
 
 type Acción = 'listar' | 'crear';
 
@@ -71,14 +72,16 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   private subs: Subscription[] = [];
 
-
   constructor(
     private repService: ReparacionService,
     private searchService: SearchService,
     private clienteService: ClienteService,
     private equipoService: EquipoService,
     private usuarioService: UsuarioService,
+    private alertService: AlertService
   ) {}
+
+  // ====== CICLO DE VIDA ======
 
   ngOnInit(): void {
     this.resetList();
@@ -100,14 +103,11 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       const oldTerm = this.searchTerm;
       this.searchTerm = (term || '').trim();
-      
-      console.log('🔍 Búsqueda global cambiada:', { oldTerm, newTerm: this.searchTerm });
-      
+          
       if (this.searchTerm) {
         this.onBuscarReparaciones(this.searchTerm);
       } else {
         if (oldTerm !== this.searchTerm) {
-          console.log('🔄 Recargando lista completa después de borrar búsqueda');
           this.resetList();
         }
       }
@@ -146,16 +146,13 @@ private buscarEnServidor(termino: string): void {
   this.serverSearchPage = 1;
   this.serverSearchLastPage = false;
 
-  // ✅ USAR EL NUEVO ENDPOINT PARA BÚSQUEDA TAMBIÉN
   this.repService.listCompleto(1, this.perPage, termino).subscribe({
     next: (response: PaginatedResponse<Reparacion>) => {
       this.reparacionesAll = response.data;
       this.reparacionesFiltradas = [...this.reparacionesAll];
       
-      // Preparar datos para búsqueda global
       const itemsForSearch = this.reparacionesAll.map(reparacion => ({
         ...reparacion,
-        // Los campos ya vienen poblados del nuevo endpoint
         tecnico_nombre: this.getTecnicoNombre(reparacion),
         equipo_nombre: this.getEquipoNombre(reparacion),
         reparacion_nombre: reparacion.descripcion || 'Sin descripción',
@@ -250,37 +247,31 @@ cargar() {
     error: (e) => {
       this.loading = false;
       console.error('Error cargando reparaciones:', e);
+      this.alertService.showGenericError('Error al cargar las reparaciones');
     }
   });
 }
 
 private procesarReparacionesParaDisplay(reparaciones: Reparacion[]): Reparacion[] {
   return reparaciones.map(reparacion => {
-    // 🔥 CORRECCIÓN: Manejar mejor los casos donde las relaciones pueden ser null/undefined
     const equipoNombre = this.getEquipoNombre(reparacion);
     const tecnicoNombre = this.getTecnicoNombre(reparacion);
     const clienteNombre = this.getClienteNombre(reparacion);
     
     return {
       ...reparacion,
-      // 🔥 Asegurar que siempre tengamos valores para display
       equipo_nombre: equipoNombre,
       tecnico_nombre: tecnicoNombre,
       cliente_nombre: clienteNombre,
-      // Mantener las relaciones originales si existen
       equipo: reparacion.equipo || undefined,
       tecnico: reparacion.tecnico || undefined
     };
   });
 }
-  /**
-   * 🔥 NUEVO MÉTODO: Preparar datos para búsqueda global
-   */
+
 private prepararDatosParaBusquedaGlobal(): void {
-  // ✅ Las reparaciones ya vienen procesadas del servicio
   const itemsForSearch = this.reparacionesAll.map(reparacion => ({
     ...reparacion,
-    // Estos campos ya están poblados por el servicio
     tecnico_nombre: this.getTecnicoNombre(reparacion),
     equipo_nombre: this.getEquipoNombre(reparacion),
     reparacion_nombre: reparacion.descripcion || 'Sin descripción',
@@ -296,7 +287,6 @@ private prepararDatosParaBusquedaGlobal(): void {
   this.loading = true;
   this.serverSearchPage++;
 
-  // ✅ USAR EL NUEVO ENDPOINT PARA CARGAR MÁS RESULTADOS
   this.repService.listCompleto(this.serverSearchPage, this.perPage, this.searchTerm).subscribe({
     next: (response: PaginatedResponse<Reparacion>) => {
       const nuevasReparaciones = response.data;
@@ -359,12 +349,10 @@ private prepararDatosParaBusquedaGlobal(): void {
 
   // ====== MÉTODOS HELPER PARA OBTENER NOMBRES ======
 getClienteNombre(r: Reparacion): string {
-  // 1) Si el backend lo envía como campo directo
   if (r.cliente_nombre && r.cliente_nombre !== 'No especificado') {
     return r.cliente_nombre;
   }
 
-  // 2) Si viene dentro del equipo
   if (r.equipo?.cliente?.nombre) {
     return r.equipo.cliente.nombre;
   }
@@ -397,21 +385,22 @@ getTecnicoNombre(r: Reparacion): string {
 }
 
   // ====== CREAR ======
-crear() {
+async crear() {
   if (!this.nuevo.equipo_id || !this.nuevo.usuario_id || !this.nuevo.descripcion || !this.nuevo.fecha || !this.nuevo.estado) {
-    alert('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
+    this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
     return;
   }
 
+  this.alertService.showLoading('Creando reparación...');
+
   this.repService.create(this.nuevo).subscribe({
     next: (response: any) => {
+      this.alertService.closeLoading();
       const nuevaReparacion = response.reparacion || response;
       if (nuevaReparacion) {
-        // ✅ Agregar directamente, el servicio procesará en la próxima carga
         this.reparacionesAll.unshift(nuevaReparacion);
         this.applyFilterLocal();
 
-        // Limpiar formulario completamente
         this.nuevo = {
           fecha: new Date().toISOString().slice(0, 10),
           estado: 'pendiente'
@@ -421,32 +410,40 @@ crear() {
         this.limpiarTecnico();
         this.selectedAction = 'listar';
         
-        alert('Reparación creada exitosamente!');
+        this.alertService.showReparacionCreada();
       } else {
-        alert('Error: No se recibió la reparación creada');
+        this.alertService.showGenericError('Error: No se recibió la reparación creada');
       }
     },
     error: (e) => {
-      alert(e?.error?.error ?? 'Error al crear la reparación');
+      this.alertService.closeLoading();
+      this.alertService.showGenericError(e?.error?.error ?? 'Error al crear la reparación');
     }
   });
 }
 
   // ====== ELIMINAR ======
-  eliminar(id: number) {
-    if (!confirm('¿Eliminar esta reparación?')) return;
+async eliminar(id: number) {
+  const reparacion = this.reparacionesAll.find(r => r.id === id);
+  const confirmed = await this.alertService.confirmDeleteReparacion(reparacion?.descripcion || 'esta reparación');
+  if (!confirmed) return;
 
-    this.repService.delete(id).subscribe({
-      next: () => {
-        this.reparacionesAll = this.reparacionesAll.filter(r => r.id !== id);
-        this.applyFilterLocal();
-        this.prepararDatosParaBusquedaGlobal();
-      },
-      error: (e) => {
-        alert('Error al eliminar la reparación');
-      }
-    });
-  }
+  this.alertService.showLoading('Eliminando reparación...');
+
+  this.repService.delete(id).subscribe({
+    next: () => {
+      this.alertService.closeLoading();
+      this.reparacionesAll = this.reparacionesAll.filter(r => r.id !== id);
+      this.applyFilterLocal();
+      this.prepararDatosParaBusquedaGlobal();
+      this.alertService.showReparacionEliminada();
+    },
+    error: (e) => {
+      this.alertService.closeLoading();
+      this.alertService.showGenericError('Error al eliminar la reparación');
+    }
+  });
+}
 
   // ====== EDICIÓN INLINE ======
   startEdit(item: Reparacion) {
@@ -459,16 +456,13 @@ crear() {
       estado: item.estado,
     };
 
-    // Precargar datos en los selectors de edición
     this.precargarDatosEdicion(item);
   }
 
   private precargarDatosEdicion(item: Reparacion) {
-    // Limpiar selecciones previas
     this.equipoEditSeleccionado = null;
     this.tecnicoEditSeleccionado = null;
 
-    // Precargar cliente (solo para mostrar, no editable)
     if (item.equipo && item.equipo.cliente) {
       this.clienteEditSeleccionado = {
         id: item.equipo.cliente.id,
@@ -489,10 +483,8 @@ crear() {
         cliente_id: item.equipo.cliente_id
       };
 
-      // Cargar equipos del cliente para el selector
       this.cargarTodosLosEquiposDelClienteEdit();
     } else {
-      // Si no tenemos los datos del equipo, cargarlos desde la API
       if (item.equipo_id) {
         this.equipoService.getEquipo(item.equipo_id).subscribe({
           next: (equipo) => {
@@ -504,7 +496,6 @@ crear() {
               nro_serie: equipo.nro_serie
             };
             
-            // Precargar cliente del equipo
             if (equipo.cliente_id) {
               this.clienteService.getCliente(equipo.cliente_id).subscribe({
                 next: (cliente) => {
@@ -514,7 +505,6 @@ crear() {
                     email: cliente.email,
                     telefono: cliente.telefono
                   };
-                  // Cargar equipos del cliente para el selector
                   this.cargarTodosLosEquiposDelClienteEdit();
                 },
                 error: (e) => {
@@ -530,11 +520,9 @@ crear() {
       }
     }
 
-    // Precargar técnico
     if (item.usuario_id) {
       this.usuarioService.getTecnicos(1, 50).subscribe({
         next: (response: any) => {
-          // Acceder a response.data en lugar de response directamente
           const tecnicos = response.data || response;
           const tecnico = Array.isArray(tecnicos) ? 
             tecnicos.find((t: any) => t.id === item.usuario_id) : 
@@ -559,17 +547,19 @@ crear() {
     this.tecnicoEditSeleccionado = null;
   }
 
-  saveEdit(id: number) {
+async saveEdit(id: number) {
   if (!this.editBuffer.equipo_id || !this.editBuffer.usuario_id || !this.editBuffer.descripcion || !this.editBuffer.fecha || !this.editBuffer.estado) {
-    alert('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
+    this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
     return;
   }
 
+  this.alertService.showLoading('Actualizando reparación...');
+
   this.repService.update(id, this.editBuffer).subscribe({
     next: (res: any) => {
+      this.alertService.closeLoading();
       const idx = this.reparacionesAll.findIndex(r => r.id === id);
       if (idx >= 0) {
-        // ✅ Actualizar directamente, las relaciones se cargarán en la próxima recarga
         const reparacionActualizada = {
           ...this.reparacionesAll[idx],
           ...this.editBuffer
@@ -580,10 +570,11 @@ crear() {
         this.prepararDatosParaBusquedaGlobal();
       }
       this.cancelEdit();
-      alert('Reparación actualizada exitosamente!');
+      this.alertService.showReparacionActualizada();
     },
     error: (e) => {
-      alert(e?.error?.error ?? 'Error al actualizar la reparación');
+      this.alertService.closeLoading();
+      this.alertService.showGenericError(e?.error?.error ?? 'Error al actualizar la reparación');
     }
   });
 }
@@ -599,7 +590,6 @@ crear() {
   cargarClientesIniciales() {
     this.clienteService.getClientes(1, 10).subscribe({
       next: (res: any) => {
-        // Acceder a res.data
         const clientes = res.data ?? res;
         const clientesMostrar = Array.isArray(clientes) ? clientes.slice(0, 5) : [];
         this.clienteSelector.updateSuggestions(clientesMostrar);
@@ -613,7 +603,6 @@ crear() {
   cargarTecnicosIniciales() {
     this.usuarioService.getTecnicos(1, 10).subscribe({
       next: (res: any) => {
-        // Acceder a res.data
         const tecnicos = res.data ?? res;
         const tecnicosMostrar = Array.isArray(tecnicos) ? tecnicos.slice(0, 5) : [];
         this.tecnicoSelector.updateSuggestions(tecnicosMostrar);
@@ -627,7 +616,6 @@ crear() {
   cargarTecnicosInicialesEdit() {
     this.usuarioService.getTecnicos(1, 10).subscribe({
       next: (res: any) => {
-        // Acceder a res.data
         const tecnicos = res.data ?? res;
         const tecnicosMostrar = Array.isArray(tecnicos) ? tecnicos.slice(0, 5) : [];
         this.tecnicoEditSelector?.updateSuggestions(tecnicosMostrar);
@@ -686,27 +674,24 @@ getEstadoBadgeClass(estado: string): string {
 
   switch (cleaned) {
     case 'pendiente':
-      return 'badge bg-warning text-white';  // amarillo
+      return 'badge bg-warning text-white';
     case 'en proceso':
-      return 'badge bg-info text-white';     // celeste
+      return 'badge bg-info text-white';  
     case 'finalizada':
     case 'completado':
-      return 'badge bg-success';            // verde
+      return 'badge bg-success';
     case 'cancelada':
-      return 'badge bg-danger';             // rojo
+      return 'badge bg-danger'; 
     default:
-      return 'badge bg-secondary';          // gris
+      return 'badge bg-secondary';
   }
 }
-
 
 getEstadoDisplayText(estado: string): string {
   if (!estado) return 'Desconocido';
 
-  // Normalizar
   const cleaned = estado.replace('_', ' ').trim().toLowerCase();
 
-  // Formatear: primera letra mayúscula + resto igual
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
@@ -786,14 +771,12 @@ getEstadoDisplayText(estado: string): string {
     if (!this.clienteEditSeleccionado) {
       this.equipoEditSelector?.updateSuggestions([]);
       
-      // Mostrar mensaje de que no hay cliente seleccionado
       if (this.equipoEditSelector) {
         this.setEquipoEditSelectorMessage('noClient', true);
       }
       return;
     }
 
-    // Limpiar mensajes
     if (this.equipoEditSelector) {
       this.setEquipoEditSelectorMessage('noClient', false);
     }
@@ -802,7 +785,6 @@ getEstadoDisplayText(estado: string): string {
       next: (equipos: SearchResult[]) => {
         this.equipoEditSelector?.updateSuggestions(equipos);
         
-        // Mostrar mensaje si no hay resultados
         if (this.equipoEditSelector && equipos.length === 0 && termino.length >= 2) {
           this.setEquipoEditSelectorMessage('noResults', true);
         } else if (this.equipoEditSelector) {
@@ -827,7 +809,6 @@ getEstadoDisplayText(estado: string): string {
       next: (equipos: SearchResult[]) => {
         this.equipoEditSelector?.updateSuggestions(equipos);
         
-        // Mostrar mensaje si el cliente no tiene equipos
         if (this.equipoEditSelector && equipos.length === 0) {
           this.setEquipoEditSelectorMessage('noEquipos', true);
         } else if (this.equipoEditSelector) {
@@ -907,7 +888,6 @@ getEstadoDisplayText(estado: string): string {
 
   // ====== NUEVOS MÉTODOS PARA MANEJO DE MENSAJES ======
 
-  // Método para validar el formulario
   isFormValid(): boolean {
     return !!(this.clienteSeleccionado && 
              this.equipoSeleccionado && 
@@ -917,11 +897,9 @@ getEstadoDisplayText(estado: string): string {
              this.nuevo.estado);
   }
 
-  // Método seguro para establecer mensajes en el selector de equipos en edición
   private setEquipoEditSelectorMessage(type: 'noClient' | 'noResults' | 'noEquipos', show: boolean): void {
     if (!this.equipoEditSelector) return;
 
-    // Usar una propiedad extendida para almacenar estados de mensajes
     const selector = this.equipoEditSelector as any;
     
     switch (type) {
@@ -937,7 +915,6 @@ getEstadoDisplayText(estado: string): string {
     }
   }
 
-  // Método para verificar si hay mensajes activos en el selector de equipos en edición
   hasEquipoEditSelectorMessage(): boolean {
     if (!this.equipoEditSelector) return false;
     
@@ -945,7 +922,6 @@ getEstadoDisplayText(estado: string): string {
     return selector._showNoClientMessage || selector._showNoResultsMessage || selector._showNoEquiposMessage;
   }
 
-  // Método para obtener el mensaje activo del selector de equipos en edición
   getEquipoEditSelectorMessage(): string {
     if (!this.equipoEditSelector) return '';
 

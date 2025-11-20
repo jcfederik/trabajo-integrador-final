@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ProveedoresService, Proveedor, PaginatedResponse } from '../../services/proveedores.service';
 import { SearchService } from '../../services/busquedaglobal';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 type ProveedorUI = Proveedor;
@@ -54,7 +55,8 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
 
   constructor(
     private proveedoresService: ProveedoresService,
-    private searchService: SearchService
+    private searchService: SearchService,
+    private alertService: AlertService
   ) {}
 
   // =============== LIFECYCLE ===============
@@ -106,6 +108,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
       },
       error: (e) => {
         this.loading = false;
+        this.alertService.showGenericError('Error al cargar los proveedores');
       }
     });
   }
@@ -139,12 +142,15 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
   }
 
   // =============== CREACIÓN ===============
-  crear(): void {
+  async crear(): Promise<void> {
     const payload = this.limpiarPayload(this.nuevo);
     if (!this.validarPayload(payload)) return;
 
+    this.alertService.showLoading('Creando proveedor...');
+
     this.proveedoresService.createProveedor(payload).subscribe({
       next: (response: any) => {
+        this.alertService.closeLoading();
         const nuevoProveedor = response.proveedor || response;
         this.selectedAction = 'listar';
         this.nuevo = { 
@@ -155,27 +161,34 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
           email: '' 
         };
         this.resetLista();
-        alert('Proveedor creado exitosamente!');
+        this.alertService.showProveedorCreado(payload.razon_social!);
       },
       error: (e) => {
-        alert('Error al crear proveedor');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al crear proveedor');
       }
     });
   }
 
   // =============== ELIMINACIÓN ===============
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar este proveedor?')) return;
+  async eliminar(id: number): Promise<void> {
+    const proveedor = this.proveedoresAll.find(p => p.id === id);
+    const confirmed = await this.alertService.confirmDeleteProveedor(proveedor?.razon_social || 'este proveedor');
+    if (!confirmed) return;
+
+    this.alertService.showLoading('Eliminando proveedor...');
 
     this.proveedoresService.deleteProveedor(id).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.proveedoresAll = this.proveedoresAll.filter(x => x.id !== id);
         this.proveedores = this.proveedores.filter(x => x.id !== id);
         this.searchService.setSearchData(this.proveedoresAll);
-        alert('Proveedor eliminado exitosamente!');
+        this.alertService.showProveedorEliminado(proveedor?.razon_social || 'Proveedor');
       },
-      error: (e) => { 
-        alert('Error al eliminar el proveedor');
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al eliminar el proveedor');
       }
     });
   }
@@ -197,12 +210,15 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.editBuffer = {};
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiarPayload(this.editBuffer);
     if (!this.validarPayload(payload)) return;
 
+    this.alertService.showLoading('Actualizando proveedor...');
+
     this.proveedoresService.updateProveedor(id, payload).subscribe({
       next: (response: any) => {
+        this.alertService.closeLoading();
         const proveedorActualizado = response.proveedor || response;
         
         const updateLocal = (arr: ProveedorUI[]) => {
@@ -220,10 +236,11 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
 
         this.searchService.setSearchData(this.proveedoresAll);
         this.cancelEdit();
-        alert('Proveedor actualizado exitosamente!');
+        this.alertService.showProveedorActualizado(payload.razon_social!);
       },
       error: (e) => {
-        alert('No se pudo actualizar el proveedor');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('No se pudo actualizar el proveedor');
       }
     });
   }
@@ -241,11 +258,11 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
 
   private validarPayload(p: any): boolean {
     if (!p.razon_social || p.razon_social.trim() === '') {
-      alert('Completá la razón social del proveedor.');
+      this.alertService.showRequiredFieldError('razón social');
       return false;
     }
     if (!p.cuit || p.cuit.trim() === '') {
-      alert('Completá el CUIT del proveedor.');
+      this.alertService.showRequiredFieldError('CUIT');
       return false;
     }
     return true;

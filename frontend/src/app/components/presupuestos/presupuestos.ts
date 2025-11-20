@@ -11,6 +11,7 @@ import {
 } from '../../services/presupuesto.service';
 import { SearchService } from '../../services/busquedaglobal';
 import { ReparacionService, Reparacion } from '../../services/reparacion.service';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 
@@ -92,7 +93,8 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   constructor(
     private svc: PresupuestoService,
     private reparacionSvc: ReparacionService,
-    public searchService: SearchService
+    public searchService: SearchService,
+    private alertService: AlertService
   ) {}
 
   // =============== LIFECYCLE ===============
@@ -485,6 +487,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       },
       error: () => { 
         this.loading = false; 
+        this.alertService.showGenericError('Error al cargar los presupuestos');
       }
     });
   }
@@ -553,14 +556,17 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.selectedAction = a; 
   }
 
-  crear(): void {
+  async crear(): Promise<void> {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
 
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Creando presupuesto...');
+
     this.svc.create(payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.resetLista();
         this.nuevo = {
           reparacion_id: undefined as any,
@@ -570,17 +576,24 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
           reparacionBusqueda: ''
         };
         this.selectedAction = 'listar';
+        this.alertService.showPresupuestoCreado();
       },
       error: (e) => {
-        alert('Error al crear el presupuesto');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al crear el presupuesto');
       }
     });
   }
 
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar este presupuesto?')) return;
+  async eliminar(id: number): Promise<void> {
+    const confirmed = await this.alertService.confirmDeletePresupuesto(id);
+    if (!confirmed) return;
+
+    this.alertService.showLoading('Eliminando presupuesto...');
+
     this.svc.delete(id).subscribe({
       next: () => { 
+        this.alertService.closeLoading();
         this.itemsAll = this.itemsAll.filter(i => i.id !== id);
         const itemsForSearch = this.itemsAll.map(p => ({
           ...p,
@@ -589,9 +602,11 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         }));
         this.applyFilter();
         this.searchService.setSearchData(itemsForSearch);
+        this.alertService.showPresupuestoEliminado();
       },
       error: (e) => {
-        alert('No se pudo eliminar');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('No se pudo eliminar el presupuesto');
       }
     });
   }
@@ -617,14 +632,17 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.editBuffer = { reparacionBusqueda: '' };
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiarEdit(this.editBuffer);
     if (!this.valida(payload)) return;
 
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Actualizando presupuesto...');
+
     this.svc.update(id, payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         const updateLocal = (arr: Presupuesto[]) => {
           const idx = arr.findIndex(i => i.id === id);
           if (idx >= 0) {
@@ -642,9 +660,11 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         }));
         this.searchService.setSearchData(itemsForSearch);
         this.cancelEdit();
+        this.alertService.showPresupuestoActualizado();
       },
       error: (e) => {
-        alert('Error al actualizar');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al actualizar el presupuesto');
       }
     });
   }
@@ -696,17 +716,17 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
   private valida(p: Partial<Presupuesto>): boolean {
     if (!p.reparacion_id || !p.fecha || p.monto_total == null || typeof p.aceptado !== 'boolean') {
-      alert('Completá: reparación, fecha, monto_total y aceptado.');
+      this.alertService.showGenericError('Completá: reparación, fecha, monto_total y aceptado.');
       return false;
     }
     
     if (isNaN(Number(p.reparacion_id)) || Number(p.reparacion_id) <= 0) {
-      alert('reparacion_id inválido.');
+      this.alertService.showGenericError('reparacion_id inválido.');
       return false;
     }
     
     if (typeof p.monto_total !== 'number' || isNaN(p.monto_total) || p.monto_total < 0) {
-      alert('monto_total debe ser numérico y >= 0.');
+      this.alertService.showGenericError('monto_total debe ser numérico y >= 0.');
       return false;
     }
     

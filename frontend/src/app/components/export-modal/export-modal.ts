@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Output, OnInit, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Factura } from '../../services/facturas';
 import { Cliente, ClienteService } from '../../services/cliente.service';
 import { FacturaReportComponent } from '../factura-report/factura-report';
 import { SearchService } from '../../services/busquedaglobal';
+import { AlertService } from '../../services/alert.service';
 
 export type ModalView = 'options' | 'clientes' | 'facturas-cliente';
 
@@ -31,6 +32,8 @@ export class ExportModalComponent implements OnInit, OnDestroy {
   cargandoClientes = false;
   terminoBusqueda = '';
 
+  private alertService = inject(AlertService);
+
   constructor(
     private clienteService: ClienteService,
     private searchService: SearchService
@@ -56,6 +59,7 @@ export class ExportModalComponent implements OnInit, OnDestroy {
         this.cargandoClientes = false;
         this.todosLosClientes = [];
         this.clientes = [];
+        this.alertService.showGenericError('Error al cargar los clientes');
       }
     });
   }
@@ -111,6 +115,7 @@ export class ExportModalComponent implements OnInit, OnDestroy {
         this.cargando = false;
         this.facturasCliente = [];
         this.vistaActual = 'facturas-cliente';
+        this.alertService.showGenericError('Error al cargar las facturas del cliente');
       }
     });
   }
@@ -135,26 +140,18 @@ export class ExportModalComponent implements OnInit, OnDestroy {
   }
 
   // =============== GENERACIÓN DE REPORTES ===============
-  descargarTodasFacturasCliente(): void {
-    if (!this.clienteSeleccionado || this.facturasCliente.length === 0) {
-      alert('No hay facturas para descargar');
-      return;
-    }
-    
-    this.generarReporteCliente();
-  }
-
   private generarReporteCliente(): void {
-    const reportComponent = new FacturaReportComponent();
+    const reportComponent = new FacturaReportComponent(this.alertService);
     reportComponent.facturas = this.facturasCliente;
     reportComponent.titulo = `Facturas - ${this.clienteSeleccionado?.nombre}`;
     reportComponent.cliente = this.clienteSeleccionado || undefined;
     reportComponent.generarReporte();
     this.cerrarModal();
+    this.alertService.showExportSuccess(`Facturas - ${this.clienteSeleccionado?.nombre}`);
   }
 
-  generarReporteIndividual(factura: Factura): void {
-    const reportComponent = new FacturaReportComponent();
+  private generarReporteIndividual(factura: Factura): void {
+    const reportComponent = new FacturaReportComponent(this.alertService);
     reportComponent.facturas = [factura];
     reportComponent.titulo = `Factura ${factura.numero}`;
     
@@ -164,6 +161,16 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     
     reportComponent.generarReporte();
     this.cerrarModal();
+    this.alertService.showExportSuccess(`Factura ${factura.numero}`);
+  }
+
+  descargarTodasFacturasCliente(): void {
+    if (!this.clienteSeleccionado || this.facturasCliente.length === 0) {
+      this.alertService.showGenericError('No hay facturas para descargar');
+      return;
+    }
+    
+    this.generarReporteCliente();
   }
 
   // =============== UTILIDADES ===============

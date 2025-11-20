@@ -8,6 +8,7 @@ import { EquipoService, Equipo, PaginatedResponse } from '../../services/equipos
 import { ClienteService } from '../../services/cliente.service';
 import { SearchSelectorComponent, SearchResult } from '../search-selector/search-selector.component';
 import { SearchService } from '../../services/busquedaglobal';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 type EquipoUI = Equipo;
@@ -68,7 +69,8 @@ export class EquiposComponent implements OnInit, OnDestroy {
   constructor(
     private equipoService: EquipoService,
     private clienteService: ClienteService,
-    public searchService: SearchService
+    public searchService: SearchService,
+    private alertService: AlertService
   ) {}
 
   // ====== LIFECYCLE ======
@@ -376,12 +378,15 @@ export class EquiposComponent implements OnInit, OnDestroy {
   }
 
   // ====== CRUD OPERATIONS ======
-  crear(): void {
+  async crear(): Promise<void> {
     const payload = this.limpiarPayload(this.nuevo);
     if (!this.validarPayload(payload)) return;
 
+    this.alertService.showLoading('Creando equipo...');
+
     this.equipoService.createEquipo(payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.selectedAction = 'listar';
         this.nuevo = { 
           descripcion: '', 
@@ -392,26 +397,33 @@ export class EquiposComponent implements OnInit, OnDestroy {
         };
         this.limpiarCliente();
         this.resetLista();
-        alert('Equipo creado exitosamente!');
+        this.alertService.showEquipoCreado();
       },
       error: (e) => {
-        alert(e?.error?.error ?? 'Error al crear equipo');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError(e?.error?.error ?? 'Error al crear equipo');
       }
     });
   }
 
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar este equipo?')) return;
+  async eliminar(id: number): Promise<void> {
+    const equipo = this.equiposAll.find(e => e.id === id);
+    const confirmed = await this.alertService.confirmDeleteEquipo(equipo?.descripcion || 'este equipo');
+    if (!confirmed) return;
+
+    this.alertService.showLoading('Eliminando equipo...');
 
     this.equipoService.deleteEquipo(id).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.equiposAll = this.equiposAll.filter(x => x.id !== id);
         this.applyFilter();
         this.searchService.setSearchData(this.equiposAll);
-        alert('Equipo eliminado exitosamente!');
+        this.alertService.showEquipoEliminado();
       },
-      error: (e) => { 
-        alert('Error al eliminar el equipo');
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al eliminar el equipo');
       }
     });
   }
@@ -447,6 +459,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
             };
           },
           error: (err) => {
+            // Silently handle error
           }
         });
       }
@@ -467,18 +480,22 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.clienteEditSeleccionado = null;
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiarPayload(this.editBuffer);
     if (!this.validarPayload(payload)) return;
 
+    this.alertService.showLoading('Actualizando equipo...');
+
     this.equipoService.updateEquipo(id, payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.actualizarEquipoLocal(id, payload);
         this.cancelEdit();
-        alert('Equipo actualizado exitosamente!');
+        this.alertService.showEquipoActualizado();
       },
       error: (e) => {
-        alert(e?.error?.error ?? 'No se pudo actualizar el equipo');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError(e?.error?.error ?? 'No se pudo actualizar el equipo');
       }
     });
   }
@@ -496,11 +513,11 @@ export class EquiposComponent implements OnInit, OnDestroy {
 
   private validarPayload(p: any): boolean {
     if (!p.descripcion || p.descripcion.trim() === '') {
-      alert('Completá la descripción del equipo.');
+      this.alertService.showRequiredFieldError('descripción');
       return false;
     }
     if (!p.cliente_id) {
-      alert('Debes seleccionar un cliente.');
+      this.alertService.showRequiredFieldError('cliente');
       return false;
     }
     return true;
@@ -528,6 +545,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.clientes = res.data ?? res;
       },
       error: (err) => {
+        // Silently handle error
       }
     });
   }

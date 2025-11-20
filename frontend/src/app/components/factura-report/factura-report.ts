@@ -3,6 +3,7 @@ import { Factura } from '../../services/facturas';
 import { Cliente } from '../../services/cliente.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AlertService } from '../../services/alert.service';
 
 @Component({
   selector: 'app-factura-report',
@@ -16,14 +17,18 @@ export class FacturaReportComponent {
   @Input() titulo: string = 'Listado de Facturas';
   @Input() cliente?: Cliente;
 
+  constructor(private alertService: AlertService) {}
+
   // =============== MÉTODO PRINCIPAL ===============
   generarReporte(): void {
     if (this.facturas.length === 0) {
-      alert('No hay facturas para generar el reporte');
+      this.alertService.showGenericError('No hay facturas para generar el reporte');
       return;
     }
 
     try {
+      this.alertService.showReportLoading();
+      
       const doc = new jsPDF();
       
       this.configurarDocumento(doc);
@@ -39,8 +44,12 @@ export class FacturaReportComponent {
       const fileName = this.generarNombreArchivo();
       doc.save(fileName);
       
+      this.alertService.closeLoading();
+      this.alertService.showReportSuccess();
+      
     } catch (error) {
-      alert('Error al generar el reporte PDF');
+      this.alertService.closeLoading();
+      this.alertService.showReportError();
     }
   }
 

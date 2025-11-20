@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ClienteService, Cliente, PaginatedResponse } from '../../services/cliente.service';
 import { SearchService } from '../../services/busquedaglobal';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 type ClienteUI = Cliente;
@@ -55,7 +56,8 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
   constructor(
     private clienteService: ClienteService,
-    private searchService: SearchService
+    private searchService: SearchService,
+    private alertService: AlertService
   ) {}
 
   // =============== LIFECYCLE ===============
@@ -188,12 +190,15 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   // =============== CREACIÓN ===============
-  crear(): void {
+  async crear(): Promise<void> {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
 
+    this.alertService.showLoading('Creando cliente...');
+
     this.clienteService.createCliente(payload).subscribe({
       next: (nuevoCliente: any) => {
+        this.alertService.closeLoading();
         const clienteCompleto = { ...payload, id: nuevoCliente.id } as Cliente;
 
         this.clientesAll.unshift(clienteCompleto);
@@ -202,23 +207,36 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
         this.nuevo = { nombre: '', email: '', telefono: '' };
         this.selectedAction = 'listar';
+        
+        this.alertService.showClienteCreado(payload.nombre!);
       },
-      error: (e) => alert('Error al crear el cliente')
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al crear el cliente');
+      }
     });
   }
 
   // =============== ELIMINACIÓN ===============
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar este cliente?')) return;
+  async eliminar(id: number): Promise<void> {
+    const cliente = this.clientesAll.find(c => c.id === id);
+    const confirmed = await this.alertService.confirmDeleteCliente(cliente?.nombre || 'este cliente');
+    if (!confirmed) return;
+
+    this.alertService.showLoading('Eliminando cliente...');
 
     this.clienteService.deleteCliente(id).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.clientesAll = this.clientesAll.filter(c => c.id !== id);
         this.applyFilter();
         this.searchService.setSearchData(this.clientesAll);
-        alert('Cliente eliminado exitosamente!');
+        this.alertService.showClienteEliminado(cliente?.nombre || 'Cliente');
       },
-      error: (e) => alert('No se pudo eliminar')
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('No se pudo eliminar el cliente');
+      }
     });
   }
 
@@ -237,12 +255,15 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.editBuffer = { nombre: '', email: '', telefono: '' };
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiar(this.editBuffer);
     if (!this.valida(payload)) return;
 
+    this.alertService.showLoading('Actualizando cliente...');
+
     this.clienteService.updateCliente(id, payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         const updateLocal = (arr: Cliente[]) => {
           const idx = arr.findIndex(c => c.id === id);
           if (idx >= 0) arr[idx] = { ...arr[idx], ...payload } as Cliente;
@@ -254,9 +275,12 @@ export class ClientesComponent implements OnInit, OnDestroy {
         this.searchService.setSearchData(this.clientesAll);
         this.cancelEdit();
 
-        alert('Cliente actualizado exitosamente!');
+        this.alertService.showClienteActualizado(payload.nombre!);
       },
-      error: (e) => alert('Error al actualizar')
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al actualizar el cliente');
+      }
     });
   }
 
@@ -270,9 +294,18 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   private valida(p: Partial<Cliente>): boolean {
-    if (!p.nombre) { alert('El nombre es obligatorio.'); return false; }
-    if (!p.email) { alert('El email es obligatorio.'); return false; }
-    if (!p.telefono) { alert('El teléfono es obligatorio.'); return false; }
+    if (!p.nombre) { 
+      this.alertService.showRequiredFieldError('nombre');
+      return false; 
+    }
+    if (!p.email) { 
+      this.alertService.showRequiredFieldError('email');
+      return false; 
+    }
+    if (!p.telefono) { 
+      this.alertService.showRequiredFieldError('teléfono');
+      return false; 
+    }
     return true;
   }
 }

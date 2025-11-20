@@ -11,6 +11,7 @@ import { SearchService } from '../../services/busquedaglobal';
 import { FacturaReportComponent } from '../factura-report/factura-report';
 import { ExportModalComponent } from '../export-modal/export-modal';
 import { ClienteService } from '../../services/cliente.service';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 
@@ -36,6 +37,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
   private reparacionService = inject(ReparacionService);
   private searchService = inject(SearchService);
   private clienteService = inject(ClienteService);
+  private alertService = inject(AlertService);
 
   // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
@@ -152,6 +154,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
       },
       error: () => { 
         this.loading = false; 
+        this.alertService.showGenericError('Error al cargar las facturas');
       }
     });
   }
@@ -338,13 +341,16 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   // =============== CRUD OPERATIONS ===============
-  crear(): void {
+  async crear(): Promise<void> {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Creando factura...');
+
     this.facService.create(payload).subscribe({
       next: (nuevaFactura: any) => {
+        this.alertService.closeLoading();
         const facturaCompleta = { ...payload, id: nuevaFactura.id, fecha: payload.fecha! } as Factura;
         this.facturasAll.unshift(facturaCompleta);
         this.applyFilter();
@@ -361,24 +367,34 @@ export class FacturasComponent implements OnInit, OnDestroy {
           presupuestoBusqueda: ''
         };
         this.selectedAction = 'listar';
+        this.alertService.showFacturaCreada();
       },
       error: (e) => { 
-        alert('Error al crear la factura'); 
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al crear la factura'); 
       }
     });
   }
 
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar esta factura?')) return;
+  async eliminar(id: number): Promise<void> {
+    const factura = this.facturasAll.find(f => f.id === id);
+    const numeroFactura = `${factura?.numero || ''}${factura?.letra || ''}`;
+    const confirmed = await this.alertService.confirmDeleteFactura(numeroFactura);
+    if (!confirmed) return;
     
+    this.alertService.showLoading('Eliminando factura...');
+
     this.facService.delete(id).subscribe({
       next: () => { 
+        this.alertService.closeLoading();
         this.facturasAll = this.facturasAll.filter(f => f.id !== id);
         this.applyFilter();
         this.searchService.setSearchData(this.facturasAll);
+        this.alertService.showFacturaEliminada();
       },
       error: () => { 
-        alert('No se pudo eliminar'); 
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('No se pudo eliminar la factura'); 
       }
     });
   }
@@ -410,16 +426,23 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }; 
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiar(this.editBuffer);
     if (!this.valida(payload)) return;
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Actualizando factura...');
+
     this.facService.update(id, payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         const updateLocal = (arr: Factura[]) => {
           const idx = arr.findIndex(f => f.id === id);
-          if (idx >= 0) arr[idx] = { ...arr[idx], ...payload, fecha: payload.fecha! } as Factura;
+          arr[idx] = { 
+            ...arr[idx],
+            ...payload, 
+            fecha: payload.fecha!
+          } as Factura;        
         };
         
         updateLocal(this.facturasAll);
@@ -427,9 +450,11 @@ export class FacturasComponent implements OnInit, OnDestroy {
         
         this.searchService.setSearchData(this.facturasAll);
         this.cancelEdit();
+        this.alertService.showFacturaActualizada();
       },
       error: () => { 
-        alert('Error al actualizar'); 
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al actualizar la factura'); 
       }
     });
   }
@@ -437,11 +462,11 @@ export class FacturasComponent implements OnInit, OnDestroy {
   // =============== EXPORTACIÓN ===============
   exportarTodasFacturas(): void {
     if (this.facturas.length === 0) {
-      alert('No hay facturas para exportar');
+      this.alertService.showGenericError('No hay facturas para exportar');
       return;
     }
 
-    const reportComponent = new FacturaReportComponent();
+    const reportComponent = new FacturaReportComponent(this.alertService)
     reportComponent.facturas = this.facturas;
     reportComponent.titulo = 'Todas las Facturas';
     reportComponent.generarReporte();
@@ -476,15 +501,15 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
   private valida(p: Partial<Factura>): boolean {
     if (!p.presupuesto_id || !p.numero || !p.letra || !p.fecha || p.monto_total === undefined || p.monto_total === null) {
-      alert('Completá: presupuesto_id, número, letra, fecha y monto_total.');
+      this.alertService.showGenericError('Completá: presupuesto_id, número, letra, fecha y monto_total.');
       return false;
     }
     if (isNaN(Number(p.presupuesto_id)) || Number(p.presupuesto_id) <= 0) { 
-      alert('presupuesto_id inválido.'); 
+      this.alertService.showGenericError('presupuesto_id inválido.'); 
       return false; 
     }
     if (isNaN(Number(p.monto_total))) { 
-      alert('monto_total debe ser numérico.'); 
+      this.alertService.showGenericError('monto_total debe ser numérico.'); 
       return false; 
     }
     return true;
