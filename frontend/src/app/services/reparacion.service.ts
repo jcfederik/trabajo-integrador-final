@@ -5,184 +5,172 @@ import { map, catchError } from 'rxjs/operators';
 
 export interface Reparacion {
   id: number;
+  descripcion: string;
+  fecha: string;
+  estado: string;
+
   equipo_id: number;
   usuario_id: number;
-  descripcion: string;
-  fecha: string; 
-  estado: string;
-  equipo?: any;
-  tecnico?: any;
-  repuestos?: any[];
+
+  // Relaciones completas
+  equipo?: {
+    id: number;
+    descripcion: string;
+    marca?: string;
+    modelo?: string;
+    nro_serie?: string;
+    cliente_id?: number; 
+    cliente?: {
+      id: number;
+      nombre: string;
+      telefono?: string;
+      email?: string;
+    };
+  };
+
+
+
+  tecnico?: {
+    id: number;
+    nombre: string;
+    email?: string;
+  };
+
+  // Campos calculados por el backend
   equipo_nombre?: string;
+  cliente_nombre?: string;
   tecnico_nombre?: string;
-  reparacion_nombre?: string;
+
+  // Para buscador – opcional
   displayText?: string;
 }
 
-export interface Paginated<T> {
+export interface PaginatedResponse<T> {
   data: T[];
   current_page: number;
   last_page: number;
-  next_page_url: string | null;
-  prev_page_url: string | null;
   per_page: number;
   total: number;
+  from: number;
+  to: number;
+  next_page_url?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ReparacionService {
   private base = 'http://127.0.0.1:8000/api/reparaciones';
-
+  private baseCompleto = 'http://127.0.0.1:8000/api/reparaciones/completo';
   constructor(private http: HttpClient) {}
 
-  /**
-   * LISTADO PRINCIPAL — CON BÚSQUEDA EN SERVIDOR
-   * Igual que EquiposService.list()
-   */
-  list(page = 1, perPage = 10, search: string = ''): Observable<Paginated<Reparacion>> {
+  // ============================================================
+  // ▓▓▓   LISTADO PAGINADO (normal)   ▓▓▓
+  // ============================================================
+  list(page = 1, perPage = 10, search: string = ''): Observable<PaginatedResponse<Reparacion>> {
+    let params = new HttpParams()
+      .set('page', page)
+      .set('per_page', perPage);
 
-    const params: any = {
-      page: page,
-      per_page: perPage,
-      include: 'equipo,tecnico'
-    };
-
-    if (search.trim() !== '') {
-      params.search = search;
+    if (search.trim()) {
+      params = params.set('search', search.trim());
     }
 
-    return this.http.get<Paginated<Reparacion>>(this.base, { params });
+    return this.http.get<PaginatedResponse<Reparacion>>(this.base, { params });
   }
 
+  // ============================================================
+  // ▓▓▓   MOSTRAR UNA REPARACIÓN   ▓▓▓
+  // ============================================================
   show(id: number): Observable<Reparacion> {
     return this.http.get<Reparacion>(`${this.base}/${id}`);
   }
 
+  // ============================================================
+  // ▓▓▓   CREAR   ▓▓▓
+  // ============================================================
   create(payload: Partial<Reparacion>): Observable<Reparacion> {
-    return this.http.post<Reparacion>(`${this.base}`, payload);
+    return this.http.post<Reparacion>(this.base, payload);
   }
 
+  // ============================================================
+  // ▓▓▓   EDITAR   ▓▓▓
+  // ============================================================
   update(id: number, payload: Partial<Reparacion>): Observable<Reparacion> {
     return this.http.put<Reparacion>(`${this.base}/${id}`, payload);
   }
 
+  // ============================================================
+  // ▓▓▓   ELIMINAR   ▓▓▓
+  // ============================================================
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
 
-  /**
-   * BUSCADOR PARA AUTOCOMPLETAR
-   * (NO ES LA búsqueda de la tabla)
-   */
+  // ============================================================
+  // ▓▓▓   LISTADO COMPLETO (con equipo, cliente y técnico)   ▓▓▓
+  // ============================================================
+listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedResponse<Reparacion>> {
+    let params = new HttpParams()
+      .set('page', page)
+      .set('per_page', perPage);
+
+    if (search.trim()) {
+      params = params.set('search', search.trim());
+    }
+
+    // 👇 ESTE ERA EL PROBLEMA
+    return this.http.get<PaginatedResponse<Reparacion>>(this.baseCompleto, { params });
+  }
+
+
+  // ============================================================
+  // ▓▓▓   BUSCADOR (autocomplete)   ▓▓▓
+  // ============================================================
   buscarReparaciones(termino: string): Observable<Reparacion[]> {
     if (!termino.trim()) return of([]);
 
     const params = new HttpParams()
-      .set('search', termino)
-      .set('per_page', '100')
-      .set('include', 'equipo,tecnico');
+      .set('search', termino.trim())
+      .set('per_page', '100');
 
-    return this.http.get<Paginated<Reparacion>>(this.base, { params }).pipe(
-      map(response => {
-        const reparaciones = response.data || response;
-
-        return reparaciones.map(rep => ({
-          ...rep,
-          displayText: this.formatearDisplayText(rep)
-        }));
-      }),
+    return this.http.get<PaginatedResponse<Reparacion>>(this.base, { params }).pipe(
+      map(resp => resp.data.map(rep => this.procesarParaBuscador(rep))),
       catchError(() => this.buscarReparacionesFallback(termino))
     );
   }
 
   private buscarReparacionesFallback(termino: string): Observable<Reparacion[]> {
-    return this.http.get<Paginated<Reparacion>>(
-      `${this.base}?per_page=100&include=equipo,tecnico`
-    ).pipe(
-      map(response => {
-        const todas = response.data || response;
-        const t = termino.toLowerCase();
+    const params = new HttpParams().set('per_page', '100');
 
-        const filtradas = todas.filter(rep =>
+    return this.http.get<PaginatedResponse<Reparacion>>(this.base, { params }).pipe(
+      map(resp => {
+        const t = termino.toLowerCase();
+        const filtradas = resp.data.filter(rep =>
           rep.descripcion?.toLowerCase().includes(t) ||
           rep.estado?.toLowerCase().includes(t) ||
           rep.equipo?.descripcion?.toLowerCase().includes(t) ||
-          rep.tecnico?.nombre?.toLowerCase().includes(t)
+          rep.tecnico?.nombre?.toLowerCase().includes(t) ||
+          rep.equipo?.cliente?.nombre?.toLowerCase().includes(t)
         );
-
-        return filtradas.map(rep => ({
-          ...rep,
-          displayText: this.formatearDisplayText(rep)
-        }));
+        return filtradas.map(rep => this.procesarParaBuscador(rep));
       })
     );
   }
 
-  private formatearDisplayText(reparacion: Reparacion): string {
-    const equipoDesc = reparacion.equipo?.descripcion || 'Equipo no especificado';
-    const tecnicoNombre = reparacion.tecnico?.nombre || 'Técnico no asignado';
-    const fecha = reparacion.fecha ? new Date(reparacion.fecha).toLocaleDateString() : 'Sin fecha';
+  // ============================================================
+  // ▓▓▓   FORMATEO PARA AUTOCOMPLETE (displayText)   ▓▓▓
+  // ============================================================
+  private procesarParaBuscador(rep: Reparacion): Reparacion {
+    const equipoNombre = rep.equipo?.descripcion || 'Sin equipo';
+    const tecnicoNombre = rep.tecnico?.nombre || 'Sin técnico';
+    const clienteNombre = rep.equipo?.cliente?.nombre || 'No especificado';
+    const fecha = rep.fecha ? new Date(rep.fecha).toLocaleDateString() : 'Sin fecha';
 
-    return `#${reparacion.id} - ${reparacion.descripcion} | ${equipoDesc} | ${tecnicoNombre} | ${fecha}`;
-  }
-
-  // Métodos auxiliares ya existentes (sin cambios)
-  buscarClientes(termino: string): Observable<any[]> {
-    return this.http.get<any>('http://127.0.0.1:8000/api/clientes?per_page=100').pipe(
-      map(response => {
-        const todos = response.data || response;
-        const t = termino.toLowerCase();
-
-        return todos.filter((cliente: any) =>
-          cliente.nombre?.toLowerCase().includes(t) ||
-          cliente.email?.toLowerCase().includes(t) ||
-          (cliente.telefono && cliente.telefono.includes(termino))
-        );
-      })
-    );
-  }
-
-  buscarEquipos(termino: string): Observable<any[]> {
-    return this.http.get<any>('http://127.0.0.1:8000/api/equipos?per_page=100').pipe(
-      map(response => {
-        const todos = response.data || response;
-        const t = termino.toLowerCase();
-
-        return todos.filter((equipo: any) =>
-          equipo.descripcion?.toLowerCase().includes(t) ||
-          equipo.marca?.toLowerCase().includes(t) ||
-          equipo.modelo?.toLowerCase().includes(t) ||
-          (equipo.nro_serie && equipo.nro_serie.includes(termino))
-        );
-      })
-    );
-  }
-
-  buscarEquiposPorCliente(clienteId: number): Observable<any[]> {
-    return this.http.get<any>('http://127.0.0.1:8000/api/equipos?per_page=100').pipe(
-      map(response => {
-        const todos = response.data || response;
-        return todos.filter((equipo: any) => equipo.cliente_id === clienteId);
-      })
-    );
-  }
-
-  buscarTecnicos(termino: string): Observable<any[]> {
-    return this.http.get<any[]>(`http://127.0.0.1:8000/api/tecnicos/buscar?q=${encodeURIComponent(termino)}`).pipe(
-      catchError(() => {
-        return this.http.get<any>('http://127.0.0.1:8000/api/usuarios?per_page=100').pipe(
-          map(response => {
-            const todos = response.data || response;
-            const t = termino.toLowerCase();
-
-            return todos.filter((usuario: any) =>
-              usuario.tipo === 'tecnico' &&
-              (usuario.nombre?.toLowerCase().includes(t) ||
-                usuario.tipo?.toLowerCase().includes(t))
-            );
-          })
-        );
-      })
-    );
+    return {
+      ...rep,
+      equipo_nombre: equipoNombre,
+      tecnico_nombre: tecnicoNombre,
+      cliente_nombre: clienteNombre,
+      displayText: `#${rep.id} - ${rep.descripcion} | ${equipoNombre} | ${tecnicoNombre} | ${fecha}`
+    };
   }
 }
