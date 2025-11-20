@@ -11,7 +11,7 @@ export type ModalView = 'options' | 'clientes' | 'facturas-cliente';
 @Component({
   selector: 'app-export-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, FacturaReportComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './export-modal.html',
   styleUrls: ['./export-modal.css']
 })

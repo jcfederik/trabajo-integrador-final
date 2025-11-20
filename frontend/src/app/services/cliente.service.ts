@@ -73,37 +73,47 @@ export class ClienteService {
     return this.http.get<Cliente[]>(`${this.apiUrl}/buscar`, { params });
   }
 
-  // 🔹 NUEVO MÉTODO: Para el search-selector (devuelve SearchResult[])
-buscarClientesParaSelector(termino: string): Observable<SearchResult[]> {
-  if (!termino.trim()) {
-    // Si no hay término, cargar primeros clientes
-    return this.getClientes(1, 5).pipe(
-      map(response => response.data.map(cliente => this.mapClienteToSearchResult(cliente))),
-      catchError(() => of([]))
+  // En cliente.service.ts - MODIFICAR el método buscarClientesParaSelector
+  buscarClientesParaSelector(termino: string): Observable<SearchResult[]> {
+    const terminoLimpio = termino.trim();
+    
+    if (!terminoLimpio) {
+      // Si no hay término, cargar primeros clientes
+      return this.getClientes(1, 5).pipe(
+        map(response => response.data.map(cliente => this.mapClienteToSearchResult(cliente))),
+        catchError(() => of([]))
+      );
+    }
+
+    console.log('🔍 Buscando clientes con término:', terminoLimpio);
+
+    // PRIMERO: Intentar con el endpoint de búsqueda
+    return this.buscarClientes(terminoLimpio).pipe(
+      map(clientes => {
+        console.log('✅ Resultados de búsqueda API:', clientes);
+        return clientes.map(cliente => this.mapClienteToSearchResult(cliente));
+      }),
+      catchError(error => {
+        console.warn('❌ Error en búsqueda API, usando fallback:', error);
+        
+        // FALLBACK MEJORADO: Cargar más clientes para buscar localmente
+        return this.getClientes(1, 50).pipe( // ↑ Aumentar a 50
+          map(response => {
+            const clientes = response.data;
+            const t = terminoLimpio.toLowerCase();
+            const filtrados = clientes.filter(cliente =>
+              cliente.nombre?.toLowerCase().includes(t) ||
+              cliente.email?.toLowerCase().includes(t) ||
+              cliente.telefono?.toLowerCase().includes(t)
+            );
+            console.log('🔍 Resultados fallback:', filtrados);
+            return filtrados.map(cliente => this.mapClienteToSearchResult(cliente));
+          }),
+          catchError(() => of([])) // Si todo falla, retornar array vacío
+        );
+      })
     );
   }
-
-  // Usar el endpoint de búsqueda que SÍ existe
-  return this.buscarClientes(termino).pipe(
-    map(clientes => clientes.map(cliente => this.mapClienteToSearchResult(cliente))),
-    catchError(error => {
-      console.warn('Error en búsqueda específica de clientes:', error);
-      // Fallback: usar listado normal con filtro
-      return this.getClientes(1, 10).pipe(
-        map(response => {
-          const clientes = response.data;
-          const t = termino.toLowerCase();
-          const filtrados = clientes.filter(cliente =>
-            cliente.nombre?.toLowerCase().includes(t) ||
-            cliente.email?.toLowerCase().includes(t) ||
-            cliente.telefono?.toLowerCase().includes(t)
-          );
-          return filtrados.map(cliente => this.mapClienteToSearchResult(cliente));
-        })
-      );
-    })
-  );
-}
 
   // 🔹 Mapear Cliente a SearchResult
   private mapClienteToSearchResult(cliente: Cliente): SearchResult {

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
@@ -30,6 +30,12 @@ type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
   styleUrls: ['./facturas.css']
 })
 export class FacturasComponent implements OnInit, OnDestroy {
+
+  private facService = inject(FacturaService);
+  private presupuestoService = inject(PresupuestoService);
+  private reparacionService = inject(ReparacionService);
+  private searchService = inject(SearchService);
+  private clienteService = inject(ClienteService);
 
   // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
@@ -79,13 +85,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
   private busquedaPresupuesto = new Subject<string>();
   private reparacionesCache = new Map<number, string>();
 
-  constructor(
-    private facService: FacturaService,
-    private presupuestoService: PresupuestoService,
-    private reparacionService: ReparacionService,
-    private searchService: SearchService,
-    private clienteService: ClienteService
-  ) {}
 
   // =============== LIFECYCLE ===============
   ngOnInit(): void {

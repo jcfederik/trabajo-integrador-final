@@ -71,12 +71,13 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   private subs: Subscription[] = [];
 
+
   constructor(
     private repService: ReparacionService,
     private searchService: SearchService,
     private clienteService: ClienteService,
     private equipoService: EquipoService,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
   ) {}
 
   ngOnInit(): void {
@@ -105,7 +106,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       if (this.searchTerm) {
         this.onBuscarReparaciones(this.searchTerm);
       } else {
-        // 🔥 CORRECCIÓN: Cuando se borra la búsqueda, recargar lista completa
         if (oldTerm !== this.searchTerm) {
           console.log('🔄 Recargando lista completa después de borrar búsqueda');
           this.resetList();
