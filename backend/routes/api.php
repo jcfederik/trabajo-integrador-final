@@ -31,6 +31,7 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     // Perfil de usuario autenticado
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
+    Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
 
     // Recursos accesibles por cualquier usuario autenticado
     Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
@@ -53,6 +54,9 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('especializaciones', EspecializacionController::class);
     Route::apiResource('detalle-cobros', DetalleCobroController::class)
         ->only(['index', 'show']);
+
+    // Rutas para reparaciones
+Route::apiResource('reparaciones', ReparacionController::class);
 
     // RUTAS SOLO PARA ADMINISTRADORES
     Route::middleware(['admin'])->group(function () {

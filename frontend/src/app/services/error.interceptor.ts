@@ -1,3 +1,4 @@
+// error.interceptor.ts (actualizado)
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
@@ -10,27 +11,53 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error) => {
+      // No loguear errores 404 de búsquedas vacías (son normales)
+      const shouldSkipLog = 
+        (error.url?.includes('/buscar?q=') && error.status === 404) ||
+        (error.url?.includes('/buscar?q=') && error.status === 400);
+
+      if (!shouldSkipLog) {
+        console.error('🚨 HTTP Error Interceptor:', {
+          url: error.url,
+          status: error.status,
+          message: error.message
+        });
+      }
+
       switch (error.status) {
-        case 401:
+        case 401: // Unauthorized
+          console.warn('🔐 Token inválido o expirado');
           authService.logout();
           router.navigate(['/login'], { 
             queryParams: { returnUrl: router.url } 
           });
           break;
 
-        case 403:
+        case 403: // Forbidden
+          console.error('⛔ Acceso denegado - Sin permisos suficientes');
           break;
 
-        case 404:
+        case 404: // Not Found
+          if (!shouldSkipLog) {
+            console.error('🔍 Recurso no encontrado');
+          }
           break;
 
-        case 422:
+        case 422: // Unprocessable Entity (validación)
+          console.error('📝 Error de validación:', error.error);
           break;
 
-        case 500:
+        case 500: // Server Error
+          console.error('💥 Error interno del servidor');
           break;
+
+        default:
+          if (!shouldSkipLog) {
+            console.error('❌ Error HTTP no manejado:', error.status);
+          }
       }
 
+      // Propagar el error para que los componentes lo manejen
       return throwError(() => error);
     })
   );

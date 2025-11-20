@@ -1,96 +1,272 @@
 <div class="container py-4">
   <!-- Píldoras de acción -->
   <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
-    <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="selectedAction==='listar'">
+    <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="isListar()">
       <i class="bi bi-list"></i> Listar
     </button>
-    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="selectedAction==='crear'">
+    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="isCrear()">
       <i class="bi bi-plus-circle"></i> Crear
     </button>
   </div>
 
   <!-- LISTAR -->
-  <div *ngIf="selectedAction==='listar'">
+  <div *ngIf="isListar()">
     <h4 class="text-center mb-3">Reparaciones</h4>
     
     <!-- Indicador de búsqueda -->
     <div *ngIf="searchTerm" class="alert alert-info d-flex justify-content-between align-items-center">
-      <span>Mostrando {{ reparacionesFiltradas.length }} de {{ reparaciones.length }} reparaciones</span>
+      <span>Mostrando {{ reparacionesFiltradas.length }} de {{ reparacionesAll.length }} reparaciones</span>
       <button (click)="limpiarBusqueda()" class="btn btn-sm btn-outline-secondary">× Limpiar</button>
     </div>
 
-    <div class="list-group">
-      <div *ngFor="let r of reparacionesFiltradas" class="list-group-item">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-          <!-- Datos -->
-          <div class="flex-grow-1">
-            <ng-container *ngIf="editingId !== r.id; else editRow">
-              <div class="fw-semibold">
-                #{{ r.id }} — {{ r.descripcion }}
-              </div>
-              <div class="text-muted small">
-                Equipo: {{ r.equipo_nombre || (r.equipo?.nombre ?? r.equipo_id) }} · 
-                Técnico: {{ r.tecnico_nombre || (r.tecnico?.nombre ?? r.usuario_id) }} · 
-                Fecha: {{ r.fecha | date:'yyyy-MM-dd' }} · 
-                Estado: <span class="badge bg-secondary">{{ r.estado }}</span>
-              </div>
-            </ng-container>
-
-            <!-- Edición inline -->
-            <ng-template #editRow>
-              <div class="row g-2">
-                <div class="col-12">
-                  <label class="form-label small">Descripción</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.descripcion" />
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label small">Equipo ID</label>
-                  <input type="number" class="form-control" [(ngModel)]="editBuffer.equipo_id" />
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label small">Técnico</label>
-                  <input type="number" class="form-control" [(ngModel)]="editBuffer.usuario_id" />
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label small">Fecha</label>
-                  <input type="date" class="form-control" [(ngModel)]="editBuffer.fecha" />
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label small">Estado</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.estado" placeholder="pendiente/en proceso/finalizada" />
-                </div>
-              </div>
-            </ng-template>
-          </div>
-
-          <!-- Acciones -->
-          <div class="d-flex gap-2">
-            <button *ngIf="editingId !== r.id" class="btn btn-sm btn-outline-warning" (click)="startEdit(r)">
-              <i class="bi bi-pencil-square"></i>
-            </button>
-            <ng-container *ngIf="editingId === r.id">
-              <button class="btn btn-sm btn-success" (click)="saveEdit(r.id)">
-                <i class="bi bi-check-lg"></i>
-              </button>
-              <button class="btn btn-sm btn-secondary" (click)="cancelEdit()">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </ng-container>
-            <button class="btn btn-sm btn-outline-danger" (click)="eliminar(r.id)">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
+    <!-- Estados vacíos -->
+    <div *ngIf="!loading && reparacionesFiltradas.length === 0 && !searchTerm" class="empty-state">
+      <div class="icon-wrap">
+        <i class="bi bi-tools"></i>
       </div>
+      <h5>Sin reparaciones por ahora</h5>
+      <p class="text-muted mb-3">Registrá tu primera reparación para comenzar.</p>
+      <button class="btn btn-primary" (click)="seleccionarAccion('crear')">
+        <i class="bi bi-plus-circle me-2"></i> Nueva reparación
+      </button>
     </div>
 
-    <!-- Estado vacío -->
     <div *ngIf="searchTerm && reparacionesFiltradas.length === 0" class="empty-state">
       <div class="icon-wrap">
         <i class="bi bi-search"></i>
       </div>
       <h5>No se encontraron reparaciones</h5>
       <p class="text-muted">No hay resultados que coincidan con "{{ searchTerm }}"</p>
+      <button class="btn btn-outline-primary" (click)="limpiarBusqueda()">
+        <i class="bi bi-arrow-left me-2"></i> Ver todas las reparaciones
+      </button>
+    </div>
+
+    <!-- Lista de reparaciones - MEJORADO -->
+    <div class="list-group" *ngIf="reparacionesFiltradas.length > 0">
+      <div *ngFor="let r of reparacionesFiltradas" class="list-group-item" [class.editing]="editingId === r.id">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+          <!-- Datos principales - MEJOR ALINEAMIENTO -->
+          <div class="flex-grow-1 w-100">
+            <ng-container *ngIf="editingId !== r.id; else editRow">
+              <!-- Vista normal MEJORADA -->
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="fw-semibold text-break">
+                  #{{ r.id }} — {{ r.descripcion }}
+                </div>
+                <div class="ms-3 flex-shrink-0">
+                  <span class="badge" [class]="getEstadoBadgeClass(r.estado)">
+                    {{ getEstadoDisplayText(r.estado) }}
+                  </span>
+                </div>
+              </div>
+              
+              <div class="text-muted small">
+                <!-- MEJOR ALINEAMIENTO: Grid responsivo -->
+                <div class="row g-2">
+                  <div class="col-sm-6 col-md-4">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-person me-2 text-primary"></i>
+                      <span><strong>Cliente:</strong> {{ getClienteNombre(r) }}</span>
+                    </div>
+                  </div>
+                  <div class="col-sm-6 col-md-4">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-pc me-2 text-primary"></i>
+                      <span><strong>Equipo:</strong> {{ getEquipoNombre(r) }}</span>
+                    </div>
+                  </div>
+                  <div class="col-sm-6 col-md-4">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-person-gear me-2 text-primary"></i>
+                      <span><strong>Técnico:</strong> {{ getTecnicoNombre(r) }}</span>
+                    </div>
+                  </div>
+                  <div class="col-sm-6 col-md-8">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-calendar me-2 text-primary"></i>
+                      <span><strong>Fecha:</strong> {{ r.fecha | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- Edición inline CON LAYOUT MEJORADO Y CENTRADO -->
+<ng-template #editRow>
+  <div class="row g-3">
+    <!-- Descripción -->
+    <div class="col-12">
+      <label class="form-label small fw-semibold">Descripción de la reparación</label>
+      <textarea 
+        class="form-control" 
+        [(ngModel)]="editBuffer.descripcion" 
+        rows="2"
+        placeholder="Describe el problema o trabajo a realizar..."
+      ></textarea>
+    </div>
+
+    <!-- 🔥 CORRECCIÓN: GRID MEJORADO Y CENTRADO -->
+    <div class="col-12">
+      <div class="search-selectors-grid justify-content-center">
+
+        <!-- Cliente en edición (solo lectura) -->
+        <div class="search-selector-column text-center">
+          <label class="form-label small fw-semibold">Cliente</label>
+          <div class="cliente-display-box" *ngIf="clienteEditSeleccionado">
+            <div class="selected-item-display">
+              <i class="bi bi-person-check text-success"></i>
+              <span class="ms-2">{{ clienteEditSeleccionado.nombre }}</span>
+            </div>
+            <small class="text-muted d-block mt-1">Cliente actual</small>
+          </div>
+          <div class="cliente-display-box text-muted" *ngIf="!clienteEditSeleccionado">
+            <i class="bi bi-person-x"></i>
+            <small>No seleccionado</small>
+          </div>
+        </div>
+
+        <!-- Equipo en edición -->
+        <div class="search-selector-column text-center">
+          <label class="form-label small fw-semibold">Equipo</label>
+          <div class="search-selector-container mx-auto" 
+               [class.invalid]="clienteEditSeleccionado && !equipoEditSeleccionado"
+               [class.valid]="equipoEditSeleccionado"
+               style="max-width: 300px;">
+            <app-search-selector
+              #equipoEditSelector
+              type="equipo"
+              [placeholder]="clienteEditSeleccionado ? 'Buscar equipo...' : 'Seleccione cliente'"
+              [disabled]="!clienteEditSeleccionado"
+              [selectedItem]="equipoEditSeleccionado"
+              [preloadOnFocus]="true"
+              (search)="buscarEquiposEdit($event)"
+              (selectItem)="seleccionarEquipoEdit($event)"
+              (clearSelection)="limpiarEquipoEdit()"
+              (focus)="cargarEquiposInicialesEdit()"
+              (loadInitialData)="cargarEquiposInicialesEdit()"
+            ></app-search-selector>
+          </div>
+          
+          <!-- Mensajes contextuales para equipos -->
+          <div *ngIf="!clienteEditSeleccionado" class="no-equipos-message text-center">
+            <i class="bi bi-exclamation-triangle"></i>
+            Primero selecciona un cliente
+          </div>
+          
+          <div *ngIf="clienteEditSeleccionado && !equipoEditSeleccionado && hasEquipoEditSelectorMessage()" 
+               class="no-equipos-message text-center">
+            <i class="bi bi-search"></i>
+            {{ getEquipoEditSelectorMessage() }}
+          </div>
+          
+          <small class="context-help info text-center d-block" *ngIf="equipoEditSeleccionado">
+            <i class="bi bi-check-circle"></i> Equipo seleccionado
+          </small>
+        </div>
+
+        <!-- Técnico en edición -->
+        <div class="search-selector-column text-center">
+          <label class="form-label small fw-semibold">Técnico</label>
+          <div class="search-selector-container mx-auto" 
+               [class.invalid]="!tecnicoEditSeleccionado"
+               [class.valid]="tecnicoEditSeleccionado"
+               style="max-width: 300px;">
+            <app-search-selector
+              #tecnicoEditSelector
+              type="tecnico"
+              placeholder="Buscar técnico..."
+              [selectedItem]="tecnicoEditSeleccionado"
+              [preloadOnFocus]="true"
+              (search)="buscarTecnicosEdit($event)"
+              (selectItem)="seleccionarTecnicoEdit($event)"
+              (clearSelection)="limpiarTecnicoEdit()"
+              (focus)="cargarTecnicosInicialesEdit()"
+              (loadInitialData)="cargarTecnicosInicialesEdit()"
+            ></app-search-selector>
+          </div>
+          <small class="context-help info text-center d-block" *ngIf="!tecnicoEditSeleccionado">
+            <i class="bi bi-info-circle"></i> Asigna un técnico
+          </small>
+          <small class="context-help success text-center d-block" *ngIf="tecnicoEditSeleccionado">
+            <i class="bi bi-check-circle"></i> Técnico asignado
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fecha y Estado - CENTRADOS -->
+    <div class="col-12 col-md-6 mx-auto">
+      <label class="form-label small fw-semibold">Fecha</label>
+      <input 
+        type="date" 
+        class="form-control text-center" 
+        [(ngModel)]="editBuffer.fecha"
+      />
+    </div>
+    
+    <div class="col-12 col-md-6 mx-auto">
+      <label class="form-label small fw-semibold">Estado</label>
+      <select 
+        class="form-control text-center" 
+        [(ngModel)]="editBuffer.estado"
+      >
+        <option value="pendiente">Pendiente</option>
+        <option value="en proceso">En proceso</option>
+        <option value="finalizada">Finalizada</option>
+        <option value="cancelada">Cancelada</option>  
+      </select>
+    </div>
+
+    <!-- Información de ayuda -->
+    <div class="col-12">
+      <div class="alert alert-info py-2 text-center">
+        <i class="bi bi-info-circle me-2"></i>
+        <small>Completá todos los campos para guardar los cambios</small>
+      </div>
+    </div>
+  </div>
+</ng-template>
+          </div>
+
+           <div class="d-flex gap-2 align-self-start flex-shrink-0 mt-2 mt-md-0">
+            <button 
+              *ngIf="editingId !== r.id" 
+              class="btn btn-sm btn-outline-warning" 
+              (click)="startEdit(r)"
+              title="Editar reparación"
+            >
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            
+            <ng-container *ngIf="editingId === r.id">
+              <button 
+                class="btn btn-sm btn-success" 
+                (click)="saveEdit(r.id)"
+                title="Guardar cambios"
+                [disabled]="!editBuffer.descripcion || !editBuffer.equipo_id || !editBuffer.usuario_id || !editBuffer.fecha || !editBuffer.estado"
+              >
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button 
+                class="btn btn-sm btn-secondary" 
+                (click)="cancelEdit()"
+                title="Cancelar edición"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </ng-container>
+            
+            <button 
+              class="btn btn-sm btn-outline-danger" 
+              (click)="eliminar(r.id)"
+              title="Eliminar reparación"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -101,74 +277,118 @@
   </div>
 
   <!-- CREAR -->
-  <div *ngIf="selectedAction==='crear'">
-    <h4 class="text-center mb-3">Registrar Reparación</h4>
-    <form (ngSubmit)="crear()" class="mx-auto form-max-width">
-      <div class="row g-3">
-        
-        <!-- Cliente -->
-        <div class="col-12">
-          <label class="form-label">Cliente</label>
+  <div *ngIf="isCrear()">
+    <h4 class="text-center mb-4">Registrar Reparación</h4>
+    
+    <!-- GRID HORIZONTAL DE BÚSQUEDAS -->
+    <div class="search-selectors-grid">
+      <!-- Cliente -->
+      <div class="search-selector-column">
+        <label class="form-label fw-semibold">Cliente</label>
+        <div class="search-selector-container" [class.invalid]="!clienteSeleccionado">
           <app-search-selector
             #clienteSelector
             type="cliente"
             placeholder="Buscar cliente por nombre..."
             [selectedItem]="clienteSeleccionado"
+            [preloadOnFocus]="true"
             (search)="buscarClientes($event)"
             (selectItem)="seleccionarCliente($event)"
             (clearSelection)="limpiarCliente()"
             (focus)="onFocusClientes()"
+            (loadInitialData)="cargarClientesIniciales()"
           ></app-search-selector>
         </div>
+        <small class="context-help info" *ngIf="!clienteSeleccionado">
+          <i class="bi bi-info-circle"></i> Selecciona un cliente para continuar
+        </small>
+      </div>
 
-        <!-- Equipo -->
-        <div class="col-12">
-          <label class="form-label">Equipo</label>
+      <!-- Equipo -->
+      <div class="search-selector-column">
+        <label class="form-label fw-semibold">Equipo</label>
+        <div class="search-selector-container" 
+             [class.invalid]="clienteSeleccionado && !equipoSeleccionado"
+             [class.valid]="equipoSeleccionado">
           <app-search-selector
             #equipoSelector
             type="equipo"
-            [placeholder]="clienteSeleccionado ? 'Buscar equipo...' : 'Primero seleccione un cliente'"
+            [placeholder]="clienteSeleccionado ? 'Buscar equipo del cliente...' : 'Primero seleccione un cliente'"
             [disabled]="!clienteSeleccionado"
             [selectedItem]="equipoSeleccionado"
+            [preloadOnFocus]="true"
             (search)="buscarEquipos($event)"
             (selectItem)="seleccionarEquipo($event)"
             (clearSelection)="limpiarEquipo()"
             (focus)="onFocusEquipos()"
+            (loadInitialData)="cargarEquiposIniciales()"
           ></app-search-selector>
-          <div *ngIf="!clienteSeleccionado" class="form-text text-warning">
-            <i class="bi bi-info-circle"></i> Primero selecciona un cliente para buscar equipos
-          </div>
         </div>
+        
+        <!-- Mensajes contextuales para equipos -->
+        <div *ngIf="!clienteSeleccionado" class="no-equipos-message">
+          <i class="bi bi-exclamation-triangle"></i>
+          Primero selecciona un cliente
+        </div>
+        
+        <div *ngIf="clienteSeleccionado && !equipoSeleccionado && equipoSelector?.hasSearched && equipoSelector?.suggestions?.length === 0" 
+             class="no-equipos-message">
+          <i class="bi bi-search"></i>
+          Este cliente no tiene equipos registrados
+        </div>
+        
+        <small class="context-help info" *ngIf="equipoSeleccionado">
+          <i class="bi bi-check-circle"></i> Equipo seleccionado
+        </small>
+      </div>
 
-        <!-- Técnico -->
-        <div class="col-12">
-          <label class="form-label">Técnico</label>
+      <!-- Técnico -->
+      <div class="search-selector-column">
+        <label class="form-label fw-semibold">Técnico</label>
+        <div class="search-selector-container" 
+             [class.invalid]="!tecnicoSeleccionado"
+             [class.valid]="tecnicoSeleccionado">
           <app-search-selector
             #tecnicoSelector
             type="tecnico"
             placeholder="Buscar técnico por nombre..."
             [selectedItem]="tecnicoSeleccionado"
+            [preloadOnFocus]="true"
             (search)="buscarTecnicos($event)"
             (selectItem)="seleccionarTecnico($event)"
             (clearSelection)="limpiarTecnico()"
             (focus)="onFocusTecnicos()"
+            (loadInitialData)="cargarTecnicosIniciales()"
           ></app-search-selector>
         </div>
+        <small class="context-help info" *ngIf="!tecnicoSeleccionado">
+          <i class="bi bi-info-circle"></i> Asigna un técnico responsable
+        </small>
+      </div>
+    </div>
 
-        <!-- Descripción y detalles -->
+    <!-- DETALLES DE LA REPARACIÓN (DEBAJO DEL GRID) -->
+    <div class="reparacion-details">
+      <h5 class="mb-3">Detalles de la Reparación</h5>
+      
+      <form (ngSubmit)="crear()" class="row g-3">
+        <!-- Descripción -->
         <div class="col-12">
-          <label class="form-label">Descripción de la reparación</label>
+          <label class="form-label fw-semibold">Descripción de la reparación</label>
           <textarea 
             class="form-control" 
             [(ngModel)]="nuevo.descripcion" 
             name="descripcion" 
             rows="3" 
+            placeholder="Describe el problema o trabajo a realizar..."
             required
           ></textarea>
+          <small class="context-help">Describe claramente el problema a resolver</small>
         </div>
 
-        <div class="col-6">
-          <label class="form-label">Fecha</label>
+        <!-- Fecha y Estado -->
+        <div class="col-12 col-md-6">
+          <label class="form-label fw-semibold">Fecha</label>
           <input 
             type="date" 
             class="form-control" 
@@ -177,9 +397,9 @@
             required 
           />
         </div>
-
-        <div class="col-6">
-          <label class="form-label">Estado</label>
+        
+        <div class="col-12 col-md-6">
+          <label class="form-label fw-semibold">Estado</label>
           <select 
             class="form-control" 
             [(ngModel)]="nuevo.estado" 
@@ -189,17 +409,42 @@
             <option value="pendiente">Pendiente</option>
             <option value="en proceso">En proceso</option>
             <option value="finalizada">Finalizada</option>
+            <option value="cancelada">Cancelada</option>
           </select>
         </div>
-      </div>
 
-      <button 
-        class="btn btn-success w-100 mt-3" 
-        type="submit" 
-        [disabled]="!clienteSeleccionado || !equipoSeleccionado || !tecnicoSeleccionado || !nuevo.descripcion"
-      >
-        <i class="bi bi-check-lg"></i> Guardar Reparación
-      </button>
-    </form>
+        <!-- Resumen de selección -->
+        <div class="col-12" *ngIf="clienteSeleccionado || equipoSeleccionado || tecnicoSeleccionado">
+          <div class="alert alert-info">
+            <h6 class="alert-heading mb-2">
+              <i class="bi bi-clipboard-check me-2"></i>Resumen de la reparación
+            </h6>
+            <div class="row small">
+              <div class="col-md-4" *ngIf="clienteSeleccionado">
+                <strong>Cliente:</strong> {{ clienteSeleccionado.nombre }}
+              </div>
+              <div class="col-md-4" *ngIf="equipoSeleccionado">
+                <strong>Equipo:</strong> {{ equipoSeleccionado.descripcion }}
+              </div>
+              <div class="col-md-4" *ngIf="tecnicoSeleccionado">
+                <strong>Técnico:</strong> {{ tecnicoSeleccionado.nombre }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón de envío -->
+        <div class="col-12">
+          <button 
+            class="btn btn-success w-100 py-2" 
+            type="submit" 
+            [disabled]="!isFormValid()"
+          >
+            <i class="bi bi-check-lg me-2"></i> 
+            {{ isFormValid() ? 'Guardar Reparación' : 'Completa todos los campos' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
