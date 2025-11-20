@@ -22,6 +22,7 @@
                 type="search"
                 [(ngModel)]="searchTerm"
                 [placeholder]="placeholder"
+                (keydown)="  bloquearBackspaceHold($event)"
                 (input)="onSearch()"
                 aria-label="Buscar"
               />
@@ -54,6 +55,7 @@
               type="search"
               [(ngModel)]="searchTerm"
               [placeholder]="placeholder"
+              (keydown)="bloquearBackspaceHold($event)"
               (input)="onSearch()"
               aria-label="Buscar"
             />

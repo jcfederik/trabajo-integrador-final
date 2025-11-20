@@ -34,6 +34,13 @@ class ProveedorController extends Controller
      *         required=false,
      *         @OA\Schema(type="integer", example=15)
      *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Término de búsqueda",
+     *         required=false,
+     *         @OA\Schema(type="string", example="distribuidora")
+     *     ),
      *     @OA\Response(
      *         response=200, 
      *         description="Lista de proveedores obtenida correctamente",
@@ -54,13 +61,89 @@ class ProveedorController extends Controller
     public function index(Request $request)
     {
         try {
+            $query = Proveedor::query();
+
+            // Búsqueda por término
+            if ($request->has('search') && $request->search !== '') {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('razon_social', 'LIKE', "%$search%")
+                      ->orWhere('cuit', 'LIKE', "%$search%")
+                      ->orWhere('telefono', 'LIKE', "%$search%")
+                      ->orWhere('email', 'LIKE', "%$search%")
+                      ->orWhere('direccion', 'LIKE', "%$search%");
+                });
+            }
+
+            // Orden
+            $sort = $request->get('sort', 'id');
+            $direction = $request->get('direction', 'desc');
+            $query->orderBy($sort, $direction);
+
+            // Paginación
             $perPage = $request->get('per_page', 15);
-            $page = $request->get('page', 1);
+            $proveedores = $query->paginate($perPage);
             
-            $proveedores = Proveedor::paginate($perPage, ['*'], 'page', $page);
             return response()->json($proveedores, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener los proveedores', 'detalle' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/proveedor/buscar",
+     *     summary="Buscar proveedores por término",
+     *     tags={"Proveedores"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         description="Término de búsqueda",
+     *         required=true,
+     *         @OA\Schema(type="string", example="distribuidora")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Elementos por página",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=100)
+     *     ),
+     *     @OA\Response(
+     *         response=200, 
+     *         description="Proveedores encontrados",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Proveedor"))
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Término de búsqueda requerido"),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=500, description="Error al buscar proveedores")
+     * )
+     */
+    public function buscar(Request $request)
+    {
+        $termino = $request->get('q');
+        $perPage = $request->get('per_page', 100);
+
+        if (!$termino) {
+            return response()->json([], 200);
+        }
+
+        try {
+            $proveedores = Proveedor::where(function($query) use ($termino) {
+                    $query->where('razon_social', 'LIKE', "%{$termino}%")
+                          ->orWhere('cuit', 'LIKE', "%{$termino}%")
+                          ->orWhere('telefono', 'LIKE', "%{$termino}%")
+                          ->orWhere('email', 'LIKE', "%{$termino}%")
+                          ->orWhere('direccion', 'LIKE', "%{$termino}%");
+                })
+                ->paginate($perPage);
+
+            return response()->json($proveedores, 200);
+        } catch (\Exception $e) {
+            return response()->json([], 200);
         }
     }
 
