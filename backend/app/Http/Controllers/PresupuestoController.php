@@ -59,25 +59,27 @@ class PresupuestoController extends Controller
 
             $query = Presupuesto::query();
 
-            // Cargar relaciones básicas de forma segura
-            $query->with(['reparacion' => function($query) {
-                $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
-            }]);
-
             if (!empty($search)) {
+                $query->with(['reparacion' => function($q) {
+                    $q->select('id', 'descripcion');
+                }]);
+                
                 $query->where(function($q) use ($search) {
                     $q->where('id', 'LIKE', "%{$search}%")
-                      ->orWhere('monto_total', 'LIKE', "%{$search}%")
-                      ->orWhere('fecha', 'LIKE', "%{$search}%")
-                      ->orWhere('aceptado', 'LIKE', "%{$search}%")
-                      ->orWhereHas('reparacion', function($q2) use ($search) {
-                          $q2->where('descripcion', 'LIKE', "%{$search}%")
-                             ->orWhere('estado', 'LIKE', "%{$search}%");
-                      });
+                    ->orWhere('monto_total', 'LIKE', "%{$search}%")
+                    ->orWhere('fecha', 'LIKE', "%{$search}%")
+                    ->orWhere('aceptado', 'LIKE', "%{$search}%")
+                    ->orWhereHas('reparacion', function($q2) use ($search) {
+                        $q2->where('descripcion', 'LIKE', "%{$search}%");
+                    });
                 });
+            } else {
+                $query->with(['reparacion' => function($q) {
+                    $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
+                }]);
             }
 
-            // Ordenar por ID descendente (en lugar de created_at que no existe)
+            // Ordenar por ID descendente
             $presupuestos = $query->orderBy('id', 'desc')
                                 ->paginate($perPage, ['*'], 'page', $page);
 
@@ -288,48 +290,19 @@ class PresupuestoController extends Controller
 
     private function agregarBusquedaPorFecha($query, $termino)
     {
-        $formatosFecha = [
-            'Y-m-d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'Y/m/d', 'm/d/Y', 'd/m/y'
-        ];
-        
-        $fechaEncontrada = false;
-        
-        foreach ($formatosFecha as $formato) {
-            try {
-                $fecha = Carbon::createFromFormat($formato, $termino);
-                if ($fecha !== false) {
-                    $query->whereDate('fecha', $fecha->format('Y-m-d'));
-                    $fechaEncontrada = true;
-                    break;
-                }
-            } catch (\Exception $e) {
-                continue;
-            }
-        }
-        
-        if (!$fechaEncontrada) {
-            if (preg_match('/^(19|20)\d{2}[-.\/](0[1-9]|1[0-2])$/', $termino)) {
-                $fecha = Carbon::createFromFormat('Y-m', str_replace(['/', '.'], '-', $termino));
-                $query->whereYear('fecha', $fecha->year)
-                    ->whereMonth('fecha', $fecha->month);
-                $fechaEncontrada = true;
-            }
-            elseif (preg_match('/^(0[1-9]|1[0-2])[-.\/](19|20)\d{2}$/', $termino)) {
-                $partes = preg_split('/[-.\/]/', $termino);
-                $mes = $partes[0];
-                $anio = $partes[1];
-                $query->whereYear('fecha', $anio)
-                    ->whereMonth('fecha', $mes);
-                $fechaEncontrada = true;
-            }
-            elseif (preg_match('/^(19|20)\d{2}$/', $termino)) {
+        try {
+            $fecha = Carbon::createFromFormat('Y-m-d', $termino);
+            $query->whereDate('fecha', $fecha->format('Y-m-d'));
+            return true;
+        } catch (\Exception $e) {
+            if (is_numeric($termino)) {
                 $query->whereYear('fecha', $termino);
-                $fechaEncontrada = true;
+                return true;
             }
         }
-        
-        return $fechaEncontrada;
+        return false;
     }
+
 
     /**
      * @OA\Put(

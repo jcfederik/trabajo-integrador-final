@@ -23,8 +23,19 @@
   <div *ngIf="selectedAction==='listar'">
     <h4 class="text-center mb-3">Presupuestos</h4>
 
+    <!-- Pantalla de carga durante búsqueda -->
+    <div *ngIf="buscandoPresupuestos && items.length === 0" class="search-loading">
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Buscando...</span>
+        </div>
+        <h5 class="text-muted">Buscando presupuestos...</h5>
+        <p class="text-muted small">Buscando "{{ searchTerm }}"</p>
+      </div>
+    </div>
+
     <!-- Skeleton primera carga -->
-    <div *ngIf="loading && items.length === 0" class="list-group">
+    <div *ngIf="loading && items.length === 0 && !buscandoPresupuestos" class="list-group">
       <div class="list-group-item" *ngFor="let s of [1,2,3,4,5]">
         <div class="placeholder-glow">
           <span class="placeholder col-4 me-2"></span>
@@ -38,7 +49,7 @@
     </div>
 
     <!-- Estado vacío -->
-    <ng-container *ngIf="!loading && items.length === 0; else listContent">
+    <ng-container *ngIf="!loading && items.length === 0 && !buscandoPresupuestos; else listContent">
       <div class="empty-state">
         <div class="icon-wrap">
           <i class="bi bi-clipboard-check"></i>
@@ -60,7 +71,7 @@
 
     <!-- Contenido listado -->
     <ng-template #listContent>
-      <div *ngIf="searchTerm && items.length === 0 && !loading" class="empty-state">
+      <div *ngIf="searchTerm && items.length === 0 && !loading && !buscandoPresupuestos" class="empty-state">
         <div class="icon-wrap">
           <i class="bi bi-search"></i>
         </div>
@@ -93,16 +104,26 @@
                 </div>
                 <div class="text-muted small">
                   <div class="mb-1">
-                    <strong>Reparación:</strong> {{ getDescripcionReparacion(p.reparacion_id) }}
-                  </div>
-                  <div>
+                    <strong>Reparación:</strong> 
+                    <span *ngIf="cargandoDescripciones.has(p.reparacion_id)" class="loading-dots">
+                      <span class="loading-dots-text">Cargando</span>
+                      <span class="loading-dots-container">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                      </span>
+                    </span>
+                    <span *ngIf="!cargandoDescripciones.has(p.reparacion_id)">
+                      {{ getDescripcionReparacion(p.reparacion_id) }}
+                    </span>
+                  </div>                  <div>
                     <i class="bi bi-calendar me-1"></i>Fecha: {{ p.fecha | date:'dd/MM/yyyy' }} · 
                     <i class="bi bi-currency-dollar me-1"></i>Monto: {{ (p.monto_total ?? 0) | number:'1.2-2' }}
                   </div>
                 </div>
               </ng-container>
 
-              <!-- BÚSQUEDA INTELIGENTE EN EDICIÓN -->
+              <!-- EDICIÓN -->
               <ng-template #editRow>
                 <div class="row g-2">
                   <div class="col-12">
@@ -228,7 +249,7 @@
       </div>
 
       <!-- CTA si hay pocos ítems -->
-      <div *ngIf="!loading && items.length && items.length < 3 && !searchTerm" class="text-center mt-3">
+      <div *ngIf="!loading && items.length && items.length < 3 && !searchTerm && !buscandoPresupuestos" class="text-center mt-3">
         <button class="action-pill success" (click)="seleccionarAccion('crear')">
           <i class="bi bi-clipboard-plus me-1"></i> Registrar nuevo presupuesto
         </button>

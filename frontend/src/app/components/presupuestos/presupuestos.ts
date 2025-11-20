@@ -83,6 +83,9 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
   private reparacionesCache = new Map<number, string>();
 
+  // Nueva propiedad para rastrear descripciones en carga
+  cargandoDescripciones = new Set<number>();
+
   constructor(
     private svc: PresupuestoService,
     private reparacionSvc: ReparacionService,
@@ -165,7 +168,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
     this.searchTerm = terminoLimpio;
     this.mostrandoSugerencias = true;
-    this.buscandoPresupuestos = true;
+    this.buscandoPresupuestos = true; // Activar pantalla de carga
 
     if (terminoLimpio.length <= 2) {
       // Búsqueda local para términos cortos
@@ -225,7 +228,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   }
 
   private applyFilter(): void {
-
     if (!this.searchTerm || this.searchTerm.trim() === '') {
       this.items = [...this.itemsAll];
       return;
@@ -237,6 +239,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       this.items = [...this.itemsAll];
     }
   }
+
   cerrarMenuSugerencias(): void {
     this.mostrandoSugerencias = false;
   }
@@ -269,7 +272,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     const terminoLimpio = termino || '';
     
     if (!terminoLimpio.trim()) {
-
       this.searchTerm = '';
       this.isServerSearch = false;
       this.searchService.setSearchTerm('');
@@ -312,7 +314,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
     this.buscandoReparacionesEdit = true;
     
-    // ✅ CORREGIDO: Usar el método correcto del servicio
     this.reparacionSvc.buscarReparaciones(terminoLimpio).subscribe({
       next: (response: any | { data: any[] }) => {
         const reparaciones = response.data || response;
@@ -392,6 +393,9 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       return this.reparacionesCache.get(reparacionId)!;
     }
 
+    // Agregar a conjunto de cargando
+    this.cargandoDescripciones.add(reparacionId);
+    
     const descripcionTemporal = `Reparación #${reparacionId}`;
     this.reparacionesCache.set(reparacionId, descripcionTemporal);
     this.cargarReparacionIndividual(reparacionId);
@@ -404,11 +408,13 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       next: (reparacion) => {
         const descripcion = reparacion.descripcion || `Reparación #${reparacionId}`;
         this.reparacionesCache.set(reparacionId, descripcion);
-        this.items = [...this.items];
+        this.cargandoDescripciones.delete(reparacionId); // Remover del conjunto
+        this.items = [...this.items]; // Forzar actualización de vista
       },
       error: () => {
         this.reparacionesCache.set(reparacionId, `Reparación #${reparacionId}`);
-        this.items = [...this.items];
+        this.cargandoDescripciones.delete(reparacionId); // Remover del conjunto
+        this.items = [...this.items]; // Forzar actualización de vista
       }
     });
   }
@@ -423,7 +429,9 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         return;
       }
 
+      // Agregar todos al conjunto de cargando
       reparacionesFaltantes.forEach(id => {
+        this.cargandoDescripciones.add(id);
         this.reparacionesCache.set(id, `Cargando...`);
       });
 
@@ -431,6 +439,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.reparacionSvc.show(id).pipe(
           catchError(() => {
             this.reparacionesCache.set(id, `Reparación #${id}`);
+            this.cargandoDescripciones.delete(id);
             return of(null);
           })
         )
@@ -439,11 +448,13 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       forkJoin(requests).subscribe(results => {
         results.forEach((reparacion, index) => {
           const id = reparacionesFaltantes[index];
+          this.cargandoDescripciones.delete(id); // Remover del conjunto
           if (reparacion) {
             const descripcion = reparacion.descripcion || `Reparación #${id}`;
             this.reparacionesCache.set(id, descripcion);
           }
         });
+        this.items = [...this.items]; // Forzar actualización de vista
         resolve();
       });
     });
