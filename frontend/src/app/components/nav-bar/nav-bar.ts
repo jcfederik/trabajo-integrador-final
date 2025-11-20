@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
@@ -17,7 +17,8 @@ export class NavBar implements OnInit, OnDestroy {
   placeholder: string = 'Buscar...';
   usuarioActual: string = 'Usuario';
   isDashboard: boolean = false;
-  
+
+  private backspacePresionado = false;  
   private searchSubscription!: Subscription;
   private componentSubscription!: Subscription;
   private routerSubscription!: Subscription;
@@ -155,4 +156,25 @@ export class NavBar implements OnInit, OnDestroy {
   esDashboard(): boolean {
     return this.router.url === '/dashboard' || this.router.url === '/';
   }
+
+
+  bloquearBackspaceHold(event: KeyboardEvent) {
+    if (event.key !== 'Backspace') return;
+
+    if (this.backspacePresionado) {
+      event.preventDefault();
+      return;
+    }
+
+    this.backspacePresionado = true;
+  }
+
+  @HostListener('document:keyup', ['$event'])
+  resetBackspace(event: KeyboardEvent) {
+    if (event.key === 'Backspace') {
+      this.backspacePresionado = false; 
+    }
+  }
+
+
 }

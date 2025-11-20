@@ -11,7 +11,7 @@ type ProveedorUI = Proveedor;
 @Component({
   selector: 'app-proveedores',
   standalone: true,
-  imports: [CommonModule, FormsModule ],
+  imports: [CommonModule, FormsModule],
   templateUrl: './proveedores.component.html',
   styleUrls: ['./proveedores.component.css']
 })
@@ -71,7 +71,10 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.searchService.setCurrentComponent('proveedores');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       this.searchTerm = (term || '').trim();
-      this.applyFilter();
+      this.page = 1;
+      this.lastPage = false;
+      this.proveedoresAll = [];
+      this.cargar();
     });
   }
 
@@ -80,7 +83,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     if (this.loading || this.lastPage) return;
     this.loading = true;
 
-    this.proveedoresService.getProveedores(page, this.perPage).subscribe({
+    this.proveedoresService.getProveedores(page, this.perPage, this.searchTerm).subscribe({
       next: (res: PaginatedResponse<Proveedor>) => {
         const batch = res.data ?? [];
 
@@ -93,7 +96,8 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
         this.page = res.current_page ?? page;
         this.lastPage = res.last_page === 0 || (res.current_page ?? page) >= (res.last_page ?? page);
 
-        this.applyFilter();
+        // Para proveedores, mostramos directamente los resultados del servidor
+        this.proveedores = [...this.proveedoresAll];
         this.searchService.setSearchData(this.proveedoresAll);
         this.loading = false;
       },
@@ -121,22 +125,6 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.proveedoresAll = [];
     this.proveedores = [];
     this.fetch(1);
-  }
-
-  private applyFilter(): void {
-    const term = this.searchTerm.toLowerCase();
-    if (!term) {
-      this.proveedores = [...this.proveedoresAll];
-      return;
-    }
-
-    this.proveedores = this.proveedoresAll.filter(p =>
-      p.razon_social.toLowerCase().includes(term) ||
-      p.cuit.toLowerCase().includes(term) ||
-      (p.telefono?.toLowerCase().includes(term) ?? false) ||
-      (p.direccion?.toLowerCase().includes(term) ?? false) ||
-      (p.email?.toLowerCase().includes(term) ?? false)
-    );
   }
 
   // ====== CREAR PROVEEDOR ======
@@ -172,7 +160,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.proveedoresService.deleteProveedor(id).subscribe({
       next: () => {
         this.proveedoresAll = this.proveedoresAll.filter(x => x.id !== id);
-        this.applyFilter();
+        this.proveedores = this.proveedores.filter(x => x.id !== id);
         this.searchService.setSearchData(this.proveedoresAll);
         alert('Proveedor eliminado exitosamente!');
       },

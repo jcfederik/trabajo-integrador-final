@@ -54,7 +54,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
-    window.addEventListener('scroll', this.onScroll, { passive: true });
+
   }
 
   ngOnDestroy(): void {
@@ -63,29 +63,34 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // ====== CONFIGURACIÓN ======
-  configurarBusqueda() {
+  // ====== CONFIGURACIÓN DE BÚSQUEDA ======
+    configurarBusqueda() {
     this.searchService.setCurrentComponent('repuestos');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
-      this.searchTerm = (term || '').trim();
-      this.applyFilter();
+      const newTerm = (term || '').trim();
+      
+      if (this.searchTerm !== newTerm) {
+        this.searchTerm = newTerm;
+        this.page = 1;
+        this.lastPage = false;
+        this.repuestosAll = [];
+        
+        if (!this.searchTerm) {
+          this.fetch(1);
+        } else {
+          this.fetch(1);
+        }
+      }
     });
   }
 
-  seleccionarAccion(a: Accion) { 
-    this.selectedAction = a; 
-  }
-
-  limpiarBusqueda() {
-    this.searchService.clearSearch();
-  }
 
   // ====== LISTA / PAGINACIÓN ======
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
 
-    this.repuestoService.getRepuestos(page, this.perPage).subscribe({
+    this.repuestoService.getRepuestos(page, this.perPage, this.searchTerm).subscribe({
       next: (res: PaginatedResponse<Repuesto>) => {
         const batch = res.data ?? [];
 
@@ -98,8 +103,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         this.page = res.current_page ?? page;
         this.lastPage = res.last_page === 0 || (res.current_page ?? page) >= (res.last_page ?? page);
 
-        this.applyFilter();
-        this.searchService.setSearchData(this.repuestosAll);
+        this.repuestos = [...this.repuestosAll];
         this.loading = false;
       },
       error: (e) => {
@@ -128,17 +132,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  private applyFilter(): void {
-    const term = this.searchTerm.toLowerCase();
-    if (!term) {
-      this.repuestos = [...this.repuestosAll];
-      return;
-    }
-
-    this.repuestos = this.searchService.search(this.repuestosAll, term, 'repuestos');
-  }
-
-  // ====== CRUD OPERATIONS ======
+  // ====== CREAR REPUESTO ======
   crear(): void {
     const payload = this.limpiarPayload(this.nuevo);
     if (!this.validarPayload(payload)) return;
@@ -157,7 +151,19 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         alert('Repuesto creado exitosamente!');
       },
       error: (e) => {
-        this.manejarError(e, 'crear repuesto');
+        console.error('Error completo al crear repuesto:', e);
+        
+        let mensajeError = 'Error al crear repuesto';
+        
+        if (e.error?.error) {
+          mensajeError = e.error.error;
+        } else if (e.error?.message) {
+          mensajeError = e.error.message;
+        } else if (e.message) {
+          mensajeError = e.message;
+        }
+        
+        alert(mensajeError);
       }
     });
   }
@@ -168,7 +174,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.repuestoService.deleteRepuesto(id).subscribe({
       next: () => {
         this.repuestosAll = this.repuestosAll.filter(x => x.id !== id);
-        this.applyFilter();
+        this.repuestos = this.repuestos.filter(x => x.id !== id);
         this.searchService.setSearchData(this.repuestosAll);
         alert('Repuesto eliminado exitosamente!');
       },
@@ -205,12 +211,38 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         console.log('Respuesta de actualización:', response);
         
         const repuestoActualizado = response.repuesto || response.data || response;
-        this.actualizarRepuestoLocal(id, repuestoActualizado);
+        
+        const updateLocal = (arr: Repuesto[]) => {
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx >= 0) {
+            arr[idx] = { 
+              ...arr[idx], 
+              ...repuestoActualizado 
+            } as Repuesto;
+          }
+        };
+
+        updateLocal(this.repuestosAll);
+        updateLocal(this.repuestos);
+
+        this.searchService.setSearchData(this.repuestosAll);
         this.cancelEdit();
         alert('Repuesto actualizado exitosamente!');
       },
       error: (e) => {
-        this.manejarError(e, 'actualizar repuesto');
+        console.error('Error completo al actualizar repuesto:', e);
+        
+        let mensajeError = 'No se pudo actualizar el repuesto';
+        
+        if (e.error?.error) {
+          mensajeError = e.error.error;
+        } else if (e.error?.message) {
+          mensajeError = e.error.message;
+        } else if (e.message) {
+          mensajeError = e.message;
+        }
+        
+        alert(mensajeError);
       }
     });
   }
@@ -280,9 +312,19 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     }).format(precio);
   }
 
-  getStockClass(stock: number): string {
-    if (stock === 0) return 'text-danger';
-    if (stock < 10) return 'text-warning';
-    return '';
+  seleccionarAccion(a: Accion) { 
+    this.selectedAction = a; 
   }
+
+  limpiarBusqueda() {
+    this.searchService.setSearchTerm('');
+    this.searchTerm = '';
+    this.page = 1;
+    this.lastPage = false;
+    this.repuestosAll = [];
+    this.repuestos = [];
+
+    this.fetch(1);
+  }
+
 }
