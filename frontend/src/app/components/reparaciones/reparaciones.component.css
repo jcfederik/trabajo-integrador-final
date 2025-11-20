@@ -482,4 +482,20 @@
 /* Scroll suave */
 html {
   scroll-behavior: smooth;
+} 
+
+
+/* Forzar al search selector a tener su propio stacking context */
+app-search-selector {
+  position: relative !important;
+  z-index: 99999 !important;
+  display: block;
+  overflow: visible !important;
+}
+
+/* Asegurar que el contenedor interno NO recorte */
+.search-container {
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 999999 !important;
 }

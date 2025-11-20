@@ -5,14 +5,13 @@ import { Subscription } from 'rxjs';
 
 import { RepuestoService, Repuesto, PaginatedResponse } from '../../services/repuestos.service';
 import { SearchService } from '../../services/busquedaglobal';
-import { SearchSelectorComponent, SearchResult } from '../../components/search-selector/search-selector.component';
 
 type Accion = 'listar' | 'crear';
 
 @Component({
   selector: 'app-repuestos',
   standalone: true,
-  imports: [CommonModule, FormsModule, SearchSelectorComponent],
+  imports: [CommonModule, FormsModule], // ← Quitamos SearchSelectorComponent
   templateUrl: './repuestos.component.html',
   styleUrls: ['./repuestos.component.css']
 })
@@ -51,6 +50,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     public searchService: SearchService
   ) {}
 
+  // ====== LIFECYCLE ======
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
@@ -168,7 +168,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== ELIMINAR REPUESTO ======
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este repuesto?')) return;
 
@@ -188,7 +187,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   // ====== EDICIÓN INLINE ======
   startEdit(item: Repuesto): void {
-    this.editingId = item.id;
+    this.editingId = item.id!;
     this.editBuffer = {
       nombre: item.nombre ?? '',
       stock: item.stock ?? 0,
@@ -273,6 +272,39 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  private actualizarRepuestoLocal(id: number, datosActualizados: Partial<Repuesto>): void {
+    const actualizarArray = (arr: Repuesto[]) => {
+      const idx = arr.findIndex(x => x.id === id);
+      if (idx >= 0) {
+        arr[idx] = { 
+          ...arr[idx], 
+          ...datosActualizados 
+        } as Repuesto;
+      }
+    };
+
+    actualizarArray(this.repuestosAll);
+    actualizarArray(this.repuestos);
+    this.searchService.setSearchData(this.repuestosAll);
+  }
+
+  private manejarError(error: any, operacion: string): void {
+    console.error(`Error completo al ${operacion}:`, error);
+    
+    let mensajeError = `Error al ${operacion}`;
+    
+    if (error.error?.error) {
+      mensajeError = error.error.error;
+    } else if (error.error?.message) {
+      mensajeError = error.error.message;
+    } else if (error.message) {
+      mensajeError = error.message;
+    }
+    
+    alert(mensajeError);
+  }
+
+  // ====== UTILITIES ======
   formatearPrecio(precio: number): string {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',

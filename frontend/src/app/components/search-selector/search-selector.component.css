@@ -2,6 +2,8 @@
 .search-container {
   position: relative;
   width: 100%;
+  z-index: 10000;
+    display: inline-block; /* shrink to fit content */
 }
 
 /* Input de búsqueda */

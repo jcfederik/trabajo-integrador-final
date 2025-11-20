@@ -1,4 +1,4 @@
-/* Píldoras de acción (coherentes con otros módulos) */
+/* Píldoras de acción */
 .action-pill {
   display: inline-flex;
   align-items: center;
@@ -16,15 +16,41 @@
 .action-pill.success { border-color: var(--bs-success); color: var(--bs-success); }
 .action-pill.success.active { background: var(--bs-success); color: #fff; border-color: var(--bs-success); }
 
+/* SOLUCIÓN CRÍTICA PARA EL Z-INDEX */
+.equipos-list {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* Contenedor del buscador con alto z-index */
+.search-selector-wrapper {
+  position: relative;
+  z-index: 1000 !important;
+}
+
+/* Forzar z-index alto en el componente de búsqueda */
+app-search-selector {
+  position: relative;
+  z-index: 1001 !important;
+}
+
+/* Asegurar que el dropdown esté por encima de TODO */
+.search-selector-dropdown {
+  z-index: 1050 !important;
+  position: absolute;
+  width: 100%;
+}
+
+
 /* Ítems de lista */
 .list-group-item {
   border-radius: .5rem;
   margin-bottom: .4rem;
   transition: all 0.2s ease;
-}
-
-.list-group-item:hover {
-  background-color: #f8f9fa;
+  position: relative;
+  padding: 1rem;
+  z-index: 0;
 }
 
 /* Estado vacío */
@@ -58,6 +84,12 @@
   max-width: 680px;
 }
 
+/* Contenedor de acciones */
+.action-buttons-container {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .action-pill {
@@ -68,4 +100,27 @@
   .list-group-item {
     padding: 1rem;
   }
+  
+  .d-flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+}
+
+/* ITEM que está en edición debe estar arriba de todos */
+.list-group-item.editing {
+  position: relative;
+  z-index: 2000 !important; 
+}
+
+/* el dropdown del search selector */
+app-search-selector {
+  position: relative;
+  z-index: 3000 !important; 
+}
+
+/* menú desplegable del buscador */
+.sugerencias-menu,
+.search-selector-dropdown {
+  z-index: 4000 !important;
+  position: absolute;
 }
