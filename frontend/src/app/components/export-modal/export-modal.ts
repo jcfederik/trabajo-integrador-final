@@ -1,11 +1,11 @@
-import { Component, EventEmitter, Output, OnInit, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
 import { Factura } from '../../services/facturas';
 import { Cliente, ClienteService } from '../../services/cliente.service';
 import { FacturaReportComponent } from '../factura-report/factura-report';
 import { SearchService } from '../../services/busquedaglobal';
+import { AlertService } from '../../services/alert.service';
 
 export type ModalView = 'options' | 'clientes' | 'facturas-cliente';
 
@@ -17,10 +17,12 @@ export type ModalView = 'options' | 'clientes' | 'facturas-cliente';
   styleUrls: ['./export-modal.css']
 })
 export class ExportModalComponent implements OnInit, OnDestroy {
+  
+  // =============== OUTPUTS ===============
   @Output() cerrar = new EventEmitter<void>();
   @Output() exportarTodas = new EventEmitter<void>();
   
-  // Estados del modal
+  // =============== ESTADOS DEL MODAL ===============
   vistaActual: ModalView = 'options';
   todosLosClientes: Cliente[] = [];
   clientes: Cliente[] = [];
@@ -30,30 +32,21 @@ export class ExportModalComponent implements OnInit, OnDestroy {
   cargandoClientes = false;
   terminoBusqueda = '';
 
-  // Suscripción para búsqueda global
-  private searchSub?: Subscription;
+  private alertService = inject(AlertService);
 
   constructor(
     private clienteService: ClienteService,
     private searchService: SearchService
   ) {}
 
+  // =============== LIFECYCLE ===============
   ngOnInit(): void {
     this.cargarClientes();
-    
-    // Integrar con buscador global
-    this.searchService.setCurrentComponent('clientes');
-    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
-      this.terminoBusqueda = (term || '').trim();
-      this.aplicarFiltroClientes();
-    });
   }
 
-  ngOnDestroy(): void {
-    this.searchSub?.unsubscribe();
-    this.searchService.clearSearch();
-  }
+  ngOnDestroy(): void {}
 
+  // =============== CARGA DE DATOS ===============
   cargarClientes(): void {
     this.cargandoClientes = true;
     this.clienteService.getClientes(1, 100).subscribe({
@@ -61,42 +54,42 @@ export class ExportModalComponent implements OnInit, OnDestroy {
         this.todosLosClientes = response.data;
         this.clientes = response.data;
         this.cargandoClientes = false;
-        this.searchService.setSearchData(this.todosLosClientes);
       },
       error: (error) => {
-        console.error('❌ Error cargando clientes:', error);
         this.cargandoClientes = false;
         this.todosLosClientes = [];
         this.clientes = [];
+        this.alertService.showGenericError('Error al cargar los clientes');
       }
     });
   }
 
-  // 🔥 BÚSQUEDA LOCAL - NO HTTP
+  // =============== BÚSQUEDA Y FILTRADO ===============
   onBuscarCliente(): void {
-    // Solo actualizar el término - el filtro se aplica automáticamente vía subscription
-    this.searchService.setSearchTerm(this.terminoBusqueda);
+    this.aplicarFiltroClientes();
   }
 
-  // Aplicar filtro localmente
   private aplicarFiltroClientes(): void {
     if (!this.terminoBusqueda) {
       this.clientes = [...this.todosLosClientes];
       return;
     }
 
-    this.clientes = this.searchService.search(
-      this.todosLosClientes, 
-      this.terminoBusqueda, 
-      'clientes'
+    const termino = this.terminoBusqueda.toLowerCase();
+    this.clientes = this.todosLosClientes.filter(cliente => 
+      cliente.nombre.toLowerCase().includes(termino) ||
+      (cliente.email && cliente.email.toLowerCase().includes(termino)) ||
+      (cliente.telefono && cliente.telefono.includes(termino)) ||
+      cliente.id.toString().includes(termino)
     );
   }
 
   limpiarBusqueda(): void {
     this.terminoBusqueda = '';
-    this.searchService.setSearchTerm('');
+    this.aplicarFiltroClientes();
   }
 
+  // =============== NAVEGACIÓN Y SELECCIÓN ===============
   seleccionarTodasFacturas(): void {
     this.exportarTodas.emit();
     this.cerrarModal();
@@ -106,7 +99,6 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     this.vistaActual = 'clientes';
     this.terminoBusqueda = '';
     this.clientes = [...this.todosLosClientes];
-    this.searchService.setSearchTerm('');
   }
 
   seleccionarCliente(cliente: Cliente): void {
@@ -120,36 +112,16 @@ export class ExportModalComponent implements OnInit, OnDestroy {
         this.cargando = false;
       },
       error: (error) => {
-        console.error('❌ Error cargando facturas:', error);
         this.cargando = false;
         this.facturasCliente = [];
         this.vistaActual = 'facturas-cliente';
+        this.alertService.showGenericError('Error al cargar las facturas del cliente');
       }
     });
   }
 
   seleccionarFactura(factura: Factura): void {
     this.generarReporteIndividual(factura);
-    this.cerrarModal();
-  }
-
-  descargarTodasFacturasCliente(): void {
-    if (!this.clienteSeleccionado || this.facturasCliente.length === 0) {
-      alert('No hay facturas para descargar');
-      return;
-    }
-    
-    const reportComponent = new FacturaReportComponent();
-    reportComponent.facturas = this.facturasCliente;
-    reportComponent.titulo = `Facturas - ${this.clienteSeleccionado.nombre}`;
-    reportComponent.generarReporte();
-  }
-
-  generarReporteIndividual(factura: Factura): void {
-    const reportComponent = new FacturaReportComponent();
-    reportComponent.facturas = [factura];
-    reportComponent.titulo = `Factura ${factura.numero}`;
-    reportComponent.generarReporte();
   }
 
   volverAtras(): void {
@@ -157,7 +129,7 @@ export class ExportModalComponent implements OnInit, OnDestroy {
       case 'clientes':
         this.vistaActual = 'options';
         this.terminoBusqueda = '';
-        this.searchService.setSearchTerm('');
+        this.clientes = [...this.todosLosClientes];
         break;
       case 'facturas-cliente':
         this.vistaActual = 'clientes';
@@ -167,8 +139,42 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     }
   }
 
+  // =============== GENERACIÓN DE REPORTES ===============
+  private generarReporteCliente(): void {
+    const reportComponent = new FacturaReportComponent(this.alertService);
+    reportComponent.facturas = this.facturasCliente;
+    reportComponent.titulo = `Facturas - ${this.clienteSeleccionado?.nombre}`;
+    reportComponent.cliente = this.clienteSeleccionado || undefined;
+    reportComponent.generarReporte();
+    this.cerrarModal();
+    this.alertService.showExportSuccess(`Facturas - ${this.clienteSeleccionado?.nombre}`);
+  }
+
+  private generarReporteIndividual(factura: Factura): void {
+    const reportComponent = new FacturaReportComponent(this.alertService);
+    reportComponent.facturas = [factura];
+    reportComponent.titulo = `Factura ${factura.numero}`;
+    
+    if (this.clienteSeleccionado) {
+      reportComponent.cliente = this.clienteSeleccionado;
+    }
+    
+    reportComponent.generarReporte();
+    this.cerrarModal();
+    this.alertService.showExportSuccess(`Factura ${factura.numero}`);
+  }
+
+  descargarTodasFacturasCliente(): void {
+    if (!this.clienteSeleccionado || this.facturasCliente.length === 0) {
+      this.alertService.showGenericError('No hay facturas para descargar');
+      return;
+    }
+    
+    this.generarReporteCliente();
+  }
+
+  // =============== UTILIDADES ===============
   cerrarModal(): void {
-    this.searchService.clearSearch();
     this.cerrar.emit();
   }
 }

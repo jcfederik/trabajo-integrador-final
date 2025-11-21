@@ -12,6 +12,8 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
+
+  // =============== ESTADOS DEL COMPONENTE ===============
   loading = false;
   error: string | null = null;
   showPassword = false;
@@ -25,6 +27,7 @@ export class LoginComponent {
     this.checkRememberedUser();
   }
 
+  // =============== MÉTODO PRINCIPAL ===============
   login(form: NgForm) {
     form.form.markAllAsTouched();
 
@@ -40,7 +43,6 @@ export class LoginComponent {
 
     const { nombre, password } = form.value;
 
-    // Guardar usuario si está marcado "recordar"
     if (this.rememberMe) {
       localStorage.setItem('rememberedUser', nombre);
     } else {
@@ -55,7 +57,6 @@ export class LoginComponent {
         this.loading = false;
         this.cdr.markForCheck();
         
-        // Redirección con pequeño delay para mejor UX
         setTimeout(() => {
           this.router.navigate(['/dashboard']);
         }, 500);
@@ -68,6 +69,7 @@ export class LoginComponent {
     });
   }
 
+  // =============== MANEJO DE ERRORES ===============
   private handleError(error: any) {
     if (error.status === 401) {
       this.error = 'Credenciales inválidas. Verificá tu usuario y contraseña.';
@@ -82,14 +84,15 @@ export class LoginComponent {
     }
   }
 
+  // =============== RECORDAR USUARIO ===============
   private checkRememberedUser() {
     const rememberedUser = localStorage.getItem('rememberedUser');
     if (rememberedUser) {
       this.rememberMe = true;
-      // Puedes pre-cargar el usuario en el formulario si lo deseas
     }
   }
 
+  // =============== UTILIDADES ===============
   togglePassword() {
     this.showPassword = !this.showPassword;
   }

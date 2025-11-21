@@ -36,10 +36,10 @@ Route::middleware(['jwt.auth'])->group(function () {
     // Recursos accesibles por cualquier usuario autenticado
     Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
     Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
-    Route::apiResource('clientes', ClienteController::class);
     Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
     Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
     Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
+    Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('equipos', EquipoController::class);
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
     Route::apiResource('medios-cobro', MedioCobroController::class);

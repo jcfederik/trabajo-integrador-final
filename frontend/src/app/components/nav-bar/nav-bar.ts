@@ -13,12 +13,17 @@ import { Subscription, filter } from 'rxjs';
   styleUrls: ['./nav-bar.css']
 })
 export class NavBar implements OnInit, OnDestroy {
+
+  // =============== ESTADOS DEL COMPONENTE ===============
   searchTerm: string = '';
   placeholder: string = 'Buscar...';
   usuarioActual: string = 'Usuario';
   isDashboard: boolean = false;
 
+  // =============== CONTROL DE TECLADO ===============
   private backspacePresionado = false;  
+
+  // =============== SUSCRIPCIONES ===============
   private searchSubscription!: Subscription;
   private componentSubscription!: Subscription;
   private routerSubscription!: Subscription;
@@ -28,26 +33,34 @@ export class NavBar implements OnInit, OnDestroy {
     public router: Router
   ) {}
 
+  // =============== LIFECYCLE ===============
   ngOnInit() {
     this.checkCurrentRoute();
     this.setPlaceholderByRoute();
     this.loadUserData();
+    this.configurarSuscripciones();
+  }
 
-    // Sincronizar con búsqueda global
+  ngOnDestroy() {
+    if (this.searchSubscription) this.searchSubscription.unsubscribe();
+    if (this.componentSubscription) this.componentSubscription.unsubscribe();
+    if (this.routerSubscription) this.routerSubscription.unsubscribe();
+  }
+
+  // =============== CONFIGURACIÓN ===============
+  private configurarSuscripciones() {
     this.searchSubscription = this.searchService.globalSearchTerm$.subscribe(term => {
       if (term !== this.searchTerm) {
         this.searchTerm = term;
       }
     });
 
-    // Actualizar placeholder cuando cambia el componente
     this.componentSubscription = this.searchService.currentComponent$.subscribe(component => {
       setTimeout(() => {
         this.placeholder = this.getPlaceholder(component);
       });
     });
 
-    // Escuchar cambios de ruta
     this.routerSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -58,18 +71,7 @@ export class NavBar implements OnInit, OnDestroy {
       });
   }
 
-  ngOnDestroy() {
-    if (this.searchSubscription) {
-      this.searchSubscription.unsubscribe();
-    }
-    if (this.componentSubscription) {
-      this.componentSubscription.unsubscribe();
-    }
-    if (this.routerSubscription) {
-      this.routerSubscription.unsubscribe();
-    }
-  }
-
+  // =============== GESTIÓN DE RUTAS ===============
   private checkCurrentRoute() {
     this.isDashboard = this.esDashboard();
   }
@@ -105,6 +107,42 @@ export class NavBar implements OnInit, OnDestroy {
     }
   }
 
+  esDashboard(): boolean {
+    return this.router.url === '/dashboard' || this.router.url === '/';
+  }
+
+  // =============== GESTIÓN DE USUARIO ===============
+  private loadUserData() {
+    const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('user');
+    if (usuarioGuardado) {
+      try {
+        const usuario = JSON.parse(usuarioGuardado);
+        this.usuarioActual = usuario.nombre || usuario.name || 'Usuario';
+      } catch {
+        this.usuarioActual = 'Usuario';
+      }
+    }
+  }
+
+  // =============== BÚSQUEDA ===============
+  onSearch() {
+    this.searchService.setGlobalSearchTerm(this.searchTerm);
+    
+    if (this.isDashboard) {
+      this.searchService.setDashboardSearchTerm(this.searchTerm);
+    } else {
+      this.searchService.setSearchTerm(this.searchTerm);
+    }
+  }
+
+  clearSearch() {
+    this.searchTerm = '';
+    this.searchService.clearGlobalSearch();
+    this.searchService.clearSearch();
+    this.searchService.clearDashboardSearch();
+  }
+
+  // =============== UTILIDADES ===============
   private getPlaceholder(component: string): string {
     const placeholders: { [key: string]: string } = {
       'equipos': 'Buscar equipos...',
@@ -124,40 +162,7 @@ export class NavBar implements OnInit, OnDestroy {
     return placeholders[component] || 'Buscar...';
   }
 
-  private loadUserData() {
-    const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('user');
-    if (usuarioGuardado) {
-      try {
-        const usuario = JSON.parse(usuarioGuardado);
-        this.usuarioActual = usuario.nombre || usuario.name || 'Usuario';
-      } catch {
-        this.usuarioActual = 'Usuario';
-      }
-    }
-  }
-
-  onSearch() {
-    this.searchService.setGlobalSearchTerm(this.searchTerm);
-    
-    if (this.isDashboard) {
-      this.searchService.setDashboardSearchTerm(this.searchTerm);
-    } else {
-      this.searchService.setSearchTerm(this.searchTerm);
-    }
-  }
-
-  clearSearch() {
-    this.searchTerm = '';
-    this.searchService.clearGlobalSearch();
-    this.searchService.clearSearch();
-    this.searchService.clearDashboardSearch();
-  }
-
-  esDashboard(): boolean {
-    return this.router.url === '/dashboard' || this.router.url === '/';
-  }
-
-
+  // =============== CONTROL DE TECLADO ===============
   bloquearBackspaceHold(event: KeyboardEvent) {
     if (event.key !== 'Backspace') return;
 
@@ -175,6 +180,4 @@ export class NavBar implements OnInit, OnDestroy {
       this.backspacePresionado = false; 
     }
   }
-
-
 }

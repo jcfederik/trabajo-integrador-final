@@ -1,3 +1,5 @@
+/* =============== ESTILOS EXISTENTES MEJORADOS =============== */
+
 /* Píldoras de acción */
 .action-pill {
   display: inline-flex;
@@ -269,6 +271,94 @@
   height: 1rem;
 }
 
+/* =============== NUEVOS ESTILOS PARA LOADING CON PUNTOS SALTANTES =============== */
+
+/* Contenedor de texto "Cargando..." con puntos animados */
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.loading-dots-text {
+  margin-right: 4px;
+}
+
+.loading-dots-container {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #6c757d;
+  animation: dotBounce 1.4s ease-in-out infinite both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0s;
+}
+
+/* Animación de puntos saltantes */
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* Versión alternativa con puntos más grandes para mejor visibilidad */
+.loading-dots-large .dot {
+  width: 6px;
+  height: 6px;
+}
+
+/* Placeholders para skeleton - mantener compatibilidad */
+.placeholder-xs {
+  height: 12px;
+  width: 150px;
+}
+
+/* Pantalla de carga durante búsqueda */
+.search-loading {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mejora para los placeholders existentes */
+.placeholder-glow .placeholder {
+  animation: placeholder-glow 2s ease-in-out infinite;
+}
+
+@keyframes placeholder-glow {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Asegurar que los placeholders tengan buen contraste */
+.list-group-item .placeholder {
+  background-color: #e9ecef;
+  border-radius: 2px;
+}
+
 /* Animaciones */
 @keyframes slideDown {
   from {
@@ -330,6 +420,10 @@
   .empty-state {
     padding: 32px 12px;
   }
+  
+  .loading-dots {
+    font-size: 0.875rem;
+  }
 }
 
 /* Badges mejorados */
@@ -383,4 +477,60 @@
 
 .empty-state .icon-wrap {
   animation: floatIn 0.4s ease-out 0.1s both;
+}
+
+/* =============== ESTILOS ADICIONALES PARA MEJORAR LA EXPERIENCIA =============== */
+
+/* Mejoras para los placeholders de carga en las descripciones */
+.list-group-item .placeholder-glow {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Ajustes para el texto de carga */
+.search-loading h5 {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.search-loading .text-muted {
+  color: #7f8c8d !important;
+}
+
+/* Mejora visual para los skeletons de carga inicial */
+.list-group-item .placeholder-glow .placeholder {
+  margin-bottom: 4px;
+}
+
+/* Asegurar que los placeholders sean consistentes */
+.placeholder {
+  background-color: #e9ecef;
+  display: inline-block;
+}
+
+/* Transiciones suaves para cambios de estado */
+.list-group-item {
+  transition: all 0.3s ease;
+}
+
+/* Mejora visual para los badges de estado */
+.badge.bg-success {
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+}
+
+.badge.bg-secondary {
+  background: linear-gradient(135deg, #6c757d, #868e96) !important;
+}
+
+.badge.bg-warning {
+  background: linear-gradient(135deg, #ffc107, #fd7e14) !important;
+  color: #212529 !important;
+}
+
+.badge.bg-info {
+  background: linear-gradient(135deg, #17a2b8, #6f42c1) !important;
+}
+
+.badge.bg-danger {
+  background: linear-gradient(135deg, #dc3545, #e83e8c) !important;
 }

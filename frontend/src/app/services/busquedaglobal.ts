@@ -60,16 +60,9 @@ export interface SearchableItem {
   stock?: number;
   costo_base?: number;
   
-  // // Campos para MedioCobro
-  // nombre?: string;
-  
-  // // Campos para Especializacion
-  // nombre?: string;
-  
-  // // Campos para CompraRepuesto
-  // numero_comprobante?: string;
-  // total?: number;
-  // estado?: boolean;
+  // Campos para CompraRepuesto
+  numero_comprobante?: string;
+  total?: number;
 }
 
 export interface ServerSearchParams {
@@ -274,36 +267,15 @@ export class SearchService {
         );
         break;
 
-      // case 'medios-cobro':
-      //   fields.push(
-      //     item.nombre || ''
-      //   );
-      //   break;
-
-      // case 'especializaciones':
-      //   fields.push(
-      //     item.nombre || ''
-      //   );
-      //   break;
-
-      // case 'compras-repuestos':
-      //   fields.push(
-      //     item.numero_comprobante || '',
-      //     item.total?.toString() || '',
-      //     item.estado?.toString() || ''
-      //   );
-      //   break;
-
-      // default:
-      //   // Búsqueda genérica para componentes no especificados
-      //   fields.push(
-      //     item.nombre || '',
-      //     item.email || '',
-      //     item.telefono || '',
-      //     item.descripcion || '',
-      //     item.numero || '',
-      //     item.detalle || ''
-      //   );
+      default:
+        fields.push(
+          item.nombre || '',
+          item.email || '',
+          item.telefono || '',
+          item.descripcion || '',
+          item.numero || '',
+          item.detalle || ''
+        );
     }
 
     return fields;

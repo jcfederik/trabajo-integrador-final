@@ -23,29 +23,22 @@ export class AuthService {
     if (userData) this.currentUser.set(JSON.parse(userData));
   }
 
-  // 👇 Adaptado: tu back usa "nombre" y "password"
+  // ====== LOGIN ======
   login(nombre: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { nombre, password }).pipe(
       tap((res) => {
         if (res && res.token) {
           const token = String(res.token).replace(/^Bearer\s+/i, '').trim();
-
-          // Guardar token y usuario
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(res.user));
-
           this.isLoggedIn.set(true);
           this.currentUser.set(res.user);
-          console.debug('AuthService.login: Token almacenado correctamente');
-          
-        } else {
-          console.error('AuthService.login: No se encontró token en la respuesta', res);
         }
       })
     );
   }
 
-  // Obtener token almacenado
+  // ====== TOKEN MANAGEMENT ======
   getToken(): string | null {
     return localStorage.getItem('token');
   }
@@ -56,13 +49,13 @@ export class AuthService {
     try {
       const payload = JSON.parse(atob(t.split('.')[1]));
       const now = Math.floor(Date.now() / 1000);
-      return payload?.exp ? payload.exp > now : true; // si no hay exp, como mínimo existe token
+      return payload?.exp ? payload.exp > now : true;
     } catch {
       return false;
     }
   }
 
-  // Cerrar sesión (también podrías hacer POST /logout al back)
+  // ====== LOGOUT ======
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -70,7 +63,7 @@ export class AuthService {
     this.currentUser.set(null);
   }
 
-  // Obtener usuario actual desde storage
+  // ====== USER MANAGEMENT ======
   getCurrentUser(): any {
     return this.currentUser();
   }
