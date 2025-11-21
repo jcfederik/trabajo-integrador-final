@@ -96,31 +96,62 @@
             <!-- Izquierda: datos -->
             <div class="flex-grow-1">
               <ng-container *ngIf="editingId !== p.id; else editRow">
-                <div class="fw-semibold mb-1">
-                  Presupuesto #{{ p.id }}
-                  <span class="badge ms-2" [class.bg-success]="p.aceptado" [class.bg-secondary]="!p.aceptado">
-                    {{ p.aceptado ? 'Aceptado' : 'Pendiente' }}
-                  </span>
-                </div>
-                <div class="text-muted small">
-                  <div class="mb-1">
-                    <strong>Reparación:</strong> 
-                    <span *ngIf="cargandoDescripciones.has(p.reparacion_id)" class="loading-dots">
-                      <span class="loading-dots-text">Cargando</span>
-                      <span class="loading-dots-container">
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                      </span>
-                    </span>
-                    <span *ngIf="!cargandoDescripciones.has(p.reparacion_id)">
-                      {{ getDescripcionReparacion(p.reparacion_id) }}
-                    </span>
-                  </div>                  <div>
-                    <i class="bi bi-calendar me-1"></i>Fecha: {{ p.fecha | date:'dd/MM/yyyy' }} · 
-                    <i class="bi bi-currency-dollar me-1"></i>Monto: {{ (p.monto_total ?? 0) | number:'1.2-2' }}
-                  </div>
-                </div>
+                <!-- REEMPLAZA la sección de datos del presupuesto con esto -->
+<div class="fw-semibold mb-2 presupuesto-titulo">
+  <span *ngIf="cargandoDescripciones.has(p.reparacion_id)" class="loading-dots">
+    <span class="loading-dots-text">Cargando información</span>
+    <span class="loading-dots-container">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </span>
+  </span>
+  
+  <span *ngIf="!cargandoDescripciones.has(p.reparacion_id)">
+    {{ getTituloPresupuesto(p) }}
+    <span class="badge ms-2 estado-badge" [class.bg-success]="p.aceptado" [class.bg-secondary]="!p.aceptado">
+      {{ p.aceptado ? 'Aceptado' : 'Pendiente' }}
+    </span>
+  </span>
+</div>
+
+<div class="presupuesto-info">
+  <!-- Línea principal de la reparación -->
+  <div class="info-line principal">
+    <i class="bi bi-tools icono-destacado"></i>
+    <span class="info-label">Reparación:</span>
+    <span class="info-value destacado">{{ getDescripcionReparacion(p.reparacion_id) }}</span>
+  </div>
+
+  <!-- Información del equipo y cliente -->
+  <div class="info-line" *ngIf="getInfoEquipo(p.reparacion_id) || getInfoCliente(p.reparacion_id)">
+    <i class="bi bi-pc-display"></i>
+    <span class="info-label">Equipo:</span>
+    <span class="info-value">{{ getInfoEquipo(p.reparacion_id) }}</span>
+    <span class="info-separator">|</span>
+    <i class="bi bi-person"></i>
+    <span class="info-label">Cliente:</span>
+    <span class="info-value">{{ getInfoCliente(p.reparacion_id) }}</span>
+  </div>
+
+  <!-- Información del técnico -->
+  <div class="info-line" *ngIf="getInfoTecnico(p.reparacion_id)">
+    <i class="bi bi-person-gear"></i>
+    <span class="info-label">Técnico:</span>
+    <span class="info-value">{{ getInfoTecnico(p.reparacion_id) }}</span>
+  </div>
+
+  <!-- Fecha y monto -->
+  <div class="info-line datos-financieros">
+    <i class="bi bi-calendar"></i>
+    <span class="info-label">Fecha:</span>
+    <span class="info-value">{{ p.fecha | date:'dd/MM/yyyy' }}</span>
+    <span class="info-separator">|</span>
+    <i class="bi bi-currency-dollar"></i>
+    <span class="info-label">Monto:</span>
+    <span class="info-value monto-destacado">{{ (p.monto_total ?? 0) | number:'1.2-2' }}</span>
+  </div>
+</div>
               </ng-container>
 
               <!-- EDICIÓN -->
@@ -290,24 +321,50 @@
 
             <!-- Dropdown de sugerencias -->
             <div *ngIf="mostrandoReparaciones && reparacionesSugeridas.length > 0" 
-                 class="sugerencias-menu">
+                class="sugerencias-menu">
               <div class="sugerencias-header">
                 <i class="bi bi-search"></i>
                 Reparaciones encontradas
                 <span class="sugerencias-count">{{ reparacionesSugeridas.length }}</span>
               </div>
               <div *ngFor="let reparacion of reparacionesSugeridas" 
-                   class="sugerencia-item"
-                   (mousedown)="seleccionarReparacion(reparacion)">
+                  class="sugerencia-item"
+                  (mousedown)="seleccionarReparacion(reparacion)">
                 <div class="sugerencia-content">
-                  <strong>{{ reparacion.descripcion }}</strong>
-                  <div class="sugerencia-details">
-                    Equipo: {{ reparacion.equipo?.descripcion }} | 
-                    Técnico: {{ reparacion.tecnico?.nombre }} | 
-                    Estado: {{ reparacion.estado }}
+                  <!-- Línea principal en negrita -->
+                  <div class="sugerencia-titulo">
+                    <strong>{{ reparacion.descripcion }}</strong>
+                    <span class="sugerencia-id">#{{ reparacion.id }}</span>
                   </div>
+                  
+                  <!-- Información secundaria -->
                   <div class="sugerencia-details">
-                    Fecha: {{ reparacion.fecha | date:'dd/MM/yyyy' }} | ID: {{ reparacion.id }}
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-pc-display"></i>
+                      {{ reparacion.equipo?.descripcion || reparacion.equipo_nombre || 'Equipo no especificado' }}
+                    </span>
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-person"></i>
+                      {{ reparacion.equipo?.cliente?.nombre || reparacion.cliente_nombre || 'Cliente no especificado' }}
+                    </span>
+                  </div>
+                  
+                  <!-- Información adicional -->
+                  <div class="sugerencia-details">
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-person-gear"></i>
+                      {{ reparacion.tecnico?.nombre || reparacion.tecnico_nombre || 'Técnico no asignado' }}
+                    </span>
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-calendar"></i>
+                      {{ reparacion.fecha | date:'dd/MM/yyyy' }}
+                    </span>
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-tag"></i>
+                      <span [class]="'badge ' + getEstadoBadgeClass(reparacion.estado)">
+                        {{ reparacion.estado }}
+                      </span>
+                    </span>
                   </div>
                 </div>
                 <i class="bi bi-chevron-right"></i>

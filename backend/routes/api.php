@@ -31,7 +31,12 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     // Perfil de usuario autenticado
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
+    
+    // Rutas adicionales completas
     Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
+    Route::get('/presupuestos/listado-optimizado', [PresupuestoController::class, 'listadoOptimizado']);
+
+
 
     // Recursos accesibles por cualquier usuario autenticado
     Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);

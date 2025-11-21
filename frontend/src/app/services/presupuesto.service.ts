@@ -19,6 +19,9 @@ export interface Presupuesto extends SearchableItem {
     estado: string;
     equipo?: any;
     tecnico?: any;
+    equipo_nombre?: string;
+    cliente_nombre?: string;
+    tecnico_nombre?: string;
   };
   displayText?: string;
   reparacion_descripcion?: string;
@@ -45,11 +48,12 @@ export class PresupuestoService {
   list(page = 1, perPage = 10): Observable<Paginated<Presupuesto>> {
     const params = new HttpParams()
       .set('page', page.toString())
-      .set('per_page', perPage.toString());
+      .set('per_page', perPage.toString())
+      .set('with_reparacion', 'true') // Asegurar que incluya reparaciones
+      .set('with_relations', 'true'); // Incluir relaciones completas
 
     return this.http.get<Paginated<Presupuesto>>(this.base, { params });
   }
-
   show(id: number): Observable<Presupuesto> {
     return this.http.get<Presupuesto>(`${this.base}/${id}`);
   }
@@ -162,4 +166,18 @@ export class PresupuestoService {
   cargarReparacionesParaPresupuestos(presupuestos: Presupuesto[]): Observable<Map<number, any>> {
     return of(new Map());
   }
+
+  listOptimizado(page = 1, perPage = 10, search: string = ''): Observable<Paginated<Presupuesto>> {
+  let params = new HttpParams()
+    .set('page', page.toString())
+    .set('per_page', perPage.toString());
+
+  if (search.trim()) {
+    params = params.set('search', search.trim());
+  }
+
+  return this.http.get<Paginated<Presupuesto>>(`${this.base}/listado-optimizado`, { params });
+}
+
+
 }

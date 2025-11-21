@@ -406,4 +406,145 @@ class PresupuestoController extends Controller
             ], 500);
         }
     }
+
+public function listadoOptimizado(Request $request)
+{
+    try {
+        \Log::info('Iniciando listadoOptimizado');
+
+        // Cargar con eager loading corregido
+        $query = Presupuesto::with([
+            'reparacion:id,descripcion,equipo_id,usuario_id,fecha,estado',
+            'reparacion.equipo:id,descripcion,cliente_id,marca,modelo,nro_serie',
+            'reparacion.equipo.cliente:id,nombre,telefono,email',
+            'reparacion.tecnico:id,nombre' // Relación corregida
+        ]);
+
+        // Búsqueda
+        if ($request->filled('search')) {
+            $search = $request->search;
+            
+            $query->where(function ($q) use ($search) {
+                // Búsqueda en campos de presupuesto
+                $q->where('id', 'LIKE', "%$search%")
+                  ->orWhere('monto_total', 'LIKE', "%$search%")
+                  ->orWhere('fecha', 'LIKE', "%$search%")
+                  ->orWhere('aceptado', $search === 'aceptado' ? 1 : ($search === 'pendiente' ? 0 : null));
+                
+                // Búsqueda en reparación relacionada
+                $q->orWhereHas('reparacion', function ($q) use ($search) {
+                    $q->where('descripcion', 'LIKE', "%$search%")
+                      ->orWhere('estado', 'LIKE', "%$search%");
+                });
+                
+                // Búsqueda en equipo relacionado
+                $q->orWhereHas('reparacion.equipo', function ($q) use ($search) {
+                    $q->where('descripcion', 'LIKE', "%$search%")
+                      ->orWhere('marca', 'LIKE', "%$search%")
+                      ->orWhere('modelo', 'LIKE', "%$search%")
+                      ->orWhere('nro_serie', 'LIKE', "%$search%");
+                });
+                
+                // Búsqueda en cliente relacionado
+                $q->orWhereHas('reparacion.equipo.cliente', function ($q) use ($search) {
+                    $q->where('nombre', 'LIKE', "%$search%")
+                      ->orWhere('telefono', 'LIKE', "%$search%")
+                      ->orWhere('email', 'LIKE', "%$search%");
+                });
+                
+                // Búsqueda en técnico relacionado
+                $q->orWhereHas('reparacion.tecnico', function ($q) use ($search) {
+                    $q->where('nombre', 'LIKE', "%$search%")
+                      ->orWhere('tipo', 'LIKE', "%$search%");
+                });
+            });
+        }
+
+        // Ordenamiento
+        $query->orderBy('id', 'desc');
+
+        // Paginación
+        $perPage = min($request->input('per_page', 20), 100);
+        $presupuestos = $query->paginate($perPage, [
+            'id', 'reparacion_id', 'fecha', 'monto_total', 'aceptado'
+        ]);
+
+        \Log::info('Presupuestos encontrados: ' . $presupuestos->count());
+
+        // Transformación
+        $presupuestos->getCollection()->transform(function ($presupuesto) {
+            $reparacion = $presupuesto->reparacion;
+            
+            if (!$reparacion) {
+                return [
+                    'id' => $presupuesto->id,
+                    'reparacion_id' => $presupuesto->reparacion_id,
+                    'fecha' => $presupuesto->fecha,
+                    'monto_total' => $presupuesto->monto_total,
+                    'aceptado' => (bool)$presupuesto->aceptado,
+                    'reparacion' => null
+                ];
+            }
+
+            $equipo = $reparacion->equipo;
+            $cliente = $equipo->cliente ?? null;
+            $tecnico = $reparacion->tecnico ?? null;
+
+            return [
+                'id' => $presupuesto->id,
+                'reparacion_id' => $presupuesto->reparacion_id,
+                'fecha' => $presupuesto->fecha,
+                'monto_total' => $presupuesto->monto_total,
+                'aceptado' => (bool)$presupuesto->aceptado,
+                
+                'reparacion' => [
+                    'id' => $reparacion->id,
+                    'descripcion' => $reparacion->descripcion,
+                    'equipo_id' => $reparacion->equipo_id,
+                    'usuario_id' => $reparacion->usuario_id,
+                    'fecha' => $reparacion->fecha,
+                    'estado' => $reparacion->estado,
+                    
+                    'equipo_nombre' => $equipo->descripcion ?? 'Sin equipo',
+                    'cliente_nombre' => $cliente->nombre ?? 'No especificado',
+                    'tecnico_nombre' => $tecnico->nombre ?? 'Sin técnico',
+                    
+                    'equipo' => $equipo ? [
+                        'id' => $equipo->id,
+                        'descripcion' => $equipo->descripcion,
+                        'marca' => $equipo->marca,
+                        'modelo' => $equipo->modelo,
+                        'nro_serie' => $equipo->nro_serie,
+                        'cliente_id' => $equipo->cliente_id,
+                        'cliente' => $cliente ? [
+                            'id' => $cliente->id,
+                            'nombre' => $cliente->nombre,
+                            'telefono' => $cliente->telefono,
+                            'email' => $cliente->email
+                        ] : null
+                    ] : null,
+                    
+                    'tecnico' => $tecnico ? [
+                        'id' => $tecnico->id,
+                        'nombre' => $tecnico->nombre,
+                        'tipo' => $tecnico->tipo
+                    ] : null
+                ]
+            ];
+        });
+
+        return response()->json($presupuestos);
+
+    } catch (\Exception $e) {
+        \Log::error('Error en listadoOptimizado: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'error' => 'Error interno del servidor',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
+
 }
