@@ -304,17 +304,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     alert(mensajeError);
   }
 
-  getStockClass(stock: number): string {
-    if (stock === 0) {
-      return 'text-danger fw-bold'; // Rojo si no hay stock
-    } else if (stock < 10) {
-      return 'text-warning fw-bold'; // Amarillo si stock bajo
-    } else {
-      return 'text-success fw-bold'; // Verde si stock suficiente
-    }
-  }
-
-
   // ====== UTILITIES ======
   getStockClass(stock: number): string {
     if (stock === 0) {

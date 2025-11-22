@@ -4,7 +4,7 @@
     <div class="especializaciones-header">
       <h1 class="especializaciones-title">Gestión de Especializaciones</h1>
       
-      <!-- ✅ CREAR: ADMIN Y TÉCNICOS (ambos tienen permisos para crear) -->
+      <!--CREAR -->
       <button *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')" 
               class="action-pill" 
               (click)="mostrarFormulario = !mostrarFormulario">
@@ -53,7 +53,6 @@
           Lista de Especializaciones
           <span class="badge bg-primary ms-2">{{ especializaciones.length }}</span>
         </h3>
-        <!-- ❌ REMOVIDO: Botón grande de Auto-asignar Especializaciones -->
       </div>
       
       <div class="table-responsive">
@@ -87,7 +86,7 @@
                     {{ contarTecnicosPorEspecializacion(esp.id) }}
                   </span>
                   
-                  <!-- ✅ BOTÓN AUTO-ASIGNAR SOLO PARA TÉCNICOS (no administradores) -->
+                  <!-- BOTÓN AUTO-ASIGNAR -->
                   <button *ngIf="authService.canSelfAssignEspecializaciones() && !authService.isAdmin()" 
                           class="btn btn-sm btn-outline-success ms-2"
                           (click)="autoAsignarEspecializacion(esp.id)"
@@ -97,7 +96,7 @@
                 </td>
                 <td class="text-center" *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">
                   <div class="btn-action-group">
-                    <!-- ✅ EDITAR: SOLO ADMIN (ocultar para técnicos) -->
+                    <!-- EDITAR SOLO ADMIN -->
                     <button *ngIf="authService.canManageEspecializaciones()"
                             class="btn-editar" 
                             title="Editar especialización"
@@ -105,7 +104,7 @@
                       <i class="bi bi-pencil"></i>
                     </button>
                     
-                    <!-- ✅ ASIGNAR: SOLO ADMIN (puede asignar a otros) -->
+                    <!-- ASIGNAR SOLO ADMIN -->
                     <button *ngIf="authService.canAssignEspecializaciones()"
                             class="btn-asignar" 
                             title="Asignar técnicos"
@@ -113,7 +112,7 @@
                       <i class="bi bi-person-plus"></i>
                     </button>
                     
-                    <!-- ✅ ELIMINAR: SOLO ADMIN -->
+                    <!-- ELIMINAR SOLO ADMIN -->
                     <button *ngIf="authService.canManageEspecializaciones()"
                             class="btn-eliminar" 
                             (click)="eliminarEspecializacion(esp.id)"
@@ -194,7 +193,6 @@
         <h3 class="empty-title">No hay especializaciones registradas</h3>
         <p class="empty-description">Comienza creando la primera especialización técnica</p>
         
-        <!-- ✅ SOLO MOSTRAR BOTÓN SI TIENE PERMISOS PARA CREAR -->
         <button *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')" 
                 class="action-pill" 
                 (click)="mostrarFormulario = true">
@@ -202,7 +200,6 @@
           Crear Primera Especialización
         </button>
         
-        <!-- Mensaje para usuarios sin permisos -->
         <div *ngIf="!(authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))" class="alert alert-info mt-3">
           <i class="bi bi-info-circle"></i>
           No tienes permisos para crear especializaciones. Contacta al administrador.
