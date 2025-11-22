@@ -56,7 +56,6 @@ export class EspecializacionesComponent implements OnInit {
   }
 
   private verificarPermisos(): void {
-    this.authService.debugAuthState();
 
     if (!this.authService.isAuthenticated()) {
       alert('Debes iniciar sesión para acceder a esta página');
@@ -129,7 +128,7 @@ export class EspecializacionesComponent implements OnInit {
   }
 
   cargarTecnicos() {
-    this.http.get<any>('http://127.0.0.1:8000/api/users').subscribe({
+    this.http.get<any>('http://127.0.0.1:8000/api/usuarios').subscribe({
       next: (response) => {
         this.tecnicos = (response.data || []).filter((user: Tecnico) =>
           user.tipo === 'tecnico' || user.tipo === 'administrador'
