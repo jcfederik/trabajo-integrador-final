@@ -24,10 +24,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // 🔹 Aliases de middleware personalizados
         $middleware->alias([
             // Middleware de autenticación JWT (verifica el token)
-            'jwt.auth' => \App\Http\Middleware\Authenticate::class,
+            'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
+            'jwt.check' => \Tymon\JWTAuth\Http\Middleware\Check::class,
 
             // Middleware para restringir acceso solo a administradores
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+
+            // 🔹 NUEVO: Middleware para verificar permisos personalizados
+            'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

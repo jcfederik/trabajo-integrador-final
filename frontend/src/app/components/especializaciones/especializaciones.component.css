@@ -1,0 +1,603 @@
+/* Estilos para Gestión de Especializaciones */
+.especializaciones-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.especializaciones-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f8f9fa;
+}
+
+.especializaciones-title {
+  font-size: 2rem;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+}
+
+/* Formulario de creación */
+.crear-especializacion-card {
+  border: 2px solid #e9ecef;
+  border-radius: var(--border-radius-lg);
+  margin-bottom: 2rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+.crear-especializacion-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.crear-especializacion-header i {
+  color: var(--bs-warning);
+  font-size: 1.25rem;
+}
+
+.crear-especializacion-title {
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+}
+
+/* Tabla de especializaciones */
+.especializaciones-table-container {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid #dee2e6;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.table-header {
+  background: #f8f9fa;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.table-title {
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-title i {
+  color: var(--bs-warning);
+}
+
+/* Botones de acción */
+.btn-action-group {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-editar {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #007bff;
+  color: #007bff;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.btn-editar:hover {
+  background: #007bff;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btn-asignar {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #28a745;
+  color: #28a745;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.btn-asignar:hover {
+  background: #28a745;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btn-eliminar {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.btn-eliminar:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Asignación de técnicos */
+.asignacion-container {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: var(--border-radius);
+  border: 1px solid #dee2e6;
+}
+
+.tecnicos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tecnico-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.checkbox-label:hover {
+  background: #e9ecef;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+/* Estados vacíos */
+.empty-especializaciones {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #f8f9fa;
+  border-radius: var(--border-radius-lg);
+  border: 2px dashed #dee2e6;
+  margin: 2rem 0;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-warning);
+  color: white;
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+.empty-title {
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 0.5rem;
+}
+
+.empty-description {
+  color: var(--gray);
+  margin-bottom: 1.5rem;
+}
+
+/* Form inputs mejorados */
+.form-group-enhanced {
+  margin-bottom: 1.5rem;
+}
+
+.form-label-enhanced {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.form-control-enhanced {
+  border: 2px solid #e9ecef;
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.form-control-enhanced:focus {
+  border-color: var(--bs-warning);
+  box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+  outline: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .especializaciones-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .btn-action-group {
+    flex-direction: column;
+  }
+  
+  .tecnicos-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .table-responsive {
+    border: 1px solid #dee2e6;
+    border-radius: var(--border-radius);
+  }
+}
+
+/* Animaciones */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.especializacion-row {
+  transition: all 0.2s ease;
+}
+
+.especializacion-row:hover {
+  background-color: #f8f9fa;
+}
+
+/* Badges */
+.badge {
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 0.35em 0.65em;
+}
+
+/* Badge clickeable */
+.clickable-badge {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Estilos para el modal de especializaciones */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  border: none;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.modal-header {
+  background: var(--gradient-primary);
+  border-bottom: none;
+  padding: 1.5rem 2rem;
+  position: relative;
+}
+
+.modal-header::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-accent);
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-title i {
+  font-size: 1.5rem;
+}
+
+.btn-close-white {
+  filter: invert(1) brightness(100%);
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.btn-close-white:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.modal-body {
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.especializacion-detalle h4 {
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.especializacion-detalle .text-muted {
+  color: var(--gray) !important;
+  font-size: 0.9rem;
+}
+
+.especializacion-detalle hr {
+  border: none;
+  height: 2px;
+  background: var(--gradient-light);
+  margin: 1.5rem 0;
+}
+
+.especializacion-detalle h6 {
+  font-weight: 700;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.especializacion-detalle .badge {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--gradient-info) !important;
+  border: none;
+}
+
+.list-group-item {
+  border: 1px solid var(--gray-light);
+  border-radius: var(--border-radius) !important;
+  margin-bottom: 0.5rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.list-group-item:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
+}
+
+.list-group-item i {
+  font-size: 1.1rem;
+}
+
+.list-group-item strong {
+  color: var(--dark);
+  font-weight: 700;
+}
+
+.list-group-item .badge {
+  background: var(--gradient-primary) !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--gray-light);
+  padding: 1.5rem 2rem;
+  background: white;
+}
+
+.modal-footer .btn {
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.modal-footer .btn-secondary {
+  background: var(--gradient-light);
+  color: var(--gray);
+  border-color: var(--gray-light);
+}
+
+.modal-footer .btn-secondary:hover {
+  background: var(--gray-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Estado vacío en el modal */
+.text-center.py-4 i {
+  background: var(--gradient-light);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0.7;
+}
+
+.text-center.py-4 .text-muted {
+  color: var(--gray) !important;
+  font-size: 0.95rem;
+}
+
+/* Animaciones suaves */
+.modal.fade .modal-dialog {
+  transform: scale(0.8);
+  transition: transform 0.3s ease;
+}
+
+.modal.show .modal-dialog {
+  transform: scale(1);
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 1rem;
+  }
+  
+  .modal-header {
+    padding: 1.25rem 1.5rem;
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .modal-footer {
+    padding: 1.25rem 1.5rem;
+  }
+  
+  .especializacion-detalle h4 {
+    font-size: 1.25rem;
+  }
+}
+
+/* 🔥 NUEVO: Estilos para el modal de confirmación de auto-asignación */
+.confirmation-icon {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Estilos específicos para el modal de confirmación */
+.modal-content {
+  border: none;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  background: white;
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--gray-light);
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+  padding: 1.5rem 2rem;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--gray-light);
+  padding: 1.5rem 2rem;
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+}
+
+/* Header del modal de confirmación */
+.modal-header.bg-primary {
+  background: var(--gradient-primary) !important;
+  color: white;
+}
+
+/* Botones del modal de confirmación */
+.btn {
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  border: none;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-outline-secondary {
+  border-color: var(--gray);
+  color: var(--dark);
+}
+
+.btn-outline-secondary:hover {
+  background: var(--gray-light);
+  border-color: var(--gray-dark);
+  transform: translateY(-2px);
+}
+
+/* Efectos hover para botones del modal */
+.modal-content .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Responsive para modales */
+@media (max-width: 768px) {
+  .modal-dialog {
+    margin: 1rem;
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .modal-header,
+  .modal-footer {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+/* Transiciones suaves para modales */
+.modal-content,
+.btn,
+.badge {
+  transition: all 0.3s ease;
+}
