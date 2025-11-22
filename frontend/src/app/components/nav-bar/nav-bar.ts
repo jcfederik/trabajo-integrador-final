@@ -15,6 +15,8 @@ import { LogoutModalComponent } from '../logout-modal/logout-modal.component';
   styleUrls: ['./nav-bar.css']
 })
 export class NavBar implements OnInit, OnDestroy {
+
+  // =============== ESTADOS DEL COMPONENTE ===============
   searchTerm: string = '';
   placeholder: string = 'Buscar...';
   usuarioActual: string = 'Usuario';
@@ -23,7 +25,10 @@ export class NavBar implements OnInit, OnDestroy {
   showDropdown: boolean = false;
   mostrarModalLogout: boolean = false;
 
+  // =============== CONTROL DE TECLADO ===============
   private backspacePresionado = false;  
+
+  // =============== SUSCRIPCIONES ===============
   private searchSubscription!: Subscription;
   private componentSubscription!: Subscription;
   private routerSubscription!: Subscription;
@@ -34,28 +39,38 @@ export class NavBar implements OnInit, OnDestroy {
     private authService: AuthService
   ) {}
 
+  // =============== LIFECYCLE ===============
   ngOnInit() {
     console.log('🔐 NavBar iniciado - Usuario:', this.authService.getCurrentUser());
     
     this.checkCurrentRoute();
     this.setPlaceholderByRoute();
     this.loadUserData();
+    this.configurarSuscripciones();
+  }
 
-    // Sincronizar con búsqueda global
+  ngOnDestroy() {
+    if (this.searchSubscription) this.searchSubscription.unsubscribe();
+    if (this.componentSubscription) this.componentSubscription.unsubscribe();
+    if (this.routerSubscription) this.routerSubscription.unsubscribe();
+
+    document.removeEventListener('click', this.cerrarDropdownAlHacerClick.bind(this));
+  }
+
+  // =============== CONFIGURACIÓN ===============
+  private configurarSuscripciones() {
     this.searchSubscription = this.searchService.globalSearchTerm$.subscribe(term => {
       if (term !== this.searchTerm) {
         this.searchTerm = term;
       }
     });
 
-    // Actualizar placeholder cuando cambia el componente
     this.componentSubscription = this.searchService.currentComponent$.subscribe(component => {
       setTimeout(() => {
         this.placeholder = this.getPlaceholder(component);
       });
     });
 
-    // Escuchar cambios de ruta
     this.routerSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -66,21 +81,7 @@ export class NavBar implements OnInit, OnDestroy {
         });
       });
 
-    // Cerrar dropdown al hacer click fuera
     document.addEventListener('click', this.cerrarDropdownAlHacerClick.bind(this));
-  }
-
-  ngOnDestroy() {
-    if (this.searchSubscription) {
-      this.searchSubscription.unsubscribe();
-    }
-    if (this.componentSubscription) {
-      this.componentSubscription.unsubscribe();
-    }
-    if (this.routerSubscription) {
-      this.routerSubscription.unsubscribe();
-    }
-    document.removeEventListener('click', this.cerrarDropdownAlHacerClick.bind(this));
   }
 
   private cerrarDropdownAlHacerClick(event: MouseEvent) {
@@ -94,7 +95,7 @@ export class NavBar implements OnInit, OnDestroy {
     this.showDropdown = !this.showDropdown;
   }
 
-  // 🔥 MODIFICADO: Ahora abre el modal de perfil
+  // 🔥 MODAL LOGOUT
   abrirModalLogout() {
     console.log('👤 Abriendo modal de perfil...');
     this.mostrarModalLogout = true;
@@ -103,24 +104,24 @@ export class NavBar implements OnInit, OnDestroy {
 
   cerrarModalLogout() {
     this.mostrarModalLogout = false;
-    // Actualizar datos del usuario después de cerrar el modal
     this.loadUserData();
   }
 
-  // ❌ ELIMINADO: Método logout() - Ahora está en el modal de perfil
+  // 🔥 NUEVO: Para verificar si está autenticado
+  isAuthenticated(): boolean {
+    return this.authService.isAuthenticated();
+  }
 
   // 🔥 NUEVO: Obtener número de especializaciones
   getEspecializacionesCount(): number {
     const user = this.authService.getCurrentUser();
-    const count = user?.especializaciones?.length || 0;
-    console.log('🔢 Contador de especializaciones:', count);
-    return count;
+    return user?.especializaciones?.length || 0;
   }
 
   getUserTipo(): string {
     const user = this.authService.getCurrentUser();
     const tipo = user?.tipo || 'usuario';
-    
+  
     const tipoMap: { [key: string]: string } = {
       'administrador': 'Admin',
       'tecnico': 'Técnico', 
@@ -130,46 +131,82 @@ export class NavBar implements OnInit, OnDestroy {
     return tipoMap[tipo] || tipo;
   }
 
-  // ✅ AGREGADO: Método público para verificar autenticación
-  isAuthenticated(): boolean {
-    return this.authService.isAuthenticated();
-  }
-
+  // =============== GESTIÓN DE RUTAS ===============
   private checkCurrentRoute() {
     this.isDashboard = this.esDashboard();
   }
 
   private setPlaceholderByRoute() {
     const currentPath = window.location.pathname;
-    if (currentPath.includes('equipos')) {
-      this.placeholder = 'Buscar equipos...';
-    } else if (currentPath.includes('clientes')) {
-      this.placeholder = 'Buscar clientes...';
-    } else if (currentPath.includes('facturas')) {
-      this.placeholder = 'Buscar facturas...';
-    } else if (currentPath.includes('proveedores')) {
-      this.placeholder = 'Buscar proveedores...';
-    } else if (currentPath.includes('repuestos')) {
-      this.placeholder = 'Buscar repuestos...';
-    } else if (currentPath.includes('presupuestos')) {
-      this.placeholder = 'Buscar presupuestos...';
-    } else if (currentPath.includes('reparaciones')) {
-      this.placeholder = 'Buscar reparaciones...';
-    } else if (currentPath.includes('cobros')) {
-      this.placeholder = 'Buscar cobros...';
-    } else if (currentPath.includes('usuarios')) {
-      this.placeholder = 'Buscar usuarios...';
-    } else if (currentPath.includes('especializaciones')) {
-      this.placeholder = 'Buscar especializaciones...';
-    } else if (currentPath.includes('detalles-cobro')) {
-      this.placeholder = 'Buscar detalles de cobro...';
-    } else if (this.isDashboard) {
-      this.placeholder = 'Buscar módulos...';
-    } else {
-      this.placeholder = 'Buscar...';
+    const map: any = {
+      'equipos': 'Buscar equipos...',
+      'clientes': 'Buscar clientes...',
+      'facturas': 'Buscar facturas...',
+      'proveedores': 'Buscar proveedores...',
+      'repuestos': 'Buscar repuestos...',
+      'presupuestos': 'Buscar presupuestos...',
+      'reparaciones': 'Buscar reparaciones...',
+      'cobros': 'Buscar cobros...',
+      'usuarios': 'Buscar usuarios...',
+      'especializaciones': 'Buscar especializaciones...',
+      'detalles-cobro': 'Buscar detalles de cobro...'
+    };
+
+    for (let key in map) {
+      if (currentPath.includes(key)) {
+        this.placeholder = map[key];
+        return;
+      }
+    }
+
+    this.placeholder = this.isDashboard ? 'Buscar módulos...' : 'Buscar...';
+  }
+
+  esDashboard(): boolean {
+    return this.router.url === '/dashboard' || this.router.url === '/';
+  }
+
+  // =============== GESTIÓN DE USUARIO ===============
+  private loadUserData() {
+    const user = this.authService.getCurrentUser();
+
+    if (user) {
+      this.usuarioActual = user.nombre || user.name || 'Usuario';
+      this.userTipo = user.tipo || 'Usuario';
+      console.log('👤 Usuario cargado:', this.usuarioActual, 'Tipo:', this.userTipo);
+      return;
+    }
+
+    const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('user');
+    if (usuarioGuardado) {
+      try {
+        const parsed = JSON.parse(usuarioGuardado);
+        this.usuarioActual = parsed.nombre || parsed.name || 'Usuario';
+      } catch {
+        this.usuarioActual = 'Usuario';
+      }
     }
   }
 
+  // =============== BÚSQUEDA ===============
+  onSearch() {
+    this.searchService.setGlobalSearchTerm(this.searchTerm);
+
+    if (this.isDashboard) {
+      this.searchService.setDashboardSearchTerm(this.searchTerm);
+    } else {
+      this.searchService.setSearchTerm(this.searchTerm);
+    }
+  }
+
+  clearSearch() {
+    this.searchTerm = '';
+    this.searchService.clearGlobalSearch();
+    this.searchService.clearSearch();
+    this.searchService.clearDashboardSearch();
+  }
+
+  // =============== PLACEHOLDER DINÁMICO ===============
   private getPlaceholder(component: string): string {
     const placeholders: { [key: string]: string } = {
       'equipos': 'Buscar equipos...',
@@ -185,45 +222,11 @@ export class NavBar implements OnInit, OnDestroy {
       'detalles-cobro': 'Buscar detalles de cobro...',
       'dashboard': 'Buscar módulos...'
     };
-    
+  
     return placeholders[component] || 'Buscar...';
   }
 
-  private loadUserData() {
-    const user = this.authService.getCurrentUser();
-    if (user) {
-      this.usuarioActual = user.nombre || 'Usuario';
-      this.userTipo = user.tipo || 'Usuario';
-      console.log('👤 Usuario cargado:', this.usuarioActual, 'Tipo:', this.userTipo);
-      console.log('🎯 Especializaciones:', user.especializaciones);
-    } else {
-      console.warn('⚠️ No se encontró usuario autenticado');
-      this.usuarioActual = 'Usuario';
-      this.userTipo = 'Usuario';
-    }
-  }
-
-  onSearch() {
-    this.searchService.setGlobalSearchTerm(this.searchTerm);
-    
-    if (this.isDashboard) {
-      this.searchService.setDashboardSearchTerm(this.searchTerm);
-    } else {
-      this.searchService.setSearchTerm(this.searchTerm);
-    }
-  }
-
-  clearSearch() {
-    this.searchTerm = '';
-    this.searchService.clearGlobalSearch();
-    this.searchService.clearSearch();
-    this.searchService.clearDashboardSearch();
-  }
-
-  esDashboard(): boolean {
-    return this.router.url === '/dashboard' || this.router.url === '/';
-  }
-
+  // =============== CONTROL BACKSPACE ===============
   bloquearBackspaceHold(event: KeyboardEvent) {
     if (event.key !== 'Backspace') return;
 

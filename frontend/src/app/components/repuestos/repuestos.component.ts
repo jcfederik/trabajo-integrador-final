@@ -11,7 +11,7 @@ type Accion = 'listar' | 'crear';
 @Component({
   selector: 'app-repuestos',
   standalone: true,
-  imports: [CommonModule, FormsModule], // ← Quitamos SearchSelectorComponent
+  imports: [CommonModule, FormsModule],
   templateUrl: './repuestos.component.html',
   styleUrls: ['./repuestos.component.css']
 })
@@ -50,11 +50,11 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     public searchService: SearchService
   ) { }
 
-  // ====== LIFECYCLE ======
+  // ====== CICLO DE VIDA ======
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
-
+    window.addEventListener('scroll', this.onScroll)
   }
 
   ngOnDestroy(): void {
@@ -304,18 +304,16 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     alert(mensajeError);
   }
 
+  // ====== UTILITIES ======
   getStockClass(stock: number): string {
     if (stock === 0) {
-      return 'text-danger fw-bold'; // Rojo si no hay stock
-    } else if (stock < 10) {
-      return 'text-warning fw-bold'; // Amarillo si stock bajo
+      return 'text-danger fw-bold';
+    } else if (stock <= 10) {
+      return 'text-warning fw-semibold';
     } else {
-      return 'text-success fw-bold'; // Verde si stock suficiente
+      return 'text-success';
     }
   }
-
-
-  // ====== UTILITIES ======
   formatearPrecio(precio: number): string {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',

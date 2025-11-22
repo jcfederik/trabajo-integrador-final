@@ -30,7 +30,7 @@ export class RepuestoService {
 
   constructor(private http: HttpClient) {}
 
-  // Método actualizado para aceptar parámetro de búsqueda
+  // ====== CRUD OPERATIONS ======
   getRepuestos(page: number = 1, perPage: number = 15, search: string = ''): Observable<PaginatedResponse<Repuesto>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -55,6 +55,7 @@ export class RepuestoService {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
+  // ====== SEARCH OPERATIONS ======
   buscarRepuestos(termino: string): Observable<Repuesto[]> {
     return this.http.get<Repuesto[]>(`${this.apiUrl}?search=${termino}`);
   }

@@ -41,12 +41,11 @@ export class PresupuestoService {
 
   constructor(private http: HttpClient) {}
 
-  // ✅ CORREGIDO: Quitar el include que causa el error 500
+  // ====== CRUD OPERATIONS ======
   list(page = 1, perPage = 10): Observable<Paginated<Presupuesto>> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('per_page', perPage.toString());
-      // ❌ QUITADO: &include=reparacion
 
     return this.http.get<Paginated<Presupuesto>>(this.base, { params });
   }
@@ -67,40 +66,30 @@ export class PresupuestoService {
     return this.http.delete(`${this.base}/${id}`);
   }
 
-  // ✅ CORREGIDO: Simplificar búsqueda global
+  // ====== SEARCH OPERATIONS ======
   buscarGlobal(termino: string): Observable<Presupuesto[]> {
-    if (!termino.trim()) {
-      return of([]);
-    }
+    if (!termino.trim()) return of([]);
 
     const params = new HttpParams()
       .set('q', termino)
       .set('per_page', '100');
-      // ❌ QUITADO: include=reparacion
 
     return this.http.get<any>(`${this.base}/buscar`, { params }).pipe(
       map(response => {
         let presupuestos: any[] = [];
-        
         if (Array.isArray(response)) {
           presupuestos = response;
         } else if (response.data && Array.isArray(response.data)) {
           presupuestos = response.data;
         }
-        
         return this.formatearPresupuestosParaBusqueda(presupuestos);
       }),
-      catchError((error) => {
-        console.error('Error en búsqueda global de presupuestos:', error);
-        return this.buscarPresupuestosFallback(termino);
-      })
+      catchError(() => this.buscarPresupuestosFallback(termino))
     );
   }
 
   buscarPresupuestos(termino: string): Observable<Presupuesto[]> {
-    if (!termino.trim()) {
-      return of([]);
-    }
+    if (!termino.trim()) return of([]);
 
     const params = new HttpParams()
       .set('q', termino)
@@ -111,14 +100,11 @@ export class PresupuestoService {
         const presupuestos = Array.isArray(response) ? response : [];
         return this.formatearPresupuestosParaBusqueda(presupuestos);
       }),
-      catchError(() => {
-        return this.buscarPresupuestosFallback(termino);
-      })
+      catchError(() => this.buscarPresupuestosFallback(termino))
     );
   }
 
   private buscarPresupuestosFallback(termino: string): Observable<Presupuesto[]> {
-    // Cargar todos los presupuestos sin include
     return this.http.get<Paginated<Presupuesto>>(`${this.base}?per_page=100`).pipe(
       map(response => {
         const todosLosPresupuestos = response.data || [];
@@ -135,20 +121,17 @@ export class PresupuestoService {
 
         return this.formatearPresupuestosParaBusqueda(presupuestosFiltrados);
       }),
-      catchError(() => {
-        return of([]);
-      })
+      catchError(() => of([]))
     );
   }
 
-  // ✅ NUEVO: Método para formatear presupuestos para búsqueda
+  // ====== DATA FORMATTING ======
   private formatearPresupuestosParaBusqueda(presupuestos: any[]): Presupuesto[] {
     return presupuestos.map(presupuesto => ({
       ...presupuesto,
       displayText: this.formatearDisplayText(presupuesto),
       reparacion_descripcion: presupuesto.reparacion?.descripcion || `Reparación #${presupuesto.reparacion_id}`,
       estado_legible: presupuesto.aceptado ? 'aceptado' : 'pendiente',
-      // Campos para búsqueda global
       monto_total: presupuesto.monto_total,
       fecha: presupuesto.fecha
     }));
@@ -168,7 +151,7 @@ export class PresupuestoService {
     return `Presupuesto #${presupuesto.id} | ${monto} | ${estado} | ${fecha} | ${reparacionDesc}`;
   }
 
-  // ✅ NUEVO: Método para cargar información de reparación por separado
+  // ====== RELATED DATA OPERATIONS ======
   cargarInformacionReparacion(presupuestoId: number): Observable<any> {
     return this.show(presupuestoId).pipe(
       map(presupuesto => presupuesto.reparacion),
@@ -176,13 +159,7 @@ export class PresupuestoService {
     );
   }
 
-  // ✅ NUEVO: Método para cargar múltiples reparaciones
   cargarReparacionesParaPresupuestos(presupuestos: Presupuesto[]): Observable<Map<number, any>> {
-    const reparacionesIds = [...new Set(presupuestos.map(p => p.reparacion_id))];
-    
-    if (reparacionesIds.length === 0) {
-      return of(new Map());
-    }
     return of(new Map());
   }
 }
