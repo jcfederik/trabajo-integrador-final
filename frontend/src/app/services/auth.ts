@@ -25,14 +25,14 @@ export class AuthService {
   private loadUserFromStorage(): void {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (userData && token) {
       try {
         const user = JSON.parse(userData);
         // ✅ USAR LOS PERMISOS DIRECTAMENTE DEL BACKEND
         this.currentUser.set(user);
         this.isLoggedIn.set(true);
-        
+
         console.debug('AuthService: Usuario cargado desde storage', user);
       } catch (error) {
         console.error('Error parsing user data:', error);
@@ -80,10 +80,10 @@ export class AuthService {
   // ✅ MÉTODOS ESPECÍFICOS PARA ESPECIALIZACIONES
   canManageEspecializaciones(): boolean {
     // ✅ Según tu backend: administradores y técnicos pueden gestionar
-    return this.hasPermission('especializaciones.manage') || 
-           this.hasPermission('especializaciones.create') ||
-           this.isAdmin() || 
-           this.isTecnico();
+    return this.hasPermission('especializaciones.manage') ||
+      this.hasPermission('especializaciones.create') ||
+      this.isAdmin() ||
+      this.isTecnico();
   }
 
   canViewEspecializaciones(): boolean {
@@ -106,15 +106,12 @@ export class AuthService {
     return this.hasPermission('especializaciones.self_assign') || this.isTecnico();
   }
 
+  // ====== LOGIN ======
   login(nombre: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { nombre, password }).pipe(
       tap((res) => {
         if (res && res.token) {
           const token = String(res.token).replace(/^Bearer\s+/i, '').trim();
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(res.user));
-          this.isLoggedIn.set(true);
-          this.currentUser.set(res.user);
 
           // ✅ EL BACKEND YA ENVÍA LOS PERMISOS - NO NECESITAMOS MAPEAR
           const user = res.user;
@@ -125,13 +122,13 @@ export class AuthService {
 
           this.isLoggedIn.set(true);
           this.currentUser.set(user);
-          
+
           console.debug('AuthService.login: Usuario autenticado', {
             user: user,
             tipo: user.tipo,
             permissions: user.permissions
           });
-          
+
         } else {
           console.error('AuthService.login: No se encontró token en la respuesta', res);
           throw new Error('Invalid login response');
@@ -162,14 +159,13 @@ export class AuthService {
 
       const payload = JSON.parse(atob(parts[1]));
       const now = Math.floor(Date.now() / 1000);
-      
       // Verificar expiración
       if (payload.exp && payload.exp < now) {
         console.warn('Token expirado');
         this.clearAuthData();
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error decodificando token:', error);
@@ -185,7 +181,7 @@ export class AuthService {
       next: () => console.log('Logged out successfully'),
       error: (err) => console.error('Logout error:', err)
     });
-    
+
     this.clearAuthData();
   }
 
@@ -199,21 +195,5 @@ export class AuthService {
   // ====== USER MANAGEMENT ======
   getCurrentUser(): any {
     return this.currentUser();
-  }
-
-  // ✅ DEBUG: Método para verificar estado de autenticación
-  debugAuthState(): void {
-    console.group('🔐 Debug Auth State');
-    console.log('Token:', this.getToken() ? '✓' : '✗');
-    console.log('isAuthenticated:', this.isAuthenticated());
-    console.log('Current User:', this.getCurrentUser());
-    console.log('Tipo:', this.getCurrentUser()?.tipo);
-    console.log('Permissions:', this.getUserPermissions());
-    console.log('isAdmin:', this.isAdmin());
-    console.log('isTecnico:', this.isTecnico());
-    console.log('isUsuario:', this.isUsuario());
-    console.log('Can manage especializaciones:', this.canManageEspecializaciones());
-    console.log('Can assign especializaciones:', this.canAssignEspecializaciones());
-    console.groupEnd();
   }
 }
