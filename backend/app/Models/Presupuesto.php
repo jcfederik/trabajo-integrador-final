@@ -28,4 +28,10 @@ class Presupuesto extends Model
     {
         return $this->hasMany(Factura::class, 'presupuesto_id');
     }
+
+        public function tecnico()
+    {
+        // Relación corregida - apunta al modelo User que usa tabla 'usuario'
+        return $this->belongsTo(User::class, 'usuario_id');
+    }
 }

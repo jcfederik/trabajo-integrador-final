@@ -41,6 +41,9 @@ type PresupuestoEditForm = {
   styleUrls: ['./presupuestos.css']
 })
 export class PresupuestosComponent implements OnInit, OnDestroy {
+
+  // cache
+  private reparacionesInfoCache = new Map<number, Reparacion>();
   
   // =============== ESTADO DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
@@ -333,17 +336,43 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  seleccionarReparacion(reparacion: Reparacion): void {
-    this.nuevo.reparacionSeleccionada = reparacion;
-    this.nuevo.reparacion_id = reparacion.id;
-    this.nuevo.reparacionBusqueda = reparacion.descripcion || '';
-    this.mostrandoReparaciones = false;
-    
-    if (reparacion.descripcion) {
-      this.reparacionesCache.set(reparacion.id, reparacion.descripcion);
-    }
+seleccionarReparacion(reparacion: Reparacion): void {
+  this.nuevo.reparacionSeleccionada = reparacion;
+  this.nuevo.reparacion_id = reparacion.id;
+  this.nuevo.reparacionBusqueda = reparacion.descripcion || '';
+  this.mostrandoReparaciones = false;
+  
+  // Guardar en caches
+  this.reparacionesInfoCache.set(reparacion.id, reparacion);
+  if (reparacion.descripcion) {
+    this.reparacionesCache.set(reparacion.id, reparacion.descripcion);
   }
 
+  // Si la reparación no tiene información completa, cargarla
+  if (!reparacion.equipo || !reparacion.tecnico) {
+    this.cargarInformacionCompletaReparacion(reparacion.id);
+  }
+}
+
+private cargarInformacionCompletaReparacion(reparacionId: number): void {
+  this.reparacionSvc.show(reparacionId).subscribe({
+    next: (reparacionCompleta: Reparacion) => {
+      // Actualizar la reparación seleccionada con información completa
+      if (this.nuevo.reparacionSeleccionada?.id === reparacionId) {
+        this.nuevo.reparacionSeleccionada = reparacionCompleta;
+      }
+      
+      // Actualizar cache
+      this.reparacionesInfoCache.set(reparacionId, reparacionCompleta);
+      if (reparacionCompleta.descripcion) {
+        this.reparacionesCache.set(reparacionId, reparacionCompleta.descripcion);
+      }
+    },
+    error: (error) => {
+      console.error(`Error cargando información completa de reparación ${reparacionId}:`, error);
+    }
+  });
+}
   seleccionarReparacionEdit(reparacion: Reparacion): void {
     this.editBuffer.reparacionSeleccionada = reparacion;
     this.editBuffer.reparacion_id = reparacion.id;
@@ -455,42 +484,62 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   }
 
   // =============== CARGA DE DATOS ===============
-  cargar(): void {
-    if (this.loading || this.lastPage) return;
-    this.loading = true;
+cargar(): void {
+  if (this.loading || this.lastPage) return;
+  this.loading = true;
 
-    this.svc.list(this.page, this.perPage).subscribe({
-      next: (res: Paginated<Presupuesto>) => {
-        const batch = res.data ?? [];
+  // Intentar con el endpoint optimizado, si falla usar el normal
+  this.svc.listOptimizado(this.page, this.perPage, this.searchTerm).pipe(
+    catchError((error) => {
+      console.warn('Endpoint optimizado falló, usando endpoint normal', error);
+      return this.svc.list(this.page, this.perPage);
+    })
+  ).subscribe({
+    next: (res: Paginated<Presupuesto>) => {
+      const batch = res.data ?? [];
+      
+      // Procesar batch
+      const batchProcesado = batch.map(presupuesto => {
+        if (presupuesto.reparacion) {
+          this.reparacionesInfoCache.set(presupuesto.reparacion_id, presupuesto.reparacion);
+          if (presupuesto.reparacion.descripcion) {
+            this.reparacionesCache.set(presupuesto.reparacion_id, presupuesto.reparacion.descripcion);
+          }
+        }
         
-        if (this.page === 1) {
-          this.itemsAll = batch;
-        } else {
-          this.itemsAll = [...this.itemsAll, ...batch];
-        }
-
-        if (!this.searchTerm) {
-          const itemsForSearch = this.itemsAll.map(p => ({
-            ...p,
-            reparacion_descripcion: this.getDescripcionReparacion(p.reparacion_id),
-            estado_legible: p.aceptado ? 'aceptado' : 'pendiente'
-          }));
-
-          this.applyFilter();
-          this.searchService.setSearchData(itemsForSearch);
-        }
-
-        this.page++;
-        this.lastPage = (res.next_page_url === null) || (this.page > res.last_page);
-        this.loading = false;
-        this.cargarTodasLasReparaciones();
-      },
-      error: () => { 
-        this.loading = false; 
-        this.alertService.showGenericError('Error al cargar los presupuestos');
+        return {
+          ...presupuesto,
+          reparacion_descripcion: presupuesto.reparacion?.descripcion || `Reparación #${presupuesto.reparacion_id}`,
+          estado_legible: presupuesto.aceptado ? 'aceptado' : 'pendiente'
+        };
+      });
+      
+      if (this.page === 1) {
+        this.itemsAll = batchProcesado;
+      } else {
+        this.itemsAll = [...this.itemsAll, ...batchProcesado];
       }
-    });
-  }
+
+      this.applyFilter();
+      
+      const itemsForSearch = this.itemsAll.map(p => ({
+        ...p,
+        reparacion_descripcion: p.reparacion?.descripcion || `Reparación #${p.reparacion_id}`,
+        estado_legible: p.aceptado ? 'aceptado' : 'pendiente'
+      }));
+      this.searchService.setSearchData(itemsForSearch);
+
+      this.page++;
+      this.lastPage = (res.next_page_url === null) || (this.page > res.last_page);
+      this.loading = false;
+    },
+    error: (error) => { 
+      console.error('Error cargando presupuestos:', error);
+      this.loading = false; 
+      this.alertService.showGenericError('Error al cargar los presupuestos');
+    }
+  });
+}
 
   onScroll = () => {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
@@ -752,4 +801,38 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     if (!yyyyMMdd) return new Date().toISOString();
     return new Date(yyyyMMdd + 'T00:00:00Z').toISOString();
   }
+
+getTituloPresupuesto(presupuesto: Presupuesto): string {
+  if (presupuesto.reparacion) {
+    const cliente = presupuesto.reparacion.cliente_nombre || 'Cliente';
+    const equipo = presupuesto.reparacion.equipo_nombre || 'Equipo';
+    return `Presupuesto #${presupuesto.id} - ${cliente} | ${equipo}`;
+  }
+  
+  const reparacionInfo = this.reparacionesInfoCache.get(presupuesto.reparacion_id);
+  if (reparacionInfo) {
+    const cliente = reparacionInfo.cliente_nombre || 'Cliente';
+    const equipo = reparacionInfo.equipo_nombre || 'Equipo';
+    return `Presupuesto #${presupuesto.id} - ${cliente} | ${equipo}`;
+  }
+  
+  return `Presupuesto #${presupuesto.id}`;
+}
+
+getInfoEquipo(reparacionId: number): string {
+  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+  return reparacionInfo?.equipo_nombre || '';
+}
+
+getInfoTecnico(reparacionId: number): string {
+  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+  return reparacionInfo?.tecnico_nombre || '';
+}
+
+getInfoCliente(reparacionId: number): string {
+  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+  return reparacionInfo?.cliente_nombre || '';
+}
+
+
 }
