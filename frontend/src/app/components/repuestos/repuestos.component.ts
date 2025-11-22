@@ -48,7 +48,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   constructor(
     private repuestoService: RepuestoService,
     public searchService: SearchService
-  ) {}
+  ) { }
 
   // ====== CICLO DE VIDA ======
   ngOnInit(): void {
@@ -64,17 +64,17 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   }
 
   // ====== CONFIGURACIÓN DE BÚSQUEDA ======
-    configurarBusqueda() {
+  configurarBusqueda() {
     this.searchService.setCurrentComponent('repuestos');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       const newTerm = (term || '').trim();
-      
+
       if (this.searchTerm !== newTerm) {
         this.searchTerm = newTerm;
         this.page = 1;
         this.lastPage = false;
         this.repuestosAll = [];
-        
+
         if (!this.searchTerm) {
           this.fetch(1);
         } else {
@@ -113,8 +113,8 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  cargar(): void { 
-    this.fetch(this.page === 0 ? 1 : this.page); 
+  cargar(): void {
+    this.fetch(this.page === 0 ? 1 : this.page);
   }
 
   onScroll = () => {
@@ -142,9 +142,9 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.repuestoService.createRepuesto(payload).subscribe({
       next: (response: any) => {
         console.log('Respuesta del servidor:', response);
-        
+
         const nuevoRepuesto = response.repuesto || response.data || response;
-        
+
         this.selectedAction = 'listar';
         this.nuevo = { nombre: '', stock: 0, costo_base: 0 };
         this.resetLista();
@@ -152,9 +152,9 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       },
       error: (e) => {
         console.error('Error completo al crear repuesto:', e);
-        
+
         let mensajeError = 'Error al crear repuesto';
-        
+
         if (e.error?.error) {
           mensajeError = e.error.error;
         } else if (e.error?.message) {
@@ -162,7 +162,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         } else if (e.message) {
           mensajeError = e.message;
         }
-        
+
         alert(mensajeError);
       }
     });
@@ -178,7 +178,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         this.searchService.setSearchData(this.repuestosAll);
         alert('Repuesto eliminado exitosamente!');
       },
-      error: (e) => { 
+      error: (e) => {
         console.error('Error al eliminar repuesto', e);
         alert('Error al eliminar el repuesto');
       }
@@ -209,15 +209,15 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.repuestoService.updateRepuesto(id, payload).subscribe({
       next: (response: any) => {
         console.log('Respuesta de actualización:', response);
-        
+
         const repuestoActualizado = response.repuesto || response.data || response;
-        
+
         const updateLocal = (arr: Repuesto[]) => {
           const idx = arr.findIndex(x => x.id === id);
           if (idx >= 0) {
-            arr[idx] = { 
-              ...arr[idx], 
-              ...repuestoActualizado 
+            arr[idx] = {
+              ...arr[idx],
+              ...repuestoActualizado
             } as Repuesto;
           }
         };
@@ -231,9 +231,9 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       },
       error: (e) => {
         console.error('Error completo al actualizar repuesto:', e);
-        
+
         let mensajeError = 'No se pudo actualizar el repuesto';
-        
+
         if (e.error?.error) {
           mensajeError = e.error.error;
         } else if (e.error?.message) {
@@ -241,7 +241,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         } else if (e.message) {
           mensajeError = e.message;
         }
-        
+
         alert(mensajeError);
       }
     });
@@ -276,9 +276,9 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     const actualizarArray = (arr: Repuesto[]) => {
       const idx = arr.findIndex(x => x.id === id);
       if (idx >= 0) {
-        arr[idx] = { 
-          ...arr[idx], 
-          ...datosActualizados 
+        arr[idx] = {
+          ...arr[idx],
+          ...datosActualizados
         } as Repuesto;
       }
     };
@@ -290,9 +290,9 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   private manejarError(error: any, operacion: string): void {
     console.error(`Error completo al ${operacion}:`, error);
-    
+
     let mensajeError = `Error al ${operacion}`;
-    
+
     if (error.error?.error) {
       mensajeError = error.error.error;
     } else if (error.error?.message) {
@@ -300,9 +300,20 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     } else if (error.message) {
       mensajeError = error.message;
     }
-    
+
     alert(mensajeError);
   }
+
+  getStockClass(stock: number): string {
+    if (stock === 0) {
+      return 'text-danger fw-bold'; // Rojo si no hay stock
+    } else if (stock < 10) {
+      return 'text-warning fw-bold'; // Amarillo si stock bajo
+    } else {
+      return 'text-success fw-bold'; // Verde si stock suficiente
+    }
+  }
+
 
   // ====== UTILITIES ======
   getStockClass(stock: number): string {
@@ -321,8 +332,8 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     }).format(precio);
   }
 
-  seleccionarAccion(a: Accion) { 
-    this.selectedAction = a; 
+  seleccionarAccion(a: Accion) {
+    this.selectedAction = a;
   }
 
   limpiarBusqueda() {

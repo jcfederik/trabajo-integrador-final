@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { SearchService } from '../../services/busquedaglobal';
+import { AuthService } from '../../services/auth';
 import { Subscription, filter } from 'rxjs';
+import { LogoutModalComponent } from '../logout-modal/logout-modal.component';
 
 @Component({
   selector: 'nav-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, LogoutModalComponent],
   templateUrl: './nav-bar.html',
   styleUrls: ['./nav-bar.css']
 })
@@ -18,7 +20,10 @@ export class NavBar implements OnInit, OnDestroy {
   searchTerm: string = '';
   placeholder: string = 'Buscar...';
   usuarioActual: string = 'Usuario';
+  userTipo: string = 'Usuario';
   isDashboard: boolean = false;
+  showDropdown: boolean = false;
+  mostrarModalLogout: boolean = false;
 
   // =============== CONTROL DE TECLADO ===============
   private backspacePresionado = false;  
@@ -30,21 +35,18 @@ export class NavBar implements OnInit, OnDestroy {
 
   constructor(
     public searchService: SearchService, 
-    public router: Router
+    public router: Router,
+    private authService: AuthService
   ) {}
 
   // =============== LIFECYCLE ===============
   ngOnInit() {
+    console.log('🔐 NavBar iniciado - Usuario:', this.authService.getCurrentUser());
+    
     this.checkCurrentRoute();
     this.setPlaceholderByRoute();
     this.loadUserData();
     this.configurarSuscripciones();
-  }
-
-  ngOnDestroy() {
-    if (this.searchSubscription) this.searchSubscription.unsubscribe();
-    if (this.componentSubscription) this.componentSubscription.unsubscribe();
-    if (this.routerSubscription) this.routerSubscription.unsubscribe();
   }
 
   // =============== CONFIGURACIÓN ===============
@@ -67,11 +69,79 @@ export class NavBar implements OnInit, OnDestroy {
         setTimeout(() => {
           this.checkCurrentRoute();
           this.setPlaceholderByRoute();
+          this.showDropdown = false;
         });
       });
+
+    // Cerrar dropdown al hacer click fuera
+    document.addEventListener('click', this.cerrarDropdownAlHacerClick.bind(this));
   }
 
-  // =============== GESTIÓN DE RUTAS ===============
+  ngOnDestroy() {
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
+    if (this.componentSubscription) {
+      this.componentSubscription.unsubscribe();
+    }
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+    document.removeEventListener('click', this.cerrarDropdownAlHacerClick.bind(this));
+  }
+
+  private cerrarDropdownAlHacerClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.user-dropdown')) {
+      this.showDropdown = false;
+    }
+  }
+
+  toggleDropdown() {
+    this.showDropdown = !this.showDropdown;
+  }
+
+  // 🔥 MODIFICADO: Ahora abre el modal de perfil
+  abrirModalLogout() {
+    console.log('👤 Abriendo modal de perfil...');
+    this.mostrarModalLogout = true;
+    this.showDropdown = false;
+  }
+
+  cerrarModalLogout() {
+    this.mostrarModalLogout = false;
+    // Actualizar datos del usuario después de cerrar el modal
+    this.loadUserData();
+  }
+
+  // ❌ ELIMINADO: Método logout() - Ahora está en el modal de perfil
+
+  // 🔥 NUEVO: Obtener número de especializaciones
+  getEspecializacionesCount(): number {
+    const user = this.authService.getCurrentUser();
+    const count = user?.especializaciones?.length || 0;
+    console.log('🔢 Contador de especializaciones:', count);
+    return count;
+  }
+
+  getUserTipo(): string {
+    const user = this.authService.getCurrentUser();
+    const tipo = user?.tipo || 'usuario';
+    
+    const tipoMap: { [key: string]: string } = {
+      'administrador': 'Admin',
+      'tecnico': 'Técnico', 
+      'usuario': 'Usuario'
+    };
+    
+    return tipoMap[tipo] || tipo;
+  }
+
+  // ✅ AGREGADO: Método público para verificar autenticación
+  isAuthenticated(): boolean {
+    return this.authService.isAuthenticated();
+  }
+
   private checkCurrentRoute() {
     this.isDashboard = this.esDashboard();
   }
@@ -113,16 +183,19 @@ export class NavBar implements OnInit, OnDestroy {
 
   // =============== GESTIÓN DE USUARIO ===============
   private loadUserData() {
-    const usuarioGuardado = localStorage.getItem('usuario') || localStorage.getItem('user');
-    if (usuarioGuardado) {
-      try {
-        const usuario = JSON.parse(usuarioGuardado);
-        this.usuarioActual = usuario.nombre || usuario.name || 'Usuario';
-      } catch {
-        this.usuarioActual = 'Usuario';
-      }
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      this.usuarioActual = user.nombre || 'Usuario';
+      this.userTipo = user.tipo || 'Usuario';
+      console.log('👤 Usuario cargado:', this.usuarioActual, 'Tipo:', this.userTipo);
+      console.log('🎯 Especializaciones:', user.especializaciones);
+    } else {
+      console.warn('⚠️ No se encontró usuario autenticado');
+      this.usuarioActual = 'Usuario';
+      this.userTipo = 'Usuario';
     }
   }
+
 
   // =============== BÚSQUEDA ===============
   onSearch() {

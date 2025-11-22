@@ -37,6 +37,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/presupuestos/listado-optimizado', [PresupuestoController::class, 'listadoOptimizado']);
 
 
+    //Route::post('/profile/especializaciones', [AdminUserController::class, 'asignarEspecializaciones']);
 
     // Recursos accesibles por cualquier usuario autenticado
     Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
@@ -45,29 +46,49 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
     Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
     Route::apiResource('clientes', ClienteController::class);
+    Route::get('/usuarios/buscar', [UserController::class, 'buscar']);
+    
+    Route::apiResource('clientes', ClienteController::class);
+    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
+    Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
+    Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
+    
     Route::apiResource('equipos', EquipoController::class);
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
+    
     Route::apiResource('medios-cobro', MedioCobroController::class);
     Route::apiResource('facturas', FacturaController::class);
+    
     Route::apiResource('reparaciones', ReparacionController::class);
     Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
-    Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
+    Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
+    
     Route::apiResource('presupuestos', PresupuestoController::class);
+    Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
+    
     Route::apiResource('compras-repuestos', CompraRepuestoController::class);
     Route::apiResource('proveedores', ProveedorController::class);
     Route::apiResource('repuestos', RepuestoController::class);
-    Route::apiResource('especializaciones', EspecializacionController::class);
-    Route::apiResource('detalle-cobros', DetalleCobroController::class)
-        ->only(['index', 'show']);
+    
+    // ESPECIALIZACIONES - Lectura para todos
+    Route::apiResource('especializaciones', EspecializacionController::class)->only(['index', 'show']);
+    
+    // ✅ CREACIÓN de especializaciones para técnicos y admin
+    Route::post('/especializaciones', [EspecializacionController::class, 'store']);
+    
+    // ✅ AUTO-ASIGNACIÓN para técnicos
+    Route::post('/users/{id}/especializaciones', [AdminUserController::class, 'autoAsignarEspecializaciones']);
+    
+    Route::apiResource('detalle-cobros', DetalleCobroController::class)->only(['index', 'show']);
 
-    // Rutas para reparaciones
-Route::apiResource('reparaciones', ReparacionController::class);
-
-    // RUTAS SOLO PARA ADMINISTRADORES
+    // ✅ RUTAS SOLO PARA ADMINISTRADORES
     Route::middleware(['admin'])->group(function () {
+        // Edición y eliminación de especializaciones solo para admin
+        Route::put('/especializaciones/{id}', [EspecializacionController::class, 'update']);
+        Route::delete('/especializaciones/{id}', [EspecializacionController::class, 'destroy']);
+        
+        // Gestión completa de usuarios
         Route::apiResource('users', AdminUserController::class);
-        Route::post('especializaciones', [EspecializacionController::class, 'store']);
-        Route::put('especializaciones/{id}', [EspecializacionController::class, 'update']);
-        Route::delete('especializaciones/{id}', [EspecializacionController::class, 'destroy']);
+        Route::post('/admin/users/{id}/especializaciones', [AdminUserController::class, 'asignarEspecializacionesUsuario']);
     });
 });

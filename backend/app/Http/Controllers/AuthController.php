@@ -32,7 +32,17 @@ class AuthController extends Controller
      *         description="Login exitoso",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Inicio de sesión exitoso"),
-     *             @OA\Property(property="user", ref="#/components/schemas/User"),
+     *             @OA\Property(property="user", type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="nombre", type="string", example="admin"),
+     *                 @OA\Property(property="tipo", type="string", example="administrador"),
+     *                 @OA\Property(property="permissions", type="array", 
+     *                     @OA\Items(type="string", example="users.manage")
+     *                 ),
+     *                 @OA\Property(property="especializaciones", type="array", 
+     *                     @OA\Items(type="object")
+     *                 )
+     *             ),
      *             @OA\Property(property="token", type="string"),
      *             @OA\Property(property="token_type", type="string", example="bearer"),
      *             @OA\Property(property="expires_in", type="integer", example=3600)
@@ -68,9 +78,22 @@ class AuthController extends Controller
 
             $user = JWTAuth::user();
 
+            // ✅ PREPARAR USUARIO CON PERMISOS
+            $userData = [
+                'id' => $user->id,
+                'nombre' => $user->nombre,
+                'tipo' => $user->tipo,
+                'permissions' => $user->permissions, // ← ESTO ES CLAVE
+            ];
+
+            // ✅ OPCIONAL: Incluir especializaciones si el usuario es técnico o admin
+            if (in_array($user->tipo, ['tecnico', 'administrador'])) {
+                $userData['especializaciones'] = $user->especializaciones;
+            }
+
             return response()->json([
                 'message' => 'Inicio de sesión exitoso',
-                'user' => $user,
+                'user' => $userData, // ← ENVIAR USUARIO CON PERMISOS
                 'token' => $token,
                 'token_type' => 'bearer',
                 'expires_in' => JWTAuth::factory()->getTTL() * 60
@@ -154,7 +177,21 @@ class AuthController extends Controller
      *     summary="Obtener usuario autenticado actual",
      *     tags={"Autenticación"},
      *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response=200, description="Usuario autenticado"),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Usuario autenticado",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="nombre", type="string", example="admin"),
+     *             @OA\Property(property="tipo", type="string", example="administrador"),
+     *             @OA\Property(property="permissions", type="array", 
+     *                 @OA\Items(type="string", example="users.manage")
+     *             ),
+     *             @OA\Property(property="especializaciones", type="array", 
+     *                 @OA\Items(type="object")
+     *             )
+     *         )
+     *     ),
      *     @OA\Response(response=401, description="Token inválido o expirado")
      * )
      */
@@ -162,7 +199,21 @@ class AuthController extends Controller
     {
         try {
             $user = JWTAuth::user();
-            return response()->json($user, 200);
+            
+            // ✅ Misma estructura que en login
+            $userData = [
+                'id' => $user->id,
+                'nombre' => $user->nombre,
+                'tipo' => $user->tipo,
+                'permissions' => $user->permissions,
+            ];
+
+            if (in_array($user->tipo, ['tecnico', 'administrador'])) {
+                $userData['especializaciones'] = $user->especializaciones;
+            }
+
+            return response()->json($userData, 200);
+            
         } catch (TokenExpiredException $e) {
             return response()->json(['error' => 'El token ha expirado.'], 401);
         } catch (TokenInvalidException $e) {
