@@ -205,6 +205,7 @@ export class NavBar implements OnInit, OnDestroy {
     this.searchService.clearGlobalSearch();
     this.searchService.clearSearch();
     this.searchService.clearDashboardSearch();
+    this.router.navigate([this.router.url]); // fuerza refresco visual
   }
 
   // =============== PLACEHOLDER DINÁMICO ===============

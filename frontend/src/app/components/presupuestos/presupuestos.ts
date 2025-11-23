@@ -175,7 +175,11 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.buscandoPresupuestos = true;
 
     if (terminoLimpio.length <= 2) {
-      this.applyFilterLocal();
+      this.page = 1;
+      this.lastPage = false;
+      this.itemsAll = [];
+
+      this.buscarEnServidor(termino);
       this.buscandoPresupuestos = false;
     } else {
       this.busquedaPresupuesto.next(terminoLimpio);
@@ -249,15 +253,21 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       this.mostrandoSugerencias = false;
     }, 200);
   }
+private resetBusqueda(): void {
+  this.searchTerm = '';
+  this.isServerSearch = false;
+  this.serverSearchPage = 1;
+  this.serverSearchLastPage = false;
 
-  private resetBusqueda(): void {
-    this.isServerSearch = false;
-    this.serverSearchPage = 1;
-    this.serverSearchLastPage = false;
-    this.mostrandoSugerencias = false;
-    this.buscandoPresupuestos = false;
-    this.items = [...this.itemsAll];
-  }
+  this.itemsAll = [];
+  this.items = [];
+
+  this.page = 1;
+  this.lastPage = false;
+
+  this.cargar(); // 🔥 Vuelve a pedir la lista completa al servidor
+}
+
 
   // =============== GESTIÓN DE REPARACIONES ===============
   onBuscarReparacion(termino: string): void {
@@ -802,22 +812,26 @@ cargar(): void {
     return new Date(yyyyMMdd + 'T00:00:00Z').toISOString();
   }
 
-getTituloPresupuesto(presupuesto: Presupuesto): string {
-  if (presupuesto.reparacion) {
-    const cliente = presupuesto.reparacion.cliente_nombre || 'Cliente';
-    const equipo = presupuesto.reparacion.equipo_nombre || 'Equipo';
-    return `Presupuesto #${presupuesto.id} - ${cliente} | ${equipo}`;
-  }
-  
-  const reparacionInfo = this.reparacionesInfoCache.get(presupuesto.reparacion_id);
-  if (reparacionInfo) {
-    const cliente = reparacionInfo.cliente_nombre || 'Cliente';
-    const equipo = reparacionInfo.equipo_nombre || 'Equipo';
-    return `Presupuesto #${presupuesto.id} - ${cliente} | ${equipo}`;
-  }
-  
-  return `Presupuesto #${presupuesto.id}`;
+getTituloPresupuesto(p: Presupuesto): string {
+  const rep = p.reparacion || this.reparacionesInfoCache.get(p.reparacion_id);
+
+  if (!rep) return `Presupuesto #${p.id}`;
+
+  const cliente =
+    rep.cliente_nombre ||
+    rep.equipo?.cliente?.nombre ||
+    'Cliente';
+
+  const equipo =
+    rep.equipo_nombre ||
+    rep.equipo?.descripcion ||
+    'Equipo';
+
+  const estado = p.aceptado ? 'Aceptado' : 'Pendiente';
+
+  return `Presupuesto #${p.id} - ${cliente} | ${equipo}`;
 }
+
 
 getInfoEquipo(reparacionId: number): string {
   const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);

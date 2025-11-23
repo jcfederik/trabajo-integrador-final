@@ -60,24 +60,55 @@ class PresupuestoController extends Controller
             $query = Presupuesto::query();
 
             if (!empty($search)) {
-                $query->with(['reparacion' => function($q) {
-                    $q->select('id', 'descripcion');
-                }]);
-                
+
                 $query->where(function($q) use ($search) {
+
                     $q->where('id', 'LIKE', "%{$search}%")
                     ->orWhere('monto_total', 'LIKE', "%{$search}%")
                     ->orWhere('fecha', 'LIKE', "%{$search}%")
-                    ->orWhere('aceptado', 'LIKE', "%{$search}%")
-                    ->orWhereHas('reparacion', function($q2) use ($search) {
-                        $q2->where('descripcion', 'LIKE', "%{$search}%");
+                    ->orWhereRaw("IF(aceptado=1,'aceptado','pendiente') LIKE ?", ["%{$search}%"]);
+
+                    // Reparación
+                    $q->orWhereHas('reparacion', function($q2) use ($search) {
+                        $q2->where('descripcion', 'LIKE', "%{$search}%")
+                        ->orWhere('estado', 'LIKE', "%{$search}%");
                     });
+
+                    // Equipo
+                    $q->orWhereHas('reparacion.equipo', function($q3) use ($search) {
+                        $q3->where('descripcion', 'LIKE', "%{$search}%");
+                    });
+
+                    // Cliente
+                    $q->orWhereHas('reparacion.equipo.cliente', function($q4) use ($search) {
+                        $q4->where('nombre', 'LIKE', "%{$search}%")
+                        ->orWhere('telefono', 'LIKE', "%{$search}%");
+                    });
+
+                    // Técnico
+                    $q->orWhereHas('reparacion.tecnico', function($q5) use ($search) {
+                        $q5->where('nombre', 'LIKE', "%{$search}%");
+                    });
+
                 });
+
+                // Asegurar que cargue todas las relaciones
+                $query->with([
+                    'reparacion:id,descripcion,equipo_id,usuario_id,fecha,estado',
+                    'reparacion.equipo:id,descripcion,cliente_id',
+                    'reparacion.equipo.cliente:id,nombre,telefono,email',
+                    'reparacion.tecnico:id,nombre'
+                ]);
+
             } else {
-                $query->with(['reparacion' => function($q) {
-                    $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
-                }]);
+                $query->with([
+                    'reparacion:id,descripcion,equipo_id,usuario_id,fecha,estado',
+                    'reparacion.equipo:id,descripcion,cliente_id',
+                    'reparacion.equipo.cliente:id,nombre,telefono,email',
+                    'reparacion.tecnico:id,nombre'
+                ]);
             }
+
 
             // Ordenar por ID descendente
             $presupuestos = $query->orderBy('id', 'desc')
