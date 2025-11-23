@@ -8,7 +8,7 @@
 
     <nav class="sidebar-nav">
         <ul class="sidebar-menu">
-            <li *ngFor="let item of menuItems" class="sidebar-item">
+            <li *ngFor="let item of filteredMenuItems" class="sidebar-item">
                 <ng-container *ngIf="item.isHeader; else menuItem">
                     <div *ngIf="!isCollapsed" class="sidebar-header-item">
                         {{ item.title }}
@@ -17,11 +17,16 @@
                 </ng-container>
 
                 <ng-template #menuItem>
-                    <a class="sidebar-link" [class.disabled]="item.disabled"
-                        [routerLink]="item.disabled ? null : item.route" routerLinkActive="active"
-                        [routerLinkActiveOptions]="{ exact: false }">
+                    <a class="sidebar-link" 
+                       [class.disabled]="item.disabled"
+                       [routerLink]="item.disabled ? null : item.route" 
+                       routerLinkActive="active"
+                       [routerLinkActiveOptions]="{ exact: false }">
                         <i class="bi {{ item.icon }} sidebar-icon"></i>
-                        <span *ngIf="!isCollapsed" class="sidebar-text">{{ item.title }}</span>
+                        <span *ngIf="!isCollapsed" class="sidebar-text">
+                            {{ item.title }}
+                            <span *ngIf="item.badge" class="sidebar-badge">{{ item.badge }}</span>
+                        </span>
                     </a>
                 </ng-template>
             </li>

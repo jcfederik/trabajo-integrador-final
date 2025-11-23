@@ -173,3 +173,36 @@
     font-size: 2.5rem;
   }
 }
+
+/* Permisos tooltip */
+.permissions-tooltip {
+  position: absolute;
+  bottom: -30px;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  font-size: 0.7rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.dashboard-card:hover .permissions-tooltip {
+  opacity: 1;
+}
+
+/* Debug info */
+.debug-info {
+  border-left: 4px solid var(--warning);
+}
+
+.debug-info summary {
+  cursor: pointer;
+}
+
+.debug-info details[open] summary {
+  margin-bottom: 0.5rem;
+}

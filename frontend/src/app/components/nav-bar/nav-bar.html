@@ -22,7 +22,7 @@
                 type="search"
                 [(ngModel)]="searchTerm"
                 [placeholder]="placeholder"
-                (keydown)="  bloquearBackspaceHold($event)"
+                (keydown)="bloquearBackspaceHold($event)"
                 (input)="onSearch()"
                 aria-label="Buscar"
               />
@@ -73,12 +73,30 @@
         <div class="user-info">
           <div class="user-avatar">
             <i class="bi bi-person-fill"></i>
+            <!-- ❌ ELIMINADO: Badge con número de especializaciones del avatar -->
           </div>
-          <a routerLink="/perfil" class="user-link">
-            {{ usuarioActual }}
-          </a>
+          <div class="user-dropdown">
+            <button class="user-link dropdown-toggle" (click)="toggleDropdown()">
+              {{ usuarioActual }}
+              <span class="badge bg-primary ms-2">{{ getUserTipo() }}</span>
+            </button>
+            @if (showDropdown) {
+              <div class="dropdown-menu show">
+                <!-- 🔥 MODIFICADO: Sin badge en el dropdown -->
+                <button class="dropdown-item" (click)="abrirModalLogout()">
+                  <i class="bi bi-person-circle me-2"></i>Mi Perfil
+                  <!-- ❌ ELIMINADO: Badge de especializaciones -->
+                </button>
+              </div>
+            }
+          </div>
         </div>
       </div>
     </div>
   </div>
 </nav>
+
+<!-- Modal de Perfil -->
+@if (mostrarModalLogout) {
+  <app-logout-modal (closed)="cerrarModalLogout()"></app-logout-modal>
+}
