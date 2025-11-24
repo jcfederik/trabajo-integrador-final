@@ -59,6 +59,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     
     Route::apiResource('medios-cobro', MedioCobroController::class);
     Route::apiResource('facturas', FacturaController::class);
+    Route::get('/facturas/{id}/cobros', [FacturaController::class, 'getCobrosPorFactura']);
+    Route::get('/facturas/{id}/saldo', [FacturaController::class, 'getSaldoPendiente']);
     
     Route::apiResource('reparaciones', ReparacionController::class);
     Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
