@@ -15,7 +15,8 @@ use App\Http\Controllers\{
     ProveedorController,
     RepuestoController,
     EspecializacionController,
-    DetalleCobroController
+    DetalleCobroController,
+    CobroController // ⬅️ ¡Nuevo controlador importado!
 };
 
 // RUTAS PÚBLICAS
@@ -37,14 +38,14 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
     Route::get('/presupuestos/listado-optimizado', [PresupuestoController::class, 'listadoOptimizado']);
 
-
-
     // Recursos accesibles por cualquier usuario autenticado
     Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
     Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
     Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
     Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
-    Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
+    Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);
+    Route::get('/facturas/{id}/saldo', [FacturaController::class, 'getSaldoPendiente']);   
+    Route::get('/facturas/{id}/cobros', [FacturaController::class, 'getCobrosPorFactura']);  
     Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('equipos', EquipoController::class);
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
@@ -63,6 +64,15 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('proveedores', ProveedorController::class);
     Route::apiResource('repuestos', RepuestoController::class);
     
+    // ----------------------------------------------------
+    // ✅ RUTAS DE COBRO AÑADIDAS
+    // ----------------------------------------------------
+    Route::apiResource('cobros', CobroController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('detalle-cobros', DetalleCobroController::class)->only(['index', 'show']);
+    
+    // Las rutas de 'detalle-cobros' ya estaban, pero aquí se consolidan por tema.
+    // ----------------------------------------------------
+
     // ESPECIALIZACIONES - Lectura para todos
     Route::apiResource('especializaciones', EspecializacionController::class)->only(['index', 'show']);
     
@@ -72,8 +82,6 @@ Route::middleware(['jwt.auth'])->group(function () {
     // ✅ AUTO-ASIGNACIÓN para técnicos
     Route::post('/users/{id}/especializaciones', [AdminUserController::class, 'autoAsignarEspecializaciones']);
     
-    Route::apiResource('detalle-cobros', DetalleCobroController::class)->only(['index', 'show']);
-
     // ✅ RUTAS SOLO PARA ADMINISTRADORES
     Route::middleware(['admin'])->group(function () {
         // Edición y eliminación de especializaciones solo para admin
