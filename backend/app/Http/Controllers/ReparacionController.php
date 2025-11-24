@@ -37,6 +37,27 @@ class ReparacionController extends Controller
      *         required=false,
      *         @OA\Schema(type="integer", example=15)
      *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Término de búsqueda",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sort",
+     *         in="query",
+     *         description="Campo para ordenar",
+     *         required=false,
+     *         @OA\Schema(type="string", example="id")
+     *     ),
+     *     @OA\Parameter(
+     *         name="direction",
+     *         in="query",
+     *         description="Dirección del orden (asc/desc)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="desc")
+     *     ),
      *     @OA\Response(
      *         response=200, 
      *         description="Lista de reparaciones obtenida correctamente",
@@ -75,7 +96,6 @@ class ReparacionController extends Controller
         $perPage = $request->get('size', 10);
         return $query->paginate($perPage);
     }
-
 
     /**
      * @OA\Get(
@@ -472,6 +492,41 @@ class ReparacionController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * @OA\Post(
+     *     path="/api/reparaciones/{reparacionId}/repuestos",
+     *     summary="Asignar un repuesto a una reparación",
+     *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="reparacionId",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la reparación",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"repuesto_id", "cantidad"},
+     *             @OA\Property(property="repuesto_id", type="integer", example=1),
+     *             @OA\Property(property="cantidad", type="integer", example=2)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Repuesto asignado correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Repuesto asignado correctamente"),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Repuesto"))
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Stock insuficiente o datos inválidos"),
+     *     @OA\Response(response=404, description="Reparación o repuesto no encontrado"),
+     *     @OA\Response(response=500, description="Error al asignar repuesto")
+     * )
+     */
     public function assignRepuesto(Request $request, $reparacionId)
     {
         Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
@@ -554,7 +609,35 @@ class ReparacionController extends Controller
     }
 
     /**
-     * Remover repuesto de reparación
+     * @OA\Delete(
+     *     path="/api/reparaciones/{reparacionId}/repuestos/{pivotId}",
+     *     summary="Remover un repuesto de una reparación",
+     *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="reparacionId",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la reparación",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="pivotId",
+     *         in="path",
+     *         required=true,
+     *         description="ID del registro pivot en la tabla reparacion_repuesto",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Repuesto removido correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Repuesto removido correctamente")
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Repuesto no encontrado en esta reparación"),
+     *     @OA\Response(response=500, description="Error al remover repuesto")
+     * )
      */
     public function removeRepuesto($reparacionId, $pivotId)
     {
@@ -612,7 +695,28 @@ class ReparacionController extends Controller
     }
 
     /**
-     * Obtener repuestos asignados a una reparación
+     * @OA\Get(
+     *     path="/api/reparaciones/{reparacionId}/repuestos",
+     *     summary="Obtener repuestos asignados a una reparación",
+     *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="reparacionId",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la reparación",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de repuestos asignados",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Repuesto"))
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Reparación no encontrada"),
+     *     @OA\Response(response=500, description="Error al cargar repuestos asignados")
+     * )
      */
     public function getRepuestosAsignados($reparacionId)
     {

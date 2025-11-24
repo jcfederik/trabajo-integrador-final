@@ -24,7 +24,7 @@ type Acción = 'listar' | 'crear';
 export class ReparacionesComponent implements OnInit, OnDestroy {
   selectedAction: Acción = 'listar';
 
-  // listado + paginación
+  // ====== PROPIEDADES DE LISTADO Y PAGINACIÓN ======
   reparacionesAll: Reparacion[] = [];
   reparacionesFiltradas: Reparacion[] = [];
   page = 1;
@@ -32,57 +32,55 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
-  // Búsqueda global
+  // ====== PROPIEDADES DE BÚSQUEDA ======
   private searchSub?: Subscription;
   searchTerm: string = '';
-  
-  // Búsqueda en servidor
   private isServerSearch = false;
   private serverSearchPage = 1;
   private serverSearchLastPage = false;
   private busquedaReparacion = new Subject<string>();
 
-  // Propiedades para selección (CREACIÓN)
+  // ====== PROPIEDADES PARA SELECCIÓN (CREACIÓN) ======
   equipoSeleccionado: SearchResult | null = null;
   clienteSeleccionado: SearchResult | null = null;
   tecnicoSeleccionado: SearchResult | null = null;
 
-  // Propiedades para selección (EDICIÓN)
+  // ====== PROPIEDADES PARA SELECCIÓN (EDICIÓN) ======
   equipoEditSeleccionado: SearchResult | null = null;
   clienteEditSeleccionado: SearchResult | null = null;
   tecnicoEditSeleccionado: SearchResult | null = null;
 
-  // Referencias a los componentes de búsqueda (CREACIÓN)
+  // ====== REFERENCIAS A COMPONENTES DE BÚSQUEDA ======
   @ViewChild('clienteSelector') clienteSelector!: SearchSelectorComponent;
   @ViewChild('equipoSelector') equipoSelector!: SearchSelectorComponent;
   @ViewChild('tecnicoSelector') tecnicoSelector!: SearchSelectorComponent;
-
-  // Referencias a los componentes de búsqueda (EDICIÓN)
   @ViewChild('equipoEditSelector') equipoEditSelector!: SearchSelectorComponent;
   @ViewChild('tecnicoEditSelector') tecnicoEditSelector!: SearchSelectorComponent;
+  @ViewChild('repuestoCrearSelector') repuestoCrearSelector!: SearchSelectorComponent;
 
-  // edición inline
+  // ====== PROPIEDADES DE EDICIÓN INLINE ======
   editingId: number | null = null;
   editBuffer: Partial<Reparacion> = {};
 
-  // creación
+  // ====== PROPIEDADES DE CREACIÓN ======
   nuevo: Partial<Reparacion> = {
     fecha: new Date().toISOString().slice(0, 10),
     estado: 'pendiente'
   };
 
+  // ====== PROPIEDADES DE MODALES Y REPUESTOS ======
   repuestosDisponibles: any[] = [];
   repuestosAsignados: any[] = [];
   reparacionSeleccionada: Reparacion | null = null;
   mostrarModalRepuestos: boolean = false;
+  mostrarModalVerRepuestos: boolean = false;
   cargandoRepuestosDisponibles: boolean = false;
   cargandoRepuestosAsignados: boolean = false;
 
-  // NUEVAS PROPIEDADES PARA REPUESTOS EN CREACIÓN
+  // ====== PROPIEDADES PARA REPUESTOS EN CREACIÓN ======
   repuestoSeleccionadoCrear: any = null;
   repuestosSeleccionadosCrear: any[] = [];
   cantidadRepuestoCrear: number = 1;
-  @ViewChild('repuestoCrearSelector') repuestoCrearSelector!: SearchSelectorComponent;
 
   private subs: Subscription[] = [];
 
@@ -97,7 +95,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   ) {}
 
   // ====== CICLO DE VIDA ======
-
   ngOnInit(): void {
     this.resetList();
     this.configurarBusqueda();
@@ -112,7 +109,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // ====== CONFIGURACIÓN DE BÚSQUEDA GLOBAL ======
+  // ====== CONFIGURACIÓN DE BÚSQUEDA ======
   private configurarBusqueda(): void {
     this.searchService.setCurrentComponent('reparaciones');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -156,31 +153,30 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-private buscarEnServidor(termino: string): void {
-  this.isServerSearch = true;
-  this.serverSearchPage = 1;
-  this.serverSearchLastPage = false;
+  private buscarEnServidor(termino: string): void {
+    this.isServerSearch = true;
+    this.serverSearchPage = 1;
+    this.serverSearchLastPage = false;
 
-  this.repService.listCompleto(1, this.perPage, termino).subscribe({
-    next: (response: PaginatedResponse<Reparacion>) => {
-      this.reparacionesAll = response.data;
-      this.reparacionesFiltradas = [...this.reparacionesAll];
-      
-      const itemsForSearch = this.reparacionesAll.map(reparacion => ({
-        ...reparacion,
-        tecnico_nombre: this.getTecnicoNombre(reparacion),
-        equipo_nombre: this.getEquipoNombre(reparacion),
-        reparacion_nombre: reparacion.descripcion || 'Sin descripción',
-        cliente_nombre: this.getClienteNombre(reparacion)
-      }));
-      this.searchService.setSearchData(itemsForSearch);
-    },
-    error: (error) => {
-      console.error('Error en búsqueda servidor:', error);
-      this.applyFilterLocal();
-    }
-  });
-}
+    this.repService.listCompleto(1, this.perPage, termino).subscribe({
+      next: (response: PaginatedResponse<Reparacion>) => {
+        this.reparacionesAll = response.data;
+        this.reparacionesFiltradas = [...this.reparacionesAll];
+        
+        const itemsForSearch = this.reparacionesAll.map(reparacion => ({
+          ...reparacion,
+          tecnico_nombre: this.getTecnicoNombre(reparacion),
+          equipo_nombre: this.getEquipoNombre(reparacion),
+          reparacion_nombre: reparacion.descripcion || 'Sin descripción',
+          cliente_nombre: this.getClienteNombre(reparacion)
+        }));
+        this.searchService.setSearchData(itemsForSearch);
+      },
+      error: (error) => {
+        this.applyFilterLocal();
+      }
+    });
+  }
 
   private applyFilterLocal(): void {
     const term = this.searchTerm.toLowerCase();
@@ -221,119 +217,86 @@ private buscarEnServidor(termino: string): void {
     this.reparacionesFiltradas = [...this.reparacionesAll];
   }
 
-  // ====== LISTA / SCROLL ======
-cargar() {
-  if (this.loading || this.lastPage) return;
-  
-  this.loading = true;
-  
-  const searchTerm = this.searchTerm && this.searchTerm.trim() ? this.searchTerm.trim() : '';
-  
-  this.repService.listCompleto(this.page, this.perPage, searchTerm).subscribe({
-    next: (res: PaginatedResponse<Reparacion>) => {
-      const nuevasReparaciones = res.data;
-      
-      console.log('✅ Reparaciones cargadas con nuevo endpoint - DETALLADO:');
-      nuevasReparaciones.forEach((rep, index) => {
-        console.log(`Reparación ${index + 1}:`, {
-          id: rep.id,
-          descripcion: rep.descripcion,
-          equipo_nombre: rep.equipo_nombre,
-          tecnico_nombre: rep.tecnico_nombre,
-          cliente_nombre: rep.cliente_nombre,
-          equipo: rep.equipo,
-          tecnico: rep.tecnico
-        });
-      });
-      
-      if (this.page === 1) {
-        this.reparacionesAll = nuevasReparaciones;
-      } else {
-        this.reparacionesAll = [...this.reparacionesAll, ...nuevasReparaciones];
-      }
-
-      this.page++;
-      this.lastPage = (res.current_page >= res.last_page);
-      this.loading = false;
-      
-      this.applyFilterLocal();
-      this.prepararDatosParaBusquedaGlobal();
-    },
-    error: (e) => {
-      this.loading = false;
-      console.error('Error cargando reparaciones:', e);
-      this.alertService.showGenericError('Error al cargar las reparaciones');
-    }
-  });
-}
-
-private procesarReparacionesParaDisplay(reparaciones: Reparacion[]): Reparacion[] {
-  return reparaciones.map(reparacion => {
-    const equipoNombre = this.getEquipoNombre(reparacion);
-    const tecnicoNombre = this.getTecnicoNombre(reparacion);
-    const clienteNombre = this.getClienteNombre(reparacion);
+  // ====== GESTIÓN DE LISTADO Y SCROLL ======
+  cargar() {
+    if (this.loading || this.lastPage) return;
     
-    return {
-      ...reparacion,
-      equipo_nombre: equipoNombre,
-      tecnico_nombre: tecnicoNombre,
-      cliente_nombre: clienteNombre,
-      equipo: reparacion.equipo || undefined,
-      tecnico: reparacion.tecnico || undefined
-    };
-  });
-}
+    this.loading = true;
+    
+    const searchTerm = this.searchTerm && this.searchTerm.trim() ? this.searchTerm.trim() : '';
+    
+    this.repService.listCompleto(this.page, this.perPage, searchTerm).subscribe({
+      next: (res: PaginatedResponse<Reparacion>) => {
+        const nuevasReparaciones = res.data;
+        
+        if (this.page === 1) {
+          this.reparacionesAll = nuevasReparaciones;
+        } else {
+          this.reparacionesAll = [...this.reparacionesAll, ...nuevasReparaciones];
+        }
 
-private prepararDatosParaBusquedaGlobal(): void {
-  const itemsForSearch = this.reparacionesAll.map(reparacion => ({
-    ...reparacion,
-    tecnico_nombre: this.getTecnicoNombre(reparacion),
-    equipo_nombre: this.getEquipoNombre(reparacion),
-    reparacion_nombre: reparacion.descripcion || 'Sin descripción',
-    cliente_nombre: this.getClienteNombre(reparacion)
-  }));
-  
-  this.searchService.setSearchData(itemsForSearch);
-}
+        this.page++;
+        this.lastPage = (res.current_page >= res.last_page);
+        this.loading = false;
+        
+        this.applyFilterLocal();
+        this.prepararDatosParaBusquedaGlobal();
+      },
+      error: (e) => {
+        this.loading = false;
+        this.alertService.showGenericError('Error al cargar las reparaciones');
+      }
+    });
+  }
+
+  private prepararDatosParaBusquedaGlobal(): void {
+    const itemsForSearch = this.reparacionesAll.map(reparacion => ({
+      ...reparacion,
+      tecnico_nombre: this.getTecnicoNombre(reparacion),
+      equipo_nombre: this.getEquipoNombre(reparacion),
+      reparacion_nombre: reparacion.descripcion || 'Sin descripción',
+      cliente_nombre: this.getClienteNombre(reparacion)
+    }));
+    
+    this.searchService.setSearchData(itemsForSearch);
+  }
 
   private cargarMasResultadosBusqueda(): void {
-  if (this.loading || this.serverSearchLastPage) return;
-  
-  this.loading = true;
-  this.serverSearchPage++;
+    if (this.loading || this.serverSearchLastPage) return;
+    
+    this.loading = true;
+    this.serverSearchPage++;
 
-  this.repService.listCompleto(this.serverSearchPage, this.perPage, this.searchTerm).subscribe({
-    next: (response: PaginatedResponse<Reparacion>) => {
-      const nuevasReparaciones = response.data;
-      
-      if (Array.isArray(nuevasReparaciones) && nuevasReparaciones.length > 0) {
-        this.reparacionesAll = [...this.reparacionesAll, ...nuevasReparaciones];
-        this.reparacionesFiltradas = [...this.reparacionesAll];
+    this.repService.listCompleto(this.serverSearchPage, this.perPage, this.searchTerm).subscribe({
+      next: (response: PaginatedResponse<Reparacion>) => {
+        const nuevasReparaciones = response.data;
         
-        const itemsForSearch = this.reparacionesAll.map(reparacion => ({
-          ...reparacion,
-          tecnico_nombre: this.getTecnicoNombre(reparacion),
-          equipo_nombre: this.getEquipoNombre(reparacion),
-          reparacion_nombre: reparacion.descripcion || 'Sin descripción',
-          cliente_nombre: this.getClienteNombre(reparacion)
-        }));
-        this.searchService.setSearchData(itemsForSearch);
-      } else {
+        if (Array.isArray(nuevasReparaciones) && nuevasReparaciones.length > 0) {
+          this.reparacionesAll = [...this.reparacionesAll, ...nuevasReparaciones];
+          this.reparacionesFiltradas = [...this.reparacionesAll];
+          
+          const itemsForSearch = this.reparacionesAll.map(reparacion => ({
+            ...reparacion,
+            tecnico_nombre: this.getTecnicoNombre(reparacion),
+            equipo_nombre: this.getEquipoNombre(reparacion),
+            reparacion_nombre: reparacion.descripcion || 'Sin descripción',
+            cliente_nombre: this.getClienteNombre(reparacion)
+          }));
+          this.searchService.setSearchData(itemsForSearch);
+        } else {
+          this.serverSearchLastPage = true;
+        }
+        
+        this.loading = false;
+      },
+      error: (error) => {
+        this.loading = false;
         this.serverSearchLastPage = true;
       }
-      
-      this.loading = false;
-    },
-    error: (error) => {
-      console.error('Error cargando más resultados:', error);
-      this.loading = false;
-      this.serverSearchLastPage = true;
-    }
-  });
-}
+    });
+  }
 
   onScroll = () => {
-    
     if (this.isCrear()) {
       return;
     }
@@ -367,50 +330,49 @@ private prepararDatosParaBusquedaGlobal(): void {
   }
 
   // ====== MÉTODOS HELPER PARA OBTENER NOMBRES ======
-getClienteNombre(r: Reparacion): string {
-  if (r.cliente_nombre && r.cliente_nombre !== 'No especificado') {
-    return r.cliente_nombre;
+  getClienteNombre(r: Reparacion): string {
+    if (r.cliente_nombre && r.cliente_nombre !== 'No especificado') {
+      return r.cliente_nombre;
+    }
+
+    if (r.equipo?.cliente?.nombre) {
+      return r.equipo.cliente.nombre;
+    }
+
+    return 'No especificado';
   }
 
-  if (r.equipo?.cliente?.nombre) {
-    return r.equipo.cliente.nombre;
+  getEquipoNombre(r: Reparacion): string {
+    if (r.equipo_nombre && r.equipo_nombre !== 'Sin equipo') {
+      return r.equipo_nombre;
+    }
+
+    if (r.equipo?.descripcion) {
+      return r.equipo.descripcion;
+    }
+
+    return 'Sin equipo';
   }
 
-  return 'No especificado';
-}
+  getTecnicoNombre(r: Reparacion): string {
+    if (r.tecnico_nombre && r.tecnico_nombre !== 'Sin técnico') {
+      return r.tecnico_nombre;
+    }
 
-getEquipoNombre(r: Reparacion): string {
-  if (r.equipo_nombre && r.equipo_nombre !== 'Sin equipo') {
-    return r.equipo_nombre;
+    if (r.tecnico?.nombre) {
+      return r.tecnico.nombre;
+    }
+
+    return 'Sin técnico';
   }
 
-  if (r.equipo?.descripcion) {
-    return r.equipo.descripcion;
-  }
-
-  return 'Sin equipo';
-}
-
-getTecnicoNombre(r: Reparacion): string {
-  if (r.tecnico_nombre && r.tecnico_nombre !== 'Sin técnico') {
-    return r.tecnico_nombre;
-  }
-
-  if (r.tecnico?.nombre) {
-    return r.tecnico.nombre;
-  }
-
-  return 'Sin técnico';
-}
-
-  // ====== CREAR ======
+  // ====== CREACIÓN DE REPARACIONES ======
   async crear() {
     if (!this.nuevo.equipo_id || !this.nuevo.usuario_id || !this.nuevo.descripcion || !this.nuevo.fecha || !this.nuevo.estado) {
       this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
       return;
     }
 
-    // Validar stock de todos los repuestos seleccionados
     for (const repuesto of this.repuestosSeleccionadosCrear) {
       if (repuesto.cantidad > repuesto.stock) {
         this.alertService.showGenericError(`Stock insuficiente para ${repuesto.nombre}. Solo hay ${repuesto.stock} unidades disponibles.`);
@@ -421,34 +383,29 @@ getTecnicoNombre(r: Reparacion): string {
     this.alertService.showLoading('Creando reparación...');
 
     try {
-      // 1. Primero crear la reparación
       const reparacionCreada = await this.repService.create(this.nuevo).toPromise();
       
       if (!reparacionCreada) {
         throw new Error('No se recibió respuesta del servidor al crear la reparación');
       }
 
-      // CORRECCIÓN: usar 'reparacion' en minúscula o el objeto directamente
       const nuevaReparacion = reparacionCreada;
 
       if (!nuevaReparacion) {
         throw new Error('No se recibió la reparación creada');
       }
 
-      // 2. Luego asignar los repuestos si hay alguno
       if (this.repuestosSeleccionadosCrear.length > 0) {
         for (const repuesto of this.repuestosSeleccionadosCrear) {
           await this.repService.assignRepuesto(nuevaReparacion.id, repuesto.id, repuesto.cantidad).toPromise();
         }
       }
 
-      // 3. Éxito - Actualizar interfaz
       this.alertService.closeLoading();
       
       this.reparacionesAll.unshift(nuevaReparacion);
       this.applyFilterLocal();
 
-      // Resetear formulario
       this.nuevo = {
         fecha: new Date().toISOString().slice(0, 10),
         estado: 'pendiente'
@@ -468,28 +425,29 @@ getTecnicoNombre(r: Reparacion): string {
       this.alertService.showGenericError(e?.error?.error ?? 'Error al crear la reparación');
     }
   }
-  // ====== ELIMINAR ======
-async eliminar(id: number) {
-  const reparacion = this.reparacionesAll.find(r => r.id === id);
-  const confirmed = await this.alertService.confirmDeleteReparacion(reparacion?.descripcion || 'esta reparación');
-  if (!confirmed) return;
 
-  this.alertService.showLoading('Eliminando reparación...');
+  // ====== ELIMINACIÓN DE REPARACIONES ======
+  async eliminar(id: number) {
+    const reparacion = this.reparacionesAll.find(r => r.id === id);
+    const confirmed = await this.alertService.confirmDeleteReparacion(reparacion?.descripcion || 'esta reparación');
+    if (!confirmed) return;
 
-  this.repService.delete(id).subscribe({
-    next: () => {
-      this.alertService.closeLoading();
-      this.reparacionesAll = this.reparacionesAll.filter(r => r.id !== id);
-      this.applyFilterLocal();
-      this.prepararDatosParaBusquedaGlobal();
-      this.alertService.showReparacionEliminada();
-    },
-    error: (e) => {
-      this.alertService.closeLoading();
-      this.alertService.showGenericError('Error al eliminar la reparación');
-    }
-  });
-}
+    this.alertService.showLoading('Eliminando reparación...');
+
+    this.repService.delete(id).subscribe({
+      next: () => {
+        this.alertService.closeLoading();
+        this.reparacionesAll = this.reparacionesAll.filter(r => r.id !== id);
+        this.applyFilterLocal();
+        this.prepararDatosParaBusquedaGlobal();
+        this.alertService.showReparacionEliminada();
+      },
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al eliminar la reparación');
+      }
+    });
+  }
 
   // ====== EDICIÓN INLINE ======
   startEdit(item: Reparacion) {
@@ -518,7 +476,6 @@ async eliminar(id: number) {
       };
     }
 
-    // Precargar equipo
     if (item.equipo) {
       this.equipoEditSeleccionado = {
         id: item.equipo.id,
@@ -553,15 +510,11 @@ async eliminar(id: number) {
                   };
                   this.cargarTodosLosEquiposDelClienteEdit();
                 },
-                error: (e) => {
-                  console.error('Error al cargar cliente:', e);
-                }
+                error: (e) => {}
               });
             }
           },
-          error: (e) => {
-            console.error('Error al cargar equipo:', e);
-          }
+          error: (e) => {}
         });
       }
     }
@@ -578,9 +531,7 @@ async eliminar(id: number) {
             this.tecnicoEditSeleccionado = tecnico;
           }
         },
-        error: (e) => {
-          console.error('Error al cargar técnicos para edición:', e);
-        }
+        error: (e) => {}
       });
     }
   }
@@ -593,37 +544,37 @@ async eliminar(id: number) {
     this.tecnicoEditSeleccionado = null;
   }
 
-async saveEdit(id: number) {
-  if (!this.editBuffer.equipo_id || !this.editBuffer.usuario_id || !this.editBuffer.descripcion || !this.editBuffer.fecha || !this.editBuffer.estado) {
-    this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
-    return;
-  }
-
-  this.alertService.showLoading('Actualizando reparación...');
-
-  this.repService.update(id, this.editBuffer).subscribe({
-    next: (res: any) => {
-      this.alertService.closeLoading();
-      const idx = this.reparacionesAll.findIndex(r => r.id === id);
-      if (idx >= 0) {
-        const reparacionActualizada = {
-          ...this.reparacionesAll[idx],
-          ...this.editBuffer
-        } as Reparacion;
-        
-        this.reparacionesAll[idx] = reparacionActualizada;
-        this.applyFilterLocal();
-        this.prepararDatosParaBusquedaGlobal();
-      }
-      this.cancelEdit();
-      this.alertService.showReparacionActualizada();
-    },
-    error: (e) => {
-      this.alertService.closeLoading();
-      this.alertService.showGenericError(e?.error?.error ?? 'Error al actualizar la reparación');
+  async saveEdit(id: number) {
+    if (!this.editBuffer.equipo_id || !this.editBuffer.usuario_id || !this.editBuffer.descripcion || !this.editBuffer.fecha || !this.editBuffer.estado) {
+      this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
+      return;
     }
-  });
-}
+
+    this.alertService.showLoading('Actualizando reparación...');
+
+    this.repService.update(id, this.editBuffer).subscribe({
+      next: (res: any) => {
+        this.alertService.closeLoading();
+        const idx = this.reparacionesAll.findIndex(r => r.id === id);
+        if (idx >= 0) {
+          const reparacionActualizada = {
+            ...this.reparacionesAll[idx],
+            ...this.editBuffer
+          } as Reparacion;
+          
+          this.reparacionesAll[idx] = reparacionActualizada;
+          this.applyFilterLocal();
+          this.prepararDatosParaBusquedaGlobal();
+        }
+        this.cancelEdit();
+        this.alertService.showReparacionActualizada();
+      },
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError(e?.error?.error ?? 'Error al actualizar la reparación');
+      }
+    });
+  }
 
   // ====== LIMPIAR BÚSQUEDA GLOBAL ======
   limpiarBusqueda() {
@@ -684,7 +635,7 @@ async saveEdit(id: number) {
     }
   }
 
-  // ====== MÉTODOS DE FOCUS ACTUALIZADOS ======
+  // ====== MÉTODOS DE FOCUS ======
   onFocusClientes() {
     this.cargarClientesIniciales();
   }
@@ -711,7 +662,6 @@ async saveEdit(id: number) {
   seleccionarAccion(a: Acción) {
     this.selectedAction = a;
     
-    // Limpiar repuestos si cambiamos de vista
     if (a !== 'crear') {
       this.repuestosSeleccionadosCrear = [];
       this.repuestoSeleccionadoCrear = null;
@@ -719,34 +669,33 @@ async saveEdit(id: number) {
     }
   }
 
-  // ====== MÉTODOS AUXILIARES PARA EL TEMPLATE ======
-getEstadoBadgeClass(estado: string): string {
-  if (!estado) return 'badge bg-secondary';
+  getEstadoBadgeClass(estado: string): string {
+    if (!estado) return 'badge bg-secondary';
 
-  const cleaned = estado.replace('_', ' ').trim().toLowerCase();
+    const cleaned = estado.replace('_', ' ').trim().toLowerCase();
 
-  switch (cleaned) {
-    case 'pendiente':
-      return 'badge bg-warning text-white';
-    case 'en proceso':
-      return 'badge bg-info text-white';  
-    case 'finalizada':
-    case 'completado':
-      return 'badge bg-success';
-    case 'cancelada':
-      return 'badge bg-danger'; 
-    default:
-      return 'badge bg-secondary';
+    switch (cleaned) {
+      case 'pendiente':
+        return 'badge bg-warning text-white';
+      case 'en proceso':
+        return 'badge bg-info text-white';  
+      case 'finalizada':
+      case 'completado':
+        return 'badge bg-success';
+      case 'cancelada':
+        return 'badge bg-danger'; 
+      default:
+        return 'badge bg-secondary';
+    }
   }
-}
 
-getEstadoDisplayText(estado: string): string {
-  if (!estado) return 'Desconocido';
+  getEstadoDisplayText(estado: string): string {
+    if (!estado) return 'Desconocido';
 
-  const cleaned = estado.replace('_', ' ').trim().toLowerCase();
+    const cleaned = estado.replace('_', ' ').trim().toLowerCase();
 
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
 
   // ====== BÚSQUEDA DE CLIENTES (CREACIÓN) ======
   buscarClientes(termino: string) {
@@ -788,7 +737,6 @@ getEstadoDisplayText(estado: string): string {
         this.equipoSelector.updateSuggestions(equipos);
       },
       error: (e) => {
-        console.error('Error buscando equipos:', e);
         this.equipoSelector.updateSuggestions([]);
       }
     });
@@ -802,7 +750,6 @@ getEstadoDisplayText(estado: string): string {
         this.equipoSelector.updateSuggestions(equipos);
       },
       error: (e) => {
-        console.error('Error cargando equipos del cliente:', e);
         this.equipoSelector.updateSuggestions([]);
       }
     });
@@ -846,7 +793,6 @@ getEstadoDisplayText(estado: string): string {
         }
       },
       error: (e) => {
-        console.error('Error buscando equipos en edición:', e);
         this.equipoEditSelector?.updateSuggestions([]);
       }
     });
@@ -869,7 +815,6 @@ getEstadoDisplayText(estado: string): string {
         }
       },
       error: (e) => {
-        console.error('Error cargando equipos del cliente en edición:', e);
         this.equipoEditSelector?.updateSuggestions([]);
       }
     });
@@ -939,8 +884,7 @@ getEstadoDisplayText(estado: string): string {
     this.editBuffer.usuario_id = undefined;
   }
 
-  // ====== NUEVOS MÉTODOS PARA MANEJO DE MENSAJES ======
-
+  // ====== VALIDACIÓN DE FORMULARIO ======
   isFormValid(): boolean {
     const camposBasicos = !!(this.clienteSeleccionado && 
                           this.equipoSeleccionado && 
@@ -949,7 +893,6 @@ getEstadoDisplayText(estado: string): string {
                           this.nuevo.fecha && 
                           this.nuevo.estado);
 
-    // Validar stock de repuestos seleccionados
     const repuestosValidos = this.repuestosSeleccionadosCrear.every(repuesto => 
       repuesto.cantidad > 0 && repuesto.cantidad <= repuesto.stock
     );
@@ -957,6 +900,7 @@ getEstadoDisplayText(estado: string): string {
     return camposBasicos && repuestosValidos;
   }
 
+  // ====== MANEJO DE MENSAJES DE EQUIPO ======
   private setEquipoEditSelectorMessage(type: 'noClient' | 'noResults' | 'noEquipos', show: boolean): void {
     if (!this.equipoEditSelector) return;
 
@@ -1000,6 +944,7 @@ getEstadoDisplayText(estado: string): string {
     return '';
   }
 
+  // ====== GESTIÓN DE REPUESTOS ======
   getStockClass(stock: number): string {
     if (stock === 0) {
       return 'text-danger fw-bold';
@@ -1010,7 +955,14 @@ getEstadoDisplayText(estado: string): string {
     }
   }
 
-  // Método para abrir modal de asignación de repuestos
+  formatearPrecio(precio: number): string {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(precio);
+  }
+
+  // ====== MODALES DE REPUESTOS ======
   abrirModalRepuestos(reparacion: Reparacion): void {
     this.reparacionSeleccionada = reparacion;
     this.mostrarModalRepuestos = true;
@@ -1022,7 +974,24 @@ getEstadoDisplayText(estado: string): string {
     this.cargarRepuestosAsignados(reparacion.id);
   }
 
-  // En reparaciones.component.ts - ACTUALIZA los métodos de carga
+  verRepuestosModal(reparacion: Reparacion): void {
+    this.reparacionSeleccionada = reparacion;
+    this.mostrarModalVerRepuestos = true;
+  }
+
+  cerrarModalRepuestos(): void {
+    this.mostrarModalRepuestos = false;
+    this.reparacionSeleccionada = null;
+    this.repuestosDisponibles = [];
+    this.repuestosAsignados = [];
+  }
+
+  cerrarModalVerRepuestos(): void {
+    this.mostrarModalVerRepuestos = false;
+    this.reparacionSeleccionada = null;
+  }
+
+  // ====== CARGA DE REPUESTOS ======
   cargarRepuestosDisponibles(): void {
     this.cargandoRepuestosDisponibles = true;
     
@@ -1035,14 +1004,12 @@ getEstadoDisplayText(estado: string): string {
         this.cargandoRepuestosDisponibles = false;
       },
       error: (error) => {
-        console.error('Error cargando repuestos:', error);
         this.cargandoRepuestosDisponibles = false;
         this.alertService.showGenericError('Error al cargar repuestos disponibles');
       }
     });
   }
 
-  // Cargar repuestos asignados a la reparación
   cargarRepuestosAsignados(reparacionId: number): void {
     this.cargandoRepuestosAsignados = true;
     
@@ -1052,79 +1019,46 @@ getEstadoDisplayText(estado: string): string {
         this.cargandoRepuestosAsignados = false;
       },
       error: (error) => {
-        console.error('Error cargando repuestos asignados:', error);
         this.cargandoRepuestosAsignados = false;
         this.alertService.showGenericError('Error al cargar repuestos asignados');
       }
     });
   }
 
-  // Asignar repuesto a reparación
+  // ====== ASIGNACIÓN Y REMOCIÓN DE REPUESTOS ======
   asignarRepuesto(repuesto: any, cantidad?: number): void {
-  if (!this.reparacionSeleccionada) return;
+    if (!this.reparacionSeleccionada) return;
 
-  // Usar la cantidad pasada como parámetro o la del repuesto
-  const cantidadFinal = cantidad || repuesto.cantidadSeleccionada || 1;
+    const cantidadFinal = cantidad || repuesto.cantidadSeleccionada || 1;
 
-  // Validar stock
-  if (repuesto.stock < cantidadFinal) {
-    this.alertService.showGenericError(`Stock insuficiente. Solo hay ${repuesto.stock} unidades disponibles.`);
-    return;
+    if (repuesto.stock < cantidadFinal) {
+      this.alertService.showGenericError(`Stock insuficiente. Solo hay ${repuesto.stock} unidades disponibles.`);
+      return;
+    }
+
+    this.alertService.showLoading('Asignando repuesto...');
+
+    this.repService.assignRepuesto(this.reparacionSeleccionada.id, repuesto.id, cantidadFinal).subscribe({
+      next: (response: any) => {
+        this.alertService.closeLoading();
+        
+        const repuestoIndex = this.repuestosDisponibles.findIndex(r => r.id === repuesto.id);
+        if (repuestoIndex !== -1) {
+          this.repuestosDisponibles[repuestoIndex].stock -= cantidadFinal;
+          this.repuestosDisponibles[repuestoIndex].cantidadSeleccionada = 1;
+        }
+
+        this.cargarRepuestosAsignados(this.reparacionSeleccionada!.id);
+        this.actualizarReparacionEnListado();
+        this.alertService.showSuccess('Repuesto asignado correctamente');
+      },
+      error: (error) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError(error?.error?.error || 'Error al asignar repuesto');
+      }
+    });
   }
 
-  this.alertService.showLoading('Asignando repuesto...');
-
-  this.repService.assignRepuesto(this.reparacionSeleccionada.id, repuesto.id, cantidadFinal).subscribe({
-    next: (response: any) => {
-      this.alertService.closeLoading();
-      
-      // Actualizar stock localmente en la lista de disponibles
-      const repuestoIndex = this.repuestosDisponibles.findIndex(r => r.id === repuesto.id);
-      if (repuestoIndex !== -1) {
-        this.repuestosDisponibles[repuestoIndex].stock -= cantidadFinal;
-        this.repuestosDisponibles[repuestoIndex].cantidadSeleccionada = 1; // Resetear cantidad
-      }
-
-      // Recargar repuestos asignados
-      this.cargarRepuestosAsignados(this.reparacionSeleccionada!.id);
-      this.actualizarReparacionEnListado();
-      this.alertService.showSuccess('Repuesto asignado correctamente');
-    },
-    error: (error) => {
-      this.alertService.closeLoading();
-      console.error('Error asignando repuesto:', error);
-      this.alertService.showGenericError(error?.error?.error || 'Error al asignar repuesto');
-    }
-  });
-}
-
-private actualizarReparacionEnListado(): void {
-  if (!this.reparacionSeleccionada) return;
-
-  // Cargar los repuestos actualizados para esta reparación
-  this.repService.getRepuestosAsignados(this.reparacionSeleccionada.id).subscribe({
-    next: (response: any) => {
-      const repuestosActualizados = response.data || response;
-      
-      // Actualizar en reparacionesAll
-      const indexAll = this.reparacionesAll.findIndex(r => r.id === this.reparacionSeleccionada!.id);
-      if (indexAll !== -1) {
-        this.reparacionesAll[indexAll].repuestos = repuestosActualizados;
-      }
-      
-      // Actualizar en reparacionesFiltradas
-      const indexFiltradas = this.reparacionesFiltradas.findIndex(r => r.id === this.reparacionSeleccionada!.id);
-      if (indexFiltradas !== -1) {
-        this.reparacionesFiltradas[indexFiltradas].repuestos = repuestosActualizados;
-      }
-    },
-    error: (error) => {
-      console.error('Error actualizando listado:', error);
-    }
-  });
-}
-
-  // Remover repuesto de reparación
   removerRepuesto(repuestoAsignado: any): void {
     if (!this.reparacionSeleccionada) return;
 
@@ -1134,44 +1068,44 @@ private actualizarReparacionEnListado(): void {
       next: (response: any) => {
         this.alertService.closeLoading();
         
-        // Restaurar stock localmente en la lista de disponibles
         const repuestoIndex = this.repuestosDisponibles.findIndex(r => r.id === repuestoAsignado.id);
         if (repuestoIndex !== -1) {
           this.repuestosDisponibles[repuestoIndex].stock += repuestoAsignado.pivot.cantidad;
         }
 
-        // Recargar repuestos asignados
         this.cargarRepuestosAsignados(this.reparacionSeleccionada!.id);
         this.actualizarReparacionEnListado();
         this.alertService.showSuccess('Repuesto removido correctamente');
       },
       error: (error) => {
         this.alertService.closeLoading();
-        console.error('Error removiendo repuesto:', error);
         this.alertService.showGenericError('Error al remover repuesto');
       }
     });
   }
 
-  // Cerrar modal
-  cerrarModalRepuestos(): void {
-    this.mostrarModalRepuestos = false;
-    this.reparacionSeleccionada = null;
-    this.repuestosDisponibles = [];
-    this.repuestosAsignados = [];
+  private actualizarReparacionEnListado(): void {
+    if (!this.reparacionSeleccionada) return;
+
+    this.repService.getRepuestosAsignados(this.reparacionSeleccionada.id).subscribe({
+      next: (response: any) => {
+        const repuestosActualizados = response.data || response;
+        
+        const indexAll = this.reparacionesAll.findIndex(r => r.id === this.reparacionSeleccionada!.id);
+        if (indexAll !== -1) {
+          this.reparacionesAll[indexAll].repuestos = repuestosActualizados;
+        }
+        
+        const indexFiltradas = this.reparacionesFiltradas.findIndex(r => r.id === this.reparacionSeleccionada!.id);
+        if (indexFiltradas !== -1) {
+          this.reparacionesFiltradas[indexFiltradas].repuestos = repuestosActualizados;
+        }
+      },
+      error: (error) => {}
+    });
   }
 
-  // Helper para formatear precio
-  formatearPrecio(precio: number): string {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(precio);
-  }
-
-  // ====== NUEVOS MÉTODOS PARA REPUESTOS EN CREACIÓN ======
-
-  // Cargar repuestos iniciales para creación
+  // ====== REPUESTOS EN CREACIÓN ======
   cargarRepuestosInicialesCrear(): void {
     this.repuestoService.getRepuestos(1, 10).subscribe({
       next: (response: any) => {
@@ -1185,7 +1119,6 @@ private actualizarReparacionEnListado(): void {
     });
   }
 
-  // Buscar repuestos para creación
   buscarRepuestosCrear(termino: string): void {
     if (termino.length < 2) {
       this.repuestoCrearSelector.updateSuggestions([]);
@@ -1202,55 +1135,47 @@ private actualizarReparacionEnListado(): void {
     });
   }
 
-  // Seleccionar repuesto en creación
   seleccionarRepuestoCrear(repuesto: any): void {
     this.repuestoSeleccionadoCrear = repuesto;
-    this.cantidadRepuestoCrear = 1; // Resetear cantidad a 1
+    this.cantidadRepuestoCrear = 1;
   }
 
-  // Limpiar repuesto seleccionado en creación
   limpiarRepuestoCrear(): void {
     this.repuestoSeleccionadoCrear = null;
     this.cantidadRepuestoCrear = 1;
   }
 
-  // Agregar repuesto a la lista de creación
   agregarRepuestoCrear(): void {
     if (!this.repuestoSeleccionadoCrear || !this.cantidadRepuestoCrear || this.cantidadRepuestoCrear < 1) {
       this.alertService.showGenericError('Selecciona un repuesto y una cantidad válida');
       return;
     }
 
-    // Verificar stock
     if (this.cantidadRepuestoCrear > this.repuestoSeleccionadoCrear.stock) {
       this.alertService.showGenericError(`Stock insuficiente. Solo hay ${this.repuestoSeleccionadoCrear.stock} unidades disponibles.`);
       return;
     }
 
-    // Verificar si ya está en la lista
     const existe = this.repuestosSeleccionadosCrear.find(r => r.id === this.repuestoSeleccionadoCrear.id);
     if (existe) {
       this.alertService.showGenericError('Este repuesto ya está en la lista');
       return;
     }
 
-    // Agregar a la lista
     this.repuestosSeleccionadosCrear.push({
       ...this.repuestoSeleccionadoCrear,
       cantidad: this.cantidadRepuestoCrear
     });
 
-    // Limpiar selección
     this.limpiarRepuestoCrear();
     this.repuestoCrearSelector.clearAll();
   }
 
-  // Remover repuesto de la lista de creación
   removerRepuestoCrear(repuestoId: number): void {
     this.repuestosSeleccionadosCrear = this.repuestosSeleccionadosCrear.filter(r => r.id !== repuestoId);
   }
 
-  // Método para obtener el texto del botón de crear
+  // ====== MÉTODOS AUXILIARES ======
   getTextoBotonCrear(): string {
     if (!this.isFormValid()) {
       return 'Completa todos los campos';
@@ -1263,22 +1188,7 @@ private actualizarReparacionEnListado(): void {
     
     return 'Guardar Reparación';
   }
-  // Agregar estas propiedades
-  mostrarModalVerRepuestos: boolean = false;
 
-  // Método para abrir modal de ver repuestos
-  verRepuestosModal(reparacion: Reparacion): void {
-    this.reparacionSeleccionada = reparacion;
-    this.mostrarModalVerRepuestos = true;
-  }
-
-  // Método para cerrar modal de ver repuestos
-  cerrarModalVerRepuestos(): void {
-    this.mostrarModalVerRepuestos = false;
-    this.reparacionSeleccionada = null;
-  }
-
-  // Método para calcular el total de repuestos
   calcularTotalRepuestos(reparacion: Reparacion): number {
     if (!reparacion.repuestos || reparacion.repuestos.length === 0) {
       return 0;

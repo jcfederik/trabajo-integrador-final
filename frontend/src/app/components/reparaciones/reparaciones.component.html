@@ -42,14 +42,16 @@
       </button>
     </div>
 
-    <!-- Lista de reparaciones - MEJORADO -->
+    <!-- Lista de reparaciones -->
     <div class="list-group" *ngIf="reparacionesFiltradas.length > 0">
       <div *ngFor="let r of reparacionesFiltradas" class="list-group-item" [class.editing]="editingId === r.id">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
-          <!-- Datos principales - MEJOR ALINEAMIENTO -->
+          
+          <!-- Datos principales -->
           <div class="flex-grow-1 w-100">
             <ng-container *ngIf="editingId !== r.id; else editRow">
-              <!-- Vista normal MEJORADA -->
+              
+              <!-- Vista normal -->
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="fw-semibold text-break">
                   #{{ r.id }} — {{ r.descripcion }}
@@ -62,7 +64,6 @@
               </div>
               
               <div class="text-muted small">
-                <!-- MEJOR ALINEAMIENTO: Grid responsivo -->
                 <div class="row g-2">
                   <div class="col-sm-6 col-md-4">
                     <div class="d-flex align-items-center">
@@ -89,7 +90,7 @@
                     </div>
                   </div>
                   
-                  <!-- NUEVO: Repuestos asignados -->
+                  <!-- Repuestos asignados -->
                   <div class="col-12">
                     <div class="d-flex align-items-center mt-2">
                       <i class="bi bi-tools me-2 text-info"></i>
@@ -119,144 +120,144 @@
               </div>
             </ng-container>
 
-<!-- Edición inline CON LAYOUT MEJORADO Y CENTRADO -->
-<ng-template #editRow>
-  <div class="row g-3">
-    <!-- Descripción -->
-    <div class="col-12">
-      <label class="form-label small fw-semibold">Descripción de la reparación</label>
-      <textarea 
-        class="form-control" 
-        [(ngModel)]="editBuffer.descripcion" 
-        rows="2"
-        placeholder="Describe el problema o trabajo a realizar..."
-      ></textarea>
-    </div>
+            <!-- Edición inline -->
+            <ng-template #editRow>
+              <div class="row g-3">
+                <!-- Descripción -->
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Descripción de la reparación</label>
+                  <textarea 
+                    class="form-control" 
+                    [(ngModel)]="editBuffer.descripcion" 
+                    rows="2"
+                    placeholder="Describe el problema o trabajo a realizar..."
+                  ></textarea>
+                </div>
 
-    <!-- 🔥 CORRECCIÓN: GRID MEJORADO Y CENTRADO -->
-    <div class="col-12">
-      <div class="search-selectors-grid justify-content-center">
+                <!-- Selectores de búsqueda -->
+                <div class="col-12">
+                  <div class="search-selectors-grid justify-content-center">
 
-        <!-- Cliente en edición (solo lectura) -->
-        <div class="search-selector-column text-center">
-          <label class="form-label small fw-semibold">Cliente</label>
-          <div class="cliente-display-box" *ngIf="clienteEditSeleccionado">
-            <div class="selected-item-display">
-              <i class="bi bi-person-check text-success"></i>
-              <span class="ms-2">{{ clienteEditSeleccionado.nombre }}</span>
-            </div>
-            <small class="text-muted d-block mt-1">Cliente actual</small>
-          </div>
-          <div class="cliente-display-box text-muted" *ngIf="!clienteEditSeleccionado">
-            <i class="bi bi-person-x"></i>
-            <small>No seleccionado</small>
-          </div>
-        </div>
+                    <!-- Cliente en edición -->
+                    <div class="search-selector-column text-center">
+                      <label class="form-label small fw-semibold">Cliente</label>
+                      <div class="cliente-display-box" *ngIf="clienteEditSeleccionado">
+                        <div class="selected-item-display">
+                          <i class="bi bi-person-check text-success"></i>
+                          <span class="ms-2">{{ clienteEditSeleccionado.nombre }}</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">Cliente actual</small>
+                      </div>
+                      <div class="cliente-display-box text-muted" *ngIf="!clienteEditSeleccionado">
+                        <i class="bi bi-person-x"></i>
+                        <small>No seleccionado</small>
+                      </div>
+                    </div>
 
-        <!-- Equipo en edición -->
-        <div class="search-selector-column text-center">
-          <label class="form-label small fw-semibold">Equipo</label>
-          <div class="search-selector-container mx-auto" 
-               [class.invalid]="clienteEditSeleccionado && !equipoEditSeleccionado"
-               [class.valid]="equipoEditSeleccionado"
-               style="max-width: 300px;">
-            <app-search-selector
-              #equipoEditSelector
-              type="equipo"
-              [placeholder]="clienteEditSeleccionado ? 'Buscar equipo...' : 'Seleccione cliente'"
-              [disabled]="!clienteEditSeleccionado"
-              [selectedItem]="equipoEditSeleccionado"
-              [preloadOnFocus]="true"
-              (search)="buscarEquiposEdit($event)"
-              (selectItem)="seleccionarEquipoEdit($event)"
-              (clearSelection)="limpiarEquipoEdit()"
-              (focus)="cargarEquiposInicialesEdit()"
-              (loadInitialData)="cargarEquiposInicialesEdit()"
-            ></app-search-selector>
-          </div>
-          
-          <!-- Mensajes contextuales para equipos -->
-          <div *ngIf="!clienteEditSeleccionado" class="no-equipos-message text-center">
-            <i class="bi bi-exclamation-triangle"></i>
-            Primero selecciona un cliente
-          </div>
-          
-          <div *ngIf="clienteEditSeleccionado && !equipoEditSeleccionado && hasEquipoEditSelectorMessage()" 
-               class="no-equipos-message text-center">
-            <i class="bi bi-search"></i>
-            {{ getEquipoEditSelectorMessage() }}
-          </div>
-          
-          <small class="context-help info text-center d-block" *ngIf="equipoEditSeleccionado">
-            <i class="bi bi-check-circle"></i> Equipo seleccionado
-          </small>
-        </div>
+                    <!-- Equipo en edición -->
+                    <div class="search-selector-column text-center">
+                      <label class="form-label small fw-semibold">Equipo</label>
+                      <div class="search-selector-container mx-auto" 
+                           [class.invalid]="clienteEditSeleccionado && !equipoEditSeleccionado"
+                           [class.valid]="equipoEditSeleccionado"
+                           style="max-width: 300px;">
+                        <app-search-selector
+                          #equipoEditSelector
+                          type="equipo"
+                          [placeholder]="clienteEditSeleccionado ? 'Buscar equipo...' : 'Seleccione cliente'"
+                          [disabled]="!clienteEditSeleccionado"
+                          [selectedItem]="equipoEditSeleccionado"
+                          [preloadOnFocus]="true"
+                          (search)="buscarEquiposEdit($event)"
+                          (selectItem)="seleccionarEquipoEdit($event)"
+                          (clearSelection)="limpiarEquipoEdit()"
+                          (focus)="cargarEquiposInicialesEdit()"
+                          (loadInitialData)="cargarEquiposInicialesEdit()"
+                        ></app-search-selector>
+                      </div>
+                      
+                      <div *ngIf="!clienteEditSeleccionado" class="no-equipos-message text-center">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Primero selecciona un cliente
+                      </div>
+                      
+                      <div *ngIf="clienteEditSeleccionado && !equipoEditSeleccionado && hasEquipoEditSelectorMessage()" 
+                           class="no-equipos-message text-center">
+                        <i class="bi bi-search"></i>
+                        {{ getEquipoEditSelectorMessage() }}
+                      </div>
+                      
+                      <small class="context-help info text-center d-block" *ngIf="equipoEditSeleccionado">
+                        <i class="bi bi-check-circle"></i> Equipo seleccionado
+                      </small>
+                    </div>
 
-        <!-- Técnico en edición -->
-        <div class="search-selector-column text-center">
-          <label class="form-label small fw-semibold">Técnico</label>
-          <div class="search-selector-container mx-auto" 
-               [class.invalid]="!tecnicoEditSeleccionado"
-               [class.valid]="tecnicoEditSeleccionado"
-               style="max-width: 300px;">
-            <app-search-selector
-              #tecnicoEditSelector
-              type="tecnico"
-              placeholder="Buscar técnico..."
-              [selectedItem]="tecnicoEditSeleccionado"
-              [preloadOnFocus]="true"
-              (search)="buscarTecnicosEdit($event)"
-              (selectItem)="seleccionarTecnicoEdit($event)"
-              (clearSelection)="limpiarTecnicoEdit()"
-              (focus)="cargarTecnicosInicialesEdit()"
-              (loadInitialData)="cargarTecnicosInicialesEdit()"
-            ></app-search-selector>
+                    <!-- Técnico en edición -->
+                    <div class="search-selector-column text-center">
+                      <label class="form-label small fw-semibold">Técnico</label>
+                      <div class="search-selector-container mx-auto" 
+                           [class.invalid]="!tecnicoEditSeleccionado"
+                           [class.valid]="tecnicoEditSeleccionado"
+                           style="max-width: 300px;">
+                        <app-search-selector
+                          #tecnicoEditSelector
+                          type="tecnico"
+                          placeholder="Buscar técnico..."
+                          [selectedItem]="tecnicoEditSeleccionado"
+                          [preloadOnFocus]="true"
+                          (search)="buscarTecnicosEdit($event)"
+                          (selectItem)="seleccionarTecnicoEdit($event)"
+                          (clearSelection)="limpiarTecnicoEdit()"
+                          (focus)="cargarTecnicosInicialesEdit()"
+                          (loadInitialData)="cargarTecnicosInicialesEdit()"
+                        ></app-search-selector>
+                      </div>
+                      <small class="context-help info text-center d-block" *ngIf="!tecnicoEditSeleccionado">
+                        <i class="bi bi-info-circle"></i> Asigna un técnico
+                      </small>
+                      <small class="context-help success text-center d-block" *ngIf="tecnicoEditSeleccionado">
+                        <i class="bi bi-check-circle"></i> Técnico asignado
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Fecha y Estado -->
+                <div class="col-12 col-md-6 mx-auto">
+                  <label class="form-label small fw-semibold">Fecha</label>
+                  <input 
+                    type="date" 
+                    class="form-control text-center" 
+                    [(ngModel)]="editBuffer.fecha"
+                  />
+                </div>
+                
+                <div class="col-12 col-md-6 mx-auto">
+                  <label class="form-label small fw-semibold">Estado</label>
+                  <select 
+                    class="form-control text-center" 
+                    [(ngModel)]="editBuffer.estado"
+                  >
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en proceso">En proceso</option>
+                    <option value="finalizada">Finalizada</option>
+                    <option value="cancelada">Cancelada</option>  
+                  </select>
+                </div>
+
+                <!-- Información de ayuda -->
+                <div class="col-12">
+                  <div class="alert alert-info py-2 text-center">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small>Completá todos los campos para guardar los cambios</small>
+                  </div>
+                </div>
+              </div>
+            </ng-template>
           </div>
-          <small class="context-help info text-center d-block" *ngIf="!tecnicoEditSeleccionado">
-            <i class="bi bi-info-circle"></i> Asigna un técnico
-          </small>
-          <small class="context-help success text-center d-block" *ngIf="tecnicoEditSeleccionado">
-            <i class="bi bi-check-circle"></i> Técnico asignado
-          </small>
-        </div>
-      </div>
-    </div>
 
-    <!-- Fecha y Estado - CENTRADOS -->
-    <div class="col-12 col-md-6 mx-auto">
-      <label class="form-label small fw-semibold">Fecha</label>
-      <input 
-        type="date" 
-        class="form-control text-center" 
-        [(ngModel)]="editBuffer.fecha"
-      />
-    </div>
-    
-    <div class="col-12 col-md-6 mx-auto">
-      <label class="form-label small fw-semibold">Estado</label>
-      <select 
-        class="form-control text-center" 
-        [(ngModel)]="editBuffer.estado"
-      >
-        <option value="pendiente">Pendiente</option>
-        <option value="en proceso">En proceso</option>
-        <option value="finalizada">Finalizada</option>
-        <option value="cancelada">Cancelada</option>  
-      </select>
-    </div>
-
-    <!-- Información de ayuda -->
-    <div class="col-12">
-      <div class="alert alert-info py-2 text-center">
-        <i class="bi bi-info-circle me-2"></i>
-        <small>Completá todos los campos para guardar los cambios</small>
-      </div>
-    </div>
-  </div>
-</ng-template>
-          </div>
-
-           <div class="d-flex gap-2 align-self-start flex-shrink-0 mt-2 mt-md-0">
+          <!-- Botones de acción -->
+          <div class="d-flex gap-2 align-self-start flex-shrink-0 mt-2 mt-md-0">
             <button 
               *ngIf="editingId !== r.id" 
               class="btn btn-sm btn-outline-warning" 
@@ -313,7 +314,7 @@
   <div *ngIf="isCrear()">
     <h4 class="text-center mb-4">Registrar Reparación</h4>
     
-    <!-- GRID HORIZONTAL DE BÚSQUEDAS -->
+    <!-- Grid de búsquedas -->
     <div class="search-selectors-grid">
       <!-- Cliente -->
       <div class="search-selector-column">
@@ -358,7 +359,6 @@
           ></app-search-selector>
         </div>
         
-        <!-- Mensajes contextuales para equipos -->
         <div *ngIf="!clienteSeleccionado" class="no-equipos-message">
           <i class="bi bi-exclamation-triangle"></i>
           Primero selecciona un cliente
@@ -400,7 +400,7 @@
       </div>
     </div>
 
-    <!-- DETALLES DE LA REPARACIÓN (DEBAJO DEL GRID) -->
+    <!-- Detalles de la reparación -->
     <div class="reparacion-details">
       <h5 class="mb-3">Detalles de la Reparación</h5>
       
@@ -446,7 +446,7 @@
           </select>
         </div>
 
-        <!-- NUEVA SECCIÓN: REPUESTOS A ASIGNAR -->
+        <!-- Repuestos a asignar -->
         <div class="col-12">
           <div class="card">
             <div class="card-header">
@@ -530,7 +530,7 @@
           </div>
         </div>
 
-        <!-- Resumen de selección ACTUALIZADO -->
+        <!-- Resumen de selección -->
         <div class="col-12" *ngIf="clienteSeleccionado || equipoSeleccionado || tecnicoSeleccionado || repuestosSeleccionadosCrear.length > 0">
           <div class="alert alert-info">
             <h6 class="alert-heading mb-2">
@@ -558,7 +558,7 @@
           </div>
         </div>
 
-        <!-- Botón de envío ACTUALIZADO -->
+        <!-- Botón de envío -->
         <div class="col-12">
           <button 
             class="btn btn-success w-100 py-2" 
@@ -574,7 +574,7 @@
   </div>
 </div>
 
-<!-- Modal para gestionar repuestos en reparaciones existentes -->
+<!-- Modal para gestionar repuestos -->
 <div *ngIf="mostrarModalRepuestos && reparacionSeleccionada" class="modal-backdrop fade show"></div>
 <div *ngIf="mostrarModalRepuestos && reparacionSeleccionada" 
      class="modal fade show d-block" tabindex="-1">
@@ -593,7 +593,6 @@
         <div class="mb-4">
           <h6 class="border-bottom pb-2">Repuestos asignados</h6>
           
-          <!-- Estado de carga para repuestos asignados -->
           <div *ngIf="cargandoRepuestosAsignados" class="text-center py-4">
             <div class="spinner-border text-primary"></div>
             <div class="mt-2 text-muted">Cargando repuestos asignados...</div>
@@ -631,7 +630,6 @@
         <div>
           <h6 class="border-bottom pb-2">Repuestos disponibles</h6>
           
-          <!-- Estado de carga para repuestos disponibles -->
           <div *ngIf="cargandoRepuestosDisponibles" class="text-center py-4">
             <div class="spinner-border text-primary"></div>
             <div class="mt-2 text-muted">Cargando repuestos disponibles...</div>
@@ -690,7 +688,7 @@
   </div>
 </div>
 
-<!-- Modal para ver todos los repuestos de una reparación -->
+<!-- Modal para ver todos los repuestos -->
 <div *ngIf="mostrarModalVerRepuestos && reparacionSeleccionada" class="modal-backdrop fade show"></div>
 <div *ngIf="mostrarModalVerRepuestos && reparacionSeleccionada" 
      class="modal fade show d-block" tabindex="-1">
@@ -705,7 +703,6 @@
       </div>
       
       <div class="modal-body">
-        <!-- Estado de carga para el modal de ver repuestos -->
         <div *ngIf="cargandoRepuestosAsignados" class="text-center py-5">
           <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
           <div class="mt-3 text-muted">Cargando repuestos...</div>
