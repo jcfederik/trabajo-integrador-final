@@ -88,11 +88,38 @@
                       <span><strong>Fecha:</strong> {{ r.fecha | date:'dd/MM/yyyy' }}</span>
                     </div>
                   </div>
+                  
+                  <!-- NUEVO: Repuestos asignados -->
+                  <div class="col-12">
+                    <div class="d-flex align-items-center mt-2">
+                      <i class="bi bi-tools me-2 text-info"></i>
+                      <span><strong>Repuestos:</strong> 
+                        <span *ngIf="r.repuestos && r.repuestos.length > 0; else sinRepuestos">
+                          <span *ngIf="r.repuestos.length <= 3">
+                            <span *ngFor="let repuesto of r.repuestos; let last = last">
+                              {{ repuesto.nombre }} ({{ repuesto.pivot?.cantidad || 1 }}){{ !last ? ', ' : '' }}
+                            </span>
+                          </span>
+                          <span *ngIf="r.repuestos.length > 3">
+                            {{ r.repuestos.length }} repuestos asignados
+                            <button class="btn btn-sm btn-outline-info ms-2" 
+                                    (click)="verRepuestosModal(r)"
+                                    title="Ver todos los repuestos">
+                              <i class="bi bi-eye"></i> Ver todos
+                            </button>
+                          </span>
+                        </span>
+                        <ng-template #sinRepuestos>
+                          <span class="text-muted">Aún no asignados</span>
+                        </ng-template>
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </ng-container>
 
-            <!-- Edición inline CON LAYOUT MEJORADO Y CENTRADO -->
+<!-- Edición inline CON LAYOUT MEJORADO Y CENTRADO -->
 <ng-template #editRow>
   <div class="row g-3">
     <!-- Descripción -->
@@ -238,7 +265,13 @@
             >
               <i class="bi bi-pencil-square"></i>
             </button>
-            
+          
+            <button 
+              *ngIf="editingId !== r.id" class="btn btn-sm btn-outline-info" 
+              (click)="abrirModalRepuestos(r)" title="Gestionar repuestos">
+              <i class="bi bi-tools"></i>
+            </button>
+
             <ng-container *ngIf="editingId === r.id">
               <button 
                 class="btn btn-sm btn-success" 
@@ -413,8 +446,92 @@
           </select>
         </div>
 
-        <!-- Resumen de selección -->
-        <div class="col-12" *ngIf="clienteSeleccionado || equipoSeleccionado || tecnicoSeleccionado">
+        <!-- NUEVA SECCIÓN: REPUESTOS A ASIGNAR -->
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="bi bi-tools me-2"></i>Repuestos a asignar
+              </h6>
+            </div>
+            <div class="card-body">
+              <!-- Lista de repuestos seleccionados -->
+              <div *ngIf="repuestosSeleccionadosCrear.length > 0" class="mb-3">
+                <h6 class="text-success">Repuestos asignados:</h6>
+                <div *ngFor="let repuesto of repuestosSeleccionadosCrear" class="alert alert-success py-2 mb-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ repuesto.nombre }}</strong>
+                      <small class="text-muted ms-2">
+                        Cantidad: {{ repuesto.cantidad }} · 
+                        Costo: {{ formatearPrecio(repuesto.costo_base) }} · 
+                        Stock disponible: <span [class]="getStockClass(repuesto.stock)">{{ repuesto.stock }}</span>
+                      </small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                            (click)="removerRepuestoCrear(repuesto.id)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Selector de repuestos -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Agregar repuesto</label>
+                <div class="search-selector-container">
+                  <app-search-selector
+                    #repuestoCrearSelector
+                    type="repuesto"
+                    placeholder="Buscar repuesto por nombre..."
+                    [selectedItem]="null"
+                    [preloadOnFocus]="true"
+                    (search)="buscarRepuestosCrear($event)"
+                    (selectItem)="seleccionarRepuestoCrear($event)"
+                    (clearSelection)="limpiarRepuestoCrear()"
+                    (focus)="cargarRepuestosInicialesCrear()"
+                    (loadInitialData)="cargarRepuestosInicialesCrear()"
+                  ></app-search-selector>
+                </div>
+              </div>
+
+              <!-- Cantidad para el repuesto seleccionado -->
+              <div *ngIf="repuestoSeleccionadoCrear" class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Cantidad</label>
+                  <div class="input-group">
+                    <input type="number" 
+                           class="form-control" 
+                           [(ngModel)]="cantidadRepuestoCrear"
+                           [max]="repuestoSeleccionadoCrear.stock"
+                           min="1"
+                           name="cantidadRepuesto"
+                           placeholder="Cantidad">
+                    <span class="input-group-text">/ {{ repuestoSeleccionadoCrear.stock }} disponibles</span>
+                  </div>
+                  <small class="text-muted">Máximo: {{ repuestoSeleccionadoCrear.stock }} unidades</small>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                  <button type="button" class="btn btn-success w-100" 
+                          (click)="agregarRepuestoCrear()"
+                          [disabled]="!cantidadRepuestoCrear || cantidadRepuestoCrear < 1 || cantidadRepuestoCrear > repuestoSeleccionadoCrear.stock">
+                    <i class="bi bi-plus-circle me-1"></i> Agregar repuesto
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mensaje de stock insuficiente -->
+              <div *ngIf="repuestoSeleccionadoCrear && cantidadRepuestoCrear > repuestoSeleccionadoCrear.stock" 
+                   class="alert alert-warning mt-2">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Stock insuficiente. Solo hay {{ repuestoSeleccionadoCrear.stock }} unidades disponibles.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen de selección ACTUALIZADO -->
+        <div class="col-12" *ngIf="clienteSeleccionado || equipoSeleccionado || tecnicoSeleccionado || repuestosSeleccionadosCrear.length > 0">
           <div class="alert alert-info">
             <h6 class="alert-heading mb-2">
               <i class="bi bi-clipboard-check me-2"></i>Resumen de la reparación
@@ -430,10 +547,18 @@
                 <strong>Técnico:</strong> {{ tecnicoSeleccionado.nombre }}
               </div>
             </div>
+            
+            <!-- Repuestos en resumen -->
+            <div *ngIf="repuestosSeleccionadosCrear.length > 0" class="mt-2">
+              <strong>Repuestos:</strong>
+              <div *ngFor="let repuesto of repuestosSeleccionadosCrear" class="ms-2">
+                • {{ repuesto.nombre }} ({{ repuesto.cantidad }} unidades)
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Botón de envío -->
+        <!-- Botón de envío ACTUALIZADO -->
         <div class="col-12">
           <button 
             class="btn btn-success w-100 py-2" 
@@ -441,10 +566,200 @@
             [disabled]="!isFormValid()"
           >
             <i class="bi bi-check-lg me-2"></i> 
-            {{ isFormValid() ? 'Guardar Reparación' : 'Completa todos los campos' }}
+            {{ getTextoBotonCrear() }}
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para gestionar repuestos en reparaciones existentes -->
+<div *ngIf="mostrarModalRepuestos && reparacionSeleccionada" class="modal-backdrop fade show"></div>
+<div *ngIf="mostrarModalRepuestos && reparacionSeleccionada" 
+     class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-tools me-2"></i>
+          Repuestos para Reparación #{{ reparacionSeleccionada.id }}
+        </h5>
+        <button type="button" class="btn-close" (click)="cerrarModalRepuestos()"></button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Repuestos asignados -->
+        <div class="mb-4">
+          <h6 class="border-bottom pb-2">Repuestos asignados</h6>
+          
+          <!-- Estado de carga para repuestos asignados -->
+          <div *ngIf="cargandoRepuestosAsignados" class="text-center py-4">
+            <div class="spinner-border text-primary"></div>
+            <div class="mt-2 text-muted">Cargando repuestos asignados...</div>
+          </div>
+          
+          <div *ngIf="!cargandoRepuestosAsignados && repuestosAsignados.length === 0" class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            No hay repuestos asignados a esta reparación.
+          </div>
+          
+          <div *ngIf="!cargandoRepuestosAsignados && repuestosAsignados.length > 0">
+            <div *ngFor="let repuesto of repuestosAsignados" class="card mb-2">
+              <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong class="d-block">{{ repuesto.nombre }}</strong>
+                    <small class="text-muted">
+                      Cantidad: {{ repuesto.pivot.cantidad }} · 
+                      Costo unitario: {{ formatearPrecio(repuesto.pivot.costo_unitario) }} · 
+                      Total: {{ formatearPrecio(repuesto.pivot.cantidad * repuesto.pivot.costo_unitario) }}
+                    </small>
+                  </div>
+                  <button class="btn btn-sm btn-outline-danger" 
+                          (click)="removerRepuesto(repuesto)"
+                          title="Remover repuesto">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repuestos disponibles -->
+        <div>
+          <h6 class="border-bottom pb-2">Repuestos disponibles</h6>
+          
+          <!-- Estado de carga para repuestos disponibles -->
+          <div *ngIf="cargandoRepuestosDisponibles" class="text-center py-4">
+            <div class="spinner-border text-primary"></div>
+            <div class="mt-2 text-muted">Cargando repuestos disponibles...</div>
+          </div>
+          
+          <div *ngIf="!cargandoRepuestosDisponibles && repuestosDisponibles.length === 0" class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            No hay repuestos disponibles en el inventario.
+          </div>
+          
+          <div *ngIf="!cargandoRepuestosDisponibles && repuestosDisponibles.length > 0">
+            <div *ngFor="let repuesto of repuestosDisponibles" class="card mb-2">
+              <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="flex-grow-1">
+                    <strong class="d-block">{{ repuesto.nombre }}</strong>
+                    <small class="text-muted">
+                      Stock: <span [class]="getStockClass(repuesto.stock)">{{ repuesto.stock }}</span> · 
+                      Costo: {{ formatearPrecio(repuesto.costo_base) }}
+                    </small>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 ms-3">
+                    <div class="input-group input-group-sm" style="width: 140px;">
+                      <input type="number" 
+                             [(ngModel)]="repuesto.cantidadSeleccionada"
+                             min="1" 
+                             [max]="repuesto.stock"
+                             class="form-control" 
+                             placeholder="Cant."
+                             [class.is-invalid]="repuesto.cantidadSeleccionada > repuesto.stock">
+                      <button class="btn btn-success" 
+                              (click)="asignarRepuesto(repuesto)"
+                              [disabled]="!repuesto.cantidadSeleccionada || repuesto.cantidadSeleccionada < 1 || repuesto.cantidadSeleccionada > repuesto.stock"
+                              title="Asignar repuesto">
+                        <i class="bi bi-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="repuesto.cantidadSeleccionada > repuesto.stock" class="text-danger small mt-1">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  La cantidad no puede ser mayor al stock disponible
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cerrarModalRepuestos()">
+          <i class="bi bi-x-circle me-1"></i> Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para ver todos los repuestos de una reparación -->
+<div *ngIf="mostrarModalVerRepuestos && reparacionSeleccionada" class="modal-backdrop fade show"></div>
+<div *ngIf="mostrarModalVerRepuestos && reparacionSeleccionada" 
+     class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-tools me-2"></i>
+          Todos los repuestos - Reparación #{{ reparacionSeleccionada.id }}
+        </h5>
+        <button type="button" class="btn-close" (click)="cerrarModalVerRepuestos()"></button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Estado de carga para el modal de ver repuestos -->
+        <div *ngIf="cargandoRepuestosAsignados" class="text-center py-5">
+          <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+          <div class="mt-3 text-muted">Cargando repuestos...</div>
+        </div>
+        
+        <div *ngIf="!cargandoRepuestosAsignados">
+          <div *ngIf="reparacionSeleccionada.repuestos && reparacionSeleccionada.repuestos.length > 0; else sinRepuestosVer">
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Repuesto</th>
+                    <th>Cantidad</th>
+                    <th>Costo Unitario</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let repuesto of reparacionSeleccionada.repuestos">
+                    <td>
+                      <strong>{{ repuesto.nombre }}</strong>
+                    </td>
+                    <td>{{ repuesto.pivot?.cantidad || 1 }}</td>
+                    <td>{{ formatearPrecio(repuesto.pivot?.costo_unitario || repuesto.costo_base) }}</td>
+                    <td class="fw-bold">
+                      {{ formatearPrecio((repuesto.pivot?.cantidad || 1) * (repuesto.pivot?.costo_unitario || repuesto.costo_base)) }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="table-primary">
+                    <td colspan="3" class="text-end"><strong>Total general:</strong></td>
+                    <td class="fw-bold">
+                      {{ formatearPrecio(calcularTotalRepuestos(reparacionSeleccionada)) }}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+          <ng-template #sinRepuestosVer>
+            <div class="alert alert-info text-center">
+              <i class="bi bi-info-circle me-2"></i>
+              Esta reparación no tiene repuestos asignados.
+            </div>
+          </ng-template>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cerrarModalVerRepuestos()">
+          <i class="bi bi-x-circle me-1"></i> Cerrar
+        </button>
+      </div>
     </div>
   </div>
 </div>

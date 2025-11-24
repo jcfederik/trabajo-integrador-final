@@ -52,7 +52,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
     Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
     Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
-    
+
     Route::apiResource('equipos', EquipoController::class);
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
     
@@ -62,6 +62,9 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('reparaciones', ReparacionController::class);
     Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
     Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
+    Route::post('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'assignRepuesto']);
+    Route::delete('/reparaciones/{reparacion}/repuestos/{pivotId}', [ReparacionController::class, 'removeRepuesto']);
+    Route::get('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'getRepuestosAsignados']);
     
     Route::apiResource('presupuestos', PresupuestoController::class);
     Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);

@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reparacion;
+use App\Models\Repuesto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @OA\Tag(
@@ -327,153 +330,316 @@ class ReparacionController extends Controller
         }
     }
 
-/**
- * @OA\Get(
- *     path="/api/reparaciones/completo",
- *     summary="Obtener lista completa de reparaciones con equipo, cliente y técnico",
- *     description="Devuelve la reparación con todas las relaciones cargadas: equipo, cliente dentro del equipo y técnico asignado.",
- *     tags={"Reparaciones"},
- *    security={{"bearerAuth":{}}},
+    /**
+     * @OA\Get(
+     *     path="/api/reparaciones/completo",
+     *     summary="Obtener lista completa de reparaciones con equipo, cliente y técnico",
+     *     description="Devuelve la reparación con todas las relaciones cargadas: equipo, cliente dentro del equipo y técnico asignado.",
+     *     tags={"Reparaciones"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Texto para filtrar por descripción, equipo, cliente o técnico",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Número de página",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Cantidad de resultados por página",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista completa de reparaciones",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer"),
+     *                     @OA\Property(property="descripcion", type="string"),
+     *                     @OA\Property(property="estado", type="string"),
+     *                     @OA\Property(property="fecha", type="string", format="date"),
+     *                     @OA\Property(property="equipo_nombre", type="string", example="Notebook Lenovo"),
+     *                     @OA\Property(property="cliente_nombre", type="string", example="Juan Pérez"),
+     *                     @OA\Property(property="tecnico_nombre", type="string", example="Carlos Gómez"),
+     *                     @OA\Property(
+     *                         property="equipo",
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer"),
+     *                         @OA\Property(property="descripcion", type="string"),
+     *                         @OA\Property(property="marca", type="string"),
+     *                         @OA\Property(property="modelo", type="string"),
+     *                         @OA\Property(
+     *                             property="cliente",
+     *                             type="object",
+     *                             @OA\Property(property="id", type="integer"),
+     *                             @OA\Property(property="nombre", type="string"),
+     *                             @OA\Property(property="telefono", type="string"),
+     *                             @OA\Property(property="email", type="string")
+     *                         )
+     *                     ),
+     *                     @OA\Property(
+     *                         property="tecnico",
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer"),
+     *                         @OA\Property(property="nombre", type="string"),
+     *                         @OA\Property(property="email", type="string")
+     *                     )
+     *                 )
+     *             ),
+     *             @OA\Property(property="links", type="object"),
+     *             @OA\Property(property="meta", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function completo(Request $request)
+    {
+        try {
+            $query = Reparacion::with([
+                'equipo.cliente',
+                'tecnico',
+                'repuestos'
+            ]);
 
- *     @OA\Parameter(
- *         name="search",
- *         in="query",
- *         description="Texto para filtrar por descripción, equipo, cliente o técnico",
- *         required=false,
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="page",
- *         in="query",
- *         description="Número de página",
- *         required=false,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="per_page",
- *         in="query",
- *         description="Cantidad de resultados por página",
- *         required=false,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="sort",
- *         in="query",
- *         description="Campo por el que se ordena (id, fecha, estado, etc.)",
- *         required=false,
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="direction",
- *         in="query",
- *         description="Dirección del orden (asc o desc)",
- *         required=false,
- *         @OA\Schema(type="string")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Lista completa de reparaciones",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="data", type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer"),
- *                     @OA\Property(property="descripcion", type="string"),
- *                     @OA\Property(property="estado", type="string"),
- *                     @OA\Property(property="fecha", type="string", format="date"),
- *
- *                     @OA\Property(property="equipo_nombre", type="string", example="Notebook Lenovo"),
- *                     @OA\Property(property="cliente_nombre", type="string", example="Juan Pérez"),
- *                     @OA\Property(property="tecnico_nombre", type="string", example="Carlos Gómez"),
- *
- *                     @OA\Property(
- *                         property="equipo",
- *                         type="object",
- *                         @OA\Property(property="id", type="integer"),
- *                         @OA\Property(property="descripcion", type="string"),
- *                         @OA\Property(property="marca", type="string"),
- *                         @OA\Property(property="modelo", type="string"),
- *
- *                         @OA\Property(
- *                             property="cliente",
- *                             type="object",
- *                             @OA\Property(property="id", type="integer"),
- *                             @OA\Property(property="nombre", type="string"),
- *                             @OA\Property(property="telefono", type="string"),
- *                             @OA\Property(property="email", type="string")
- *                         )
- *                     ),
- *
- *                     @OA\Property(
- *                         property="tecnico",
- *                         type="object",
- *                         @OA\Property(property="id", type="integer"),
- *                         @OA\Property(property="nombre", type="string"),
- *                         @OA\Property(property="email", type="string")
- *                     )
- *                 )
- *             ),
- *
- *             @OA\Property(property="links", type="object"),
- *             @OA\Property(property="meta", type="object")
- *         )
- *     )
- * )
- */
-
-public function completo(Request $request)
-{
-    // 1. Cargar reparaciones con relaciones completas
-    $query = Reparacion::with([
-        'equipo.cliente',
-        'tecnico'
-    ]);
-
-    // 2. Filtros de búsqueda
-    if ($request->filled('search')) {
-        $search = $request->search;
-
-        $query->where(function ($q) use ($search) {
-            $q->where('descripcion', 'LIKE', "%$search%")
-              ->orWhereHas('equipo', function($q) use ($search) {
-                  $q->where('descripcion', 'LIKE', "%$search%")
-                    ->orWhere('marca', 'LIKE', "%$search%")
-                    ->orWhere('modelo', 'LIKE', "%$search%")
-                    ->orWhereHas('cliente', function($q) use ($search) {
-                        $q->where('nombre', 'LIKE', "%$search%");
+            // Búsqueda
+            if ($request->has('search') && $request->search !== '') {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('descripcion', 'LIKE', "%$search%")
+                    ->orWhere('estado', 'LIKE', "%$search%")
+                    ->orWhere('fecha', 'LIKE', "%$search%")
+                    ->orWhereHas('equipo', function ($q2) use ($search) {
+                        $q2->where('descripcion', 'LIKE', "%$search%")
+                            ->orWhere('marca', 'LIKE', "%$search%")
+                            ->orWhere('modelo', 'LIKE', "%$search%")
+                            ->orWhere('nro_serie', 'LIKE', "%$search%")
+                            ->orWhereHas('cliente', function ($q3) use ($search) {
+                                $q3->where('nombre', 'LIKE', "%$search%")
+                                    ->orWhere('email', 'LIKE', "%$search%")
+                                    ->orWhere('telefono', 'LIKE', "%$search%");
+                            });
+                    })
+                    ->orWhereHas('tecnico', function ($q2) use ($search) {
+                        $q2->where('nombre', 'LIKE', "%$search%")
+                            ->orWhere('email', 'LIKE', "%$search%");
                     });
-              })
-              ->orWhereHas('tecnico', function($q) use ($search) {
-                  $q->where('nombre', 'LIKE', "%$search%");
-              });
-        });
+                });
+            }
+
+            // Orden por defecto
+            $query->orderBy('id', 'desc');
+
+            // Paginación
+            $perPage = $request->get('per_page', 10);
+            $reparaciones = $query->paginate($perPage);
+
+            // Transformar datos para incluir campos calculados
+            $reparaciones->getCollection()->transform(function ($reparacion) {
+                return [
+                    'id' => $reparacion->id,
+                    'descripcion' => $reparacion->descripcion,
+                    'fecha' => $reparacion->fecha,
+                    'estado' => $reparacion->estado,
+                    'equipo_id' => $reparacion->equipo_id,
+                    'usuario_id' => $reparacion->usuario_id,
+                    'equipo_nombre' => $reparacion->equipo->descripcion ?? 'Sin equipo',
+                    'cliente_nombre' => $reparacion->equipo->cliente->nombre ?? 'No especificado',
+                    'tecnico_nombre' => $reparacion->tecnico->nombre ?? 'Sin técnico',
+                    'equipo' => $reparacion->equipo,
+                    'tecnico' => $reparacion->tecnico,
+                    'repuestos' => $reparacion->repuestos
+                ];
+            });
+
+            return response()->json($reparaciones);
+
+        } catch (\Exception $e) {
+            Log::error('Error en completo método: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al cargar reparaciones: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function assignRepuesto(Request $request, $reparacionId)
+    {
+        Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
+
+        $request->validate([
+            'repuesto_id' => 'required|exists:repuesto,id',
+            'cantidad' => 'required|integer|min:1'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $reparacion = Reparacion::findOrFail($reparacionId);
+            $repuesto = Repuesto::findOrFail($request->repuesto_id);
+
+            Log::info('Encontrados', [
+                'reparacion' => $reparacion->id,
+                'repuesto' => $repuesto->id,
+                'stock_actual' => $repuesto->stock,
+                'cantidad_solicitada' => $request->cantidad
+            ]);
+
+            // Verificar stock
+            if ($repuesto->stock < $request->cantidad) {
+                return response()->json([
+                    'error' => 'Stock insuficiente. Solo hay ' . $repuesto->stock . ' unidades disponibles.'
+                ], 400);
+            }
+
+            // Verificar si ya existe la relación
+            $existingRelation = DB::table('reparacion_repuesto')
+                ->where('reparacion_id', $reparacionId)
+                ->where('repuesto_id', $request->repuesto_id)
+                ->first();
+
+            if ($existingRelation) {
+                // Actualizar cantidad existente
+                DB::table('reparacion_repuesto')
+                    ->where('id', $existingRelation->id)
+                    ->update([
+                        'cantidad' => $existingRelation->cantidad + $request->cantidad,
+                        'updated_at' => now()
+                    ]);
+            } else {
+                // Crear nueva relación
+                DB::table('reparacion_repuesto')->insert([
+                    'reparacion_id' => $reparacionId,
+                    'repuesto_id' => $request->repuesto_id,
+                    'cantidad' => $request->cantidad,
+                    'costo_unitario' => $repuesto->costo_base,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
+            // Actualizar stock del repuesto
+            $repuesto->decrement('stock', $request->cantidad);
+
+            DB::commit();
+
+            // Cargar relación actualizada
+            $reparacion->load('repuestos');
+
+            return response()->json([
+                'message' => 'Repuesto asignado correctamente',
+                'data' => $reparacion->repuestos
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error en assignRepuesto', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Error al asignar repuesto: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    // 3. Orden
-    $query->orderBy(
-        $request->input('sort', 'id'),
-        $request->input('direction', 'desc')
-    );
+    /**
+     * Remover repuesto de reparación
+     */
+    public function removeRepuesto($reparacionId, $pivotId)
+    {
+        Log::info('RemoveRepuesto llamado', ['reparacion_id' => $reparacionId, 'pivot_id' => $pivotId]);
 
-    // 4. Paginación
-    $reparaciones = $query->paginate($request->input('per_page', 10));
+        try {
+            DB::beginTransaction();
 
-    // 5. Transformación SIN perder objetos
-    $reparaciones->getCollection()->transform(function ($r) {
-        return [
-            ...$r->toArray(), // mantiene equipo, cliente, técnico completos
+            // Obtener el registro pivot
+            $pivot = DB::table('reparacion_repuesto')
+                ->where('id', $pivotId)
+                ->where('reparacion_id', $reparacionId)
+                ->first();
 
-            // Campos extras
-            'equipo_nombre'   => $r->equipo->descripcion ?? 'Sin equipo',
-            'cliente_nombre'  => $r->equipo->cliente->nombre ?? 'No especificado',
-            'tecnico_nombre'  => $r->tecnico->nombre ?? 'Sin técnico',
-        ];
-    });
+            if (!$pivot) {
+                return response()->json(['error' => 'Repuesto no encontrado en esta reparación'], 404);
+            }
 
-    return response()->json($reparaciones);
-}
+            Log::info('Pivot encontrado', [
+                'repuesto_id' => $pivot->repuesto_id,
+                'cantidad' => $pivot->cantidad
+            ]);
 
+            // Restaurar stock
+            $repuesto = Repuesto::find($pivot->repuesto_id);
+            if ($repuesto) {
+                $repuesto->increment('stock', $pivot->cantidad);
+                Log::info('Stock restaurado', [
+                    'repuesto_id' => $repuesto->id,
+                    'cantidad_restaurada' => $pivot->cantidad,
+                    'nuevo_stock' => $repuesto->stock
+                ]);
+            }
 
+            // Eliminar la relación
+            DB::table('reparacion_repuesto')->where('id', $pivotId)->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Repuesto removido correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error en removeRepuesto', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Error al remover repuesto: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener repuestos asignados a una reparación
+     */
+    public function getRepuestosAsignados($reparacionId)
+    {
+        Log::info('GetRepuestosAsignados llamado', ['reparacion_id' => $reparacionId]);
+
+        try {
+            $reparacion = Reparacion::with(['repuestos' => function($query) {
+                $query->withPivot('id', 'cantidad', 'costo_unitario', 'created_at', 'updated_at');
+            }])->findOrFail($reparacionId);
+            
+            Log::info('Repuestos asignados encontrados', [
+                'count' => $reparacion->repuestos->count()
+            ]);
+
+            return response()->json([
+                'data' => $reparacion->repuestos
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getRepuestosAsignados', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Error al cargar repuestos asignados: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
