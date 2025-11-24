@@ -1,22 +1,16 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
-import { SearchService, DashboardComponent as DashboardComponentInterface } from '../../services/busquedaglobal';
 import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
 })
-export class DashboardComponent implements OnInit, OnDestroy {
-  searchTerm: string = '';
-  filteredCards = signal<DashboardCard[]>([]);
-  private searchSubscription!: Subscription;
+export class DashboardComponent implements OnInit {
   currentUser = signal<any>(null);
 
   cards: DashboardCard[] = [
@@ -25,7 +19,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'bi-people', 
       description: 'Gestión de clientes', 
       route: '/clientes',
-      type: 'clientes',
       permissions: ['clients.manage', 'clients.view']
     },
     { 
@@ -33,7 +26,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'bi-laptop', 
       description: 'Registro de equipos', 
       route: '/equipos',
-      type: 'equipos',
       permissions: ['equipos.manage', 'equipos.view', 'equipos.create']
     },
     { 
@@ -41,7 +33,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'bi-receipt', 
       description: 'Facturación y pagos', 
       route: '/facturas',
-      type: 'facturas',
       permissions: ['facturas.manage', 'facturas.view', 'facturas.create', 'facturas.edit']
     },
     { 
@@ -49,7 +40,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'bi-truck', 
       description: 'Gestión de proveedores', 
       route: '/proveedores',
-      type: 'proveedores',
       permissions: ['proveedores.manage']
     },
     { 
@@ -57,7 +47,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'bi-tools', 
       description: 'Inventario de repuestos', 
       route: '/repuestos',
-      type: 'repuestos',
       permissions: ['repuestos.manage', 'repuestos.view']
     },
     { 
@@ -65,7 +54,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'bi-clipboard-data', 
       description: 'Creación de presupuestos', 
       route: '/presupuestos',
-      type: 'presupuestos',
       permissions: ['presupuestos.manage', 'presupuestos.view', 'presupuestos.create']
     },
     { 
@@ -73,69 +61,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'bi-wrench', 
       description: 'Seguimiento de reparaciones', 
       route: '/reparaciones',
-      type: 'reparaciones',
       permissions: ['reparaciones.manage', 'reparaciones.view', 'reparaciones.create', 'reparaciones.update']
-    },
-    { 
-      title: 'Cobros', 
-      icon: 'bi-cash-coin', 
-      description: 'Medios de cobro', 
-      route: '/medios-cobro',
-      type: 'cobros',
-      permissions: ['cobros.manage', 'cobros.view', 'cobros.create']
     },
     { 
       title: 'Usuarios', 
       icon: 'bi-person-badge', 
       description: 'Administración de usuarios', 
       route: '/usuarios',
-      type: 'usuarios',
       permissions: ['users.manage']
     },
     { 
       title: 'Especializaciones', 
       icon: 'bi-mortarboard', 
       description: 'Gestión de especializaciones', 
-      route: '/especializaciones', 
-      type: 'especializaciones',
+      route: '/especializaciones',
       permissions: ['especializaciones.manage', 'especializaciones.view']
-    },
-    { 
-      title: 'Detalles de Cobro', 
-      icon: 'bi-journal-check', 
-      description: 'Historial de cobros', 
-      route: '/detalle-cobro', 
-      type: 'detalle-cobro',
-      permissions: ['cobros.view']
     },
   ];
 
-  constructor(
-    private searchService: SearchService,
-    private authService: AuthService
-  ) {
-    this.filteredCards.set(this.cards);
-  }
+  constructor(private authService: AuthService) {}
 
   ngOnInit() {
-    this.searchService.setCurrentComponent('dashboard');
-    
     this.currentUser.set(this.authService.getCurrentUser());
     this.applyPermissions();
-
-    this.searchSubscription = this.searchService.globalSearchTerm$.subscribe(term => {
-      if (term !== this.searchTerm) {
-        this.searchTerm = term;
-        this.performSearch();
-      }
-    });
-
-    this.searchService.dashboardSearchTerm$.subscribe(term => {
-      if (term !== this.searchTerm) {
-        this.searchTerm = term;
-        this.performSearch();
-      }
-    });
   }
 
   private applyPermissions() {
@@ -150,42 +98,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       };
     });
 
-    this.filteredCards.set(updatedCards);
-  }
-
-  ngOnDestroy() {
-    if (this.searchSubscription) {
-      this.searchSubscription.unsubscribe();
-    }
-  }
-
-  onSearchChange() {
-    this.searchService.setGlobalSearchTerm(this.searchTerm);
-    this.searchService.setDashboardSearchTerm(this.searchTerm);
-    this.performSearch();
-  }
-
-  clearSearch() {
-    this.searchTerm = '';
-    this.searchService.clearGlobalSearch();
-    this.searchService.clearDashboardSearch();
-    this.filteredCards.set(this.cards);
-  }
-
-  private performSearch() {
-    if (this.searchTerm.trim()) {
-      const filtered = this.searchService.searchDashboardComponents(
-        this.cards as DashboardComponentInterface[], 
-        this.searchTerm
-      );
-      this.filteredCards.set(filtered);
-    } else {
-      this.filteredCards.set(this.cards);
-    }
-  }
-
-  getSearchResultsCount(): number {
-    return this.filteredCards().length;
+    this.cards = updatedCards;
   }
 
   isUserAdmin(): boolean {
@@ -199,6 +112,5 @@ interface DashboardCard {
   description: string;
   route?: string;
   disabled?: boolean;
-  type: string;
   permissions?: string[];
 }

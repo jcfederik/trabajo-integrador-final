@@ -22,8 +22,7 @@ export class NavBar implements OnInit, OnDestroy {
   usuarioActual: string = 'Usuario';
   userTipo: string = 'Usuario';
   isDashboard: boolean = false;
-  showDropdown: boolean = false;
-  mostrarModalLogout: boolean = false;
+  mostrarModalLogout: boolean = false; // ✅ MANTENIDO: No cambiar el nombre
 
   // =============== CONTROL DE TECLADO ===============
   private backspacePresionado = false;  
@@ -53,8 +52,6 @@ export class NavBar implements OnInit, OnDestroy {
     if (this.searchSubscription) this.searchSubscription.unsubscribe();
     if (this.componentSubscription) this.componentSubscription.unsubscribe();
     if (this.routerSubscription) this.routerSubscription.unsubscribe();
-
-    document.removeEventListener('click', this.cerrarDropdownAlHacerClick.bind(this));
   }
 
   // =============== CONFIGURACIÓN ===============
@@ -77,42 +74,28 @@ export class NavBar implements OnInit, OnDestroy {
         setTimeout(() => {
           this.checkCurrentRoute();
           this.setPlaceholderByRoute();
-          this.showDropdown = false;
         });
       });
-
-    document.addEventListener('click', this.cerrarDropdownAlHacerClick.bind(this));
   }
 
-  private cerrarDropdownAlHacerClick(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.user-dropdown')) {
-      this.showDropdown = false;
-    }
+  // ✅ MODIFICADO: Abrir modal directamente
+  abrirModalPerfil() {
+    console.log('👤 Abriendo modal de perfil directamente...');
+    this.mostrarModalLogout = true; // ✅ MANTENIDO: Usar mostrarModalLogout
   }
 
-  toggleDropdown() {
-    this.showDropdown = !this.showDropdown;
+  // ✅ MODIFICADO: Cerrar modal
+  cerrarModalPerfil() {
+    this.mostrarModalLogout = false; // ✅ MANTENIDO: Usar mostrarModalLogout
+    this.loadUserData(); // Actualizar datos si hubo cambios
   }
 
-  // 🔥 MODAL LOGOUT
-  abrirModalLogout() {
-    console.log('👤 Abriendo modal de perfil...');
-    this.mostrarModalLogout = true;
-    this.showDropdown = false;
-  }
-
-  cerrarModalLogout() {
-    this.mostrarModalLogout = false;
-    this.loadUserData();
-  }
-
-  // 🔥 NUEVO: Para verificar si está autenticado
+  // ✅ NUEVO: Para verificar si está autenticado
   isAuthenticated(): boolean {
     return this.authService.isAuthenticated();
   }
 
-  // 🔥 NUEVO: Obtener número de especializaciones
+  // ✅ NUEVO: Obtener número de especializaciones
   getEspecializacionesCount(): number {
     const user = this.authService.getCurrentUser();
     return user?.especializaciones?.length || 0;
