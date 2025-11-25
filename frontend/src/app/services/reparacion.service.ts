@@ -130,31 +130,41 @@ listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedR
 
     const params = new HttpParams()
       .set('search', termino.trim())
-      .set('per_page', '100');
+      .set('per_page', '20');
 
-    return this.http.get<PaginatedResponse<Reparacion>>(this.base, { params }).pipe(
-      map(resp => resp.data.map(rep => this.procesarParaBuscador(rep))),
-      catchError(() => this.buscarReparacionesFallback(termino))
+    // 🔥 USAR LISTADO COMPLETO, NO /reparaciones
+    return this.http.get<PaginatedResponse<Reparacion>>(this.baseCompleto, { params }).pipe(
+      map(resp => {
+        const data = resp.data || [];
+        return data.map(rep => this.procesarParaBuscador(rep));
+      }),
+      catchError(() => of([]))
     );
   }
+
 
   private buscarReparacionesFallback(termino: string): Observable<Reparacion[]> {
+    const t = termino.toLowerCase();
+
     const params = new HttpParams().set('per_page', '100');
 
-    return this.http.get<PaginatedResponse<Reparacion>>(this.base, { params }).pipe(
+    return this.http.get<PaginatedResponse<Reparacion>>(this.baseCompleto, { params }).pipe(
       map(resp => {
-        const t = termino.toLowerCase();
         const filtradas = resp.data.filter(rep =>
-          rep.descripcion?.toLowerCase().includes(t) ||
-          rep.estado?.toLowerCase().includes(t) ||
-          rep.equipo?.descripcion?.toLowerCase().includes(t) ||
-          rep.tecnico?.nombre?.toLowerCase().includes(t) ||
-          rep.equipo?.cliente?.nombre?.toLowerCase().includes(t)
+          (rep.descripcion || '').toLowerCase().includes(t) ||
+          (rep.estado || '').toLowerCase().includes(t) ||
+          (rep.equipo?.descripcion || rep.equipo_nombre || '').toLowerCase().includes(t) ||
+          (rep.tecnico?.nombre || rep.tecnico_nombre || '').toLowerCase().includes(t) ||
+          (rep.equipo?.cliente?.nombre || rep.cliente_nombre || '').toLowerCase().includes(t) ||
+          rep.id.toString().includes(t)
         );
+
         return filtradas.map(rep => this.procesarParaBuscador(rep));
-      })
+      }),
+      catchError(() => of([]))
     );
   }
+
 
   // ============================================================
   // ▓▓▓   FORMATEO PARA AUTOCOMPLETE (displayText)   ▓▓▓

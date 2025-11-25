@@ -142,6 +142,18 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   abrirModalCobros(factura: Factura): void {
+    console.log('🔍 Datos de factura al abrir modal:', {
+      id: factura.id,
+      numero: factura.numero,
+      monto_total: factura.monto_total
+    });
+
+    // ✅ VERIFICAR QUE LA FACTURA TENGA ID VÁLIDO
+    if (!factura.id || factura.id <= 0) {
+      this.alertService.showError('Error', 'La factura no tiene un ID válido');
+      return;
+    }
+
     if (!this.cobrosModal) {
       this.alertService.showGenericError('Error al abrir el modal de pagos');
       return;
@@ -395,26 +407,53 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   async eliminar(id: number): Promise<void> {
+    // ✅ VERIFICAR QUE EL ID SEA VÁLIDO
+    if (!id || id <= 0) {
+      this.alertService.showGenericError('ID de factura no válido');
+      return;
+    }
+
     const factura = this.facturasAll.find(f => f.id === id);
-    const numeroFactura = `${factura?.numero || ''}${factura?.letra || ''}`;
+    
+    // ✅ VERIFICAR QUE LA FACTURA EXISTA EN EL FRONTEND
+    if (!factura) {
+      this.alertService.showGenericError('Factura no encontrada en el listado');
+      return;
+    }
+
+    const numeroFactura = `${factura.numero || ''}${factura.letra || ''}`;
     const confirmed = await this.alertService.confirmDeleteFactura(numeroFactura);
     if (!confirmed) return;
-    
+
     this.alertService.showLoading('Eliminando factura...');
 
+    // ✅ PRIMERO INTENTAR ELIMINAR DEL BACKEND
     this.facService.delete(id).subscribe({
       next: () => { 
         this.alertService.closeLoading();
-        this.facturasAll = this.facturasAll.filter(f => f.id !== id);
-        this.applyFilter();
-        this.searchService.setSearchData(this.facturasAll);
+        this.eliminarDelFrontend(id);
         this.alertService.showFacturaEliminada();
       },
-      error: () => { 
+      error: (error) => { 
         this.alertService.closeLoading();
-        this.alertService.showGenericError('No se pudo eliminar la factura'); 
+        
+        if (error.status === 404) {
+          // ✅ SI NO EXISTE EN EL BACKEND, ELIMINARLA SOLO DEL FRONTEND
+          this.eliminarDelFrontend(id);
+          this.alertService.showSuccess('Factura eliminada del listado');
+        } else {
+          this.alertService.showGenericError('No se pudo eliminar la factura'); 
+        }
       }
     });
+  }
+
+  // ✅ NUEVO MÉTODO PARA ELIMINAR DEL FRONTEND
+  private eliminarDelFrontend(id: number): void {
+    this.facturasAll = this.facturasAll.filter(f => f.id !== id);
+    this.facturas = this.facturas.filter(f => f.id !== id);
+    this.applyFilter();
+    this.searchService.setSearchData(this.facturasAll);
   }
 
   startEdit(item: Factura): void {

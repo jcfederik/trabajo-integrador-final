@@ -81,17 +81,28 @@ class UserController extends Controller
     public function listarUsuarios(Request $request)
     {
         try {
-            // 🔥 Configurar paginación similar a ClienteController
-            $perPage = $request->get('per_page', 15); // Por defecto 15 elementos por página
-            $page = $request->get('page', 1); // Por defecto página 1
+            $currentUser = JWTAuth::user();
             
-            $usuarios = User::paginate($perPage, ['*'], 'page', $page);
+            if (!$currentUser || (!$currentUser->isAdmin() && !$currentUser->isTecnico())) {
+                return response()->json([
+                    'error' => 'No tienes permisos para ver la lista de usuarios'
+                ], 403);
+            }
+
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            
+            $usuarios = User::with('especializaciones')->paginate($perPage, ['*'], 'page', $page);
             
             return response()->json($usuarios);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener usuarios', 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => 'Error al obtener usuarios', 
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
+
 
     /**
      * @OA\Put(

@@ -32,11 +32,13 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     // Perfil de usuario autenticado
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
-    //Route::post('/profile/especializaciones', [AdminUserController::class, 'asignarEspecializaciones']);
     
     // Rutas adicionales completas
     Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
     Route::get('/presupuestos/listado-optimizado', [PresupuestoController::class, 'listadoOptimizado']);
+
+
+    //Route::post('/profile/especializaciones', [AdminUserController::class, 'asignarEspecializaciones']);
 
     // Recursos accesibles por cualquier usuario autenticado
     Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
@@ -47,6 +49,13 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/facturas/{id}/saldo', [FacturaController::class, 'getSaldoPendiente']);   
     Route::get('/facturas/{id}/cobros', [FacturaController::class, 'getCobrosPorFactura']);  
     Route::apiResource('clientes', ClienteController::class);
+    Route::get('/usuarios/buscar', [UserController::class, 'buscar']);
+    
+    Route::apiResource('clientes', ClienteController::class);
+    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
+    Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
+    Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
+    
     Route::apiResource('equipos', EquipoController::class);
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
     

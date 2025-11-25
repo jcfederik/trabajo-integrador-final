@@ -192,7 +192,7 @@
               </ng-template>
             </div>
 
-            <!-- Columna derecha: acciones -->
+            <!-- Columna derecha: acciones - INTEGRACIÓN DE CAMBIOS -->
             <div class="item-acciones">
               <button *ngIf="editingId !== f.id" class="boton-accion boton-editar" (click)="startEdit(f)" title="Editar">
                 <i class="bi bi-pencil-square"></i>
@@ -207,10 +207,18 @@
                 </button>
               </ng-container>
 
-              <!-- Botón para modal de pagos -->
-              <button class="boton-accion boton-cobros" (click)="abrirModalCobros(f)" title="Gestionar pagos">
+              <!-- ✅ BOTÓN PARA MODAL DE PAGOS CON VERIFICACIÓN DE ID -->
+              <button class="boton-accion boton-cobros" 
+                      (click)="abrirModalCobros(f)" 
+                      title="Gestionar pagos"
+                      *ngIf="f.id && f.id > 0">
                 <i class="bi bi-wallet2"></i>
               </button>
+
+              <!-- ❌ Mostrar advertencia si no tiene ID válido -->
+              <div *ngIf="!f.id || f.id <= 0" class="badge bg-warning ms-1" title="Factura sin ID válido">
+                <i class="bi bi-exclamation-triangle"></i>
+              </div>
 
               <button class="boton-accion boton-eliminar" (click)="eliminar(f.id)" title="Eliminar">
                 <i class="bi bi-trash"></i>

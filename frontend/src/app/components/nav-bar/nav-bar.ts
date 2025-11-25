@@ -171,6 +171,7 @@ export class NavBar implements OnInit, OnDestroy {
     }
   }
 
+
   // =============== BÚSQUEDA ===============
   onSearch() {
     this.searchService.setGlobalSearchTerm(this.searchTerm);
@@ -187,6 +188,7 @@ export class NavBar implements OnInit, OnDestroy {
     this.searchService.clearGlobalSearch();
     this.searchService.clearSearch();
     this.searchService.clearDashboardSearch();
+    this.router.navigate([this.router.url]); // fuerza refresco visual
   }
 
   // =============== PLACEHOLDER DINÁMICO ===============

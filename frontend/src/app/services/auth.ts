@@ -159,7 +159,6 @@ export class AuthService {
 
       const payload = JSON.parse(atob(parts[1]));
       const now = Math.floor(Date.now() / 1000);
-
       // Verificar expiración
       if (payload.exp && payload.exp < now) {
         console.warn('Token expirado');
