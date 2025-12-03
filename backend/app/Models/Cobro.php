@@ -11,16 +11,17 @@ class Cobro extends Model
 
     protected $table = 'cobro';
 
+    public $timestamps = false; 
+
     protected $fillable = [
-        'presupuesto_id',
+        'factura_id',
         'monto',
         'fecha',
     ];
-
     // Relaciones
-    public function presupuesto()
+    public function factura() // ✅ Nueva relación
     {
-        return $this->belongsTo(Presupuesto::class, 'presupuesto_id');
+        return $this->belongsTo(Factura::class, 'factura_id');
     }
 
     public function detalles()

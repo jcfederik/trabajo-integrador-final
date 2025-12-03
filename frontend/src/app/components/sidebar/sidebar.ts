@@ -37,9 +37,7 @@ export class SidebarComponent implements OnInit {
     
     { title: 'FACTURACIÓN', isHeader: true },
     { title: 'Facturas', icon: 'bi-receipt', route: '/facturas', requiredPermission: 'facturas.view' },
-    { title: 'Presupuestos', icon: 'bi-clipboard-data', route: '/presupuestos', requiredPermission: 'presupuestos.view' },
-    { title: 'Cobros', icon: 'bi-cash-coin', route: '/medios-cobro', requiredPermission: 'cobros.view' },
-    
+    { title: 'Presupuestos', icon: 'bi-clipboard-data', route: '/presupuestos', requiredPermission: 'presupuestos.view' },    
     { title: 'INVENTARIO', isHeader: true },
     { title: 'Repuestos', icon: 'bi-tools', route: '/repuestos', requiredPermission: 'repuestos.view' },
     { title: 'Proveedores', icon: 'bi-truck', route: '/proveedores', requiredPermission: 'proveedores.manage' },

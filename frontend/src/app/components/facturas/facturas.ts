@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
@@ -12,6 +12,7 @@ import { FacturaReportComponent } from '../factura-report/factura-report';
 import { ExportModalComponent } from '../export-modal/export-modal';
 import { ClienteService } from '../../services/cliente.service';
 import { AlertService } from '../../services/alert.service';
+import { CobrosModalComponent } from '../cobros-modal/cobros-modal.component';
 
 type Accion = 'listar' | 'crear';
 
@@ -26,7 +27,12 @@ type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
 @Component({
   selector: 'app-facturas',
   standalone: true,
-  imports: [CommonModule, FormsModule, ExportModalComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    ExportModalComponent,
+    CobrosModalComponent
+  ],
   templateUrl: './facturas.html',
   styleUrls: ['./facturas.css']
 })
@@ -39,7 +45,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
   private clienteService = inject(ClienteService);
   private alertService = inject(AlertService);
 
-  // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
   mostrarModalExportacion = false;
 
@@ -50,14 +55,12 @@ export class FacturasComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
-  // =============== BÚSQUEDA GLOBAL ===============
   private searchSub?: Subscription;
   searchTerm = '';
   private isServerSearch = false;
   private serverSearchPage = 1;
   private serverSearchLastPage = false;
 
-  // =============== EDICIÓN Y CREACIÓN ===============
   editingId: number | null = null;
   
   editBuffer: FacturaForm = {
@@ -80,15 +83,16 @@ export class FacturasComponent implements OnInit, OnDestroy {
     presupuestoBusqueda: ''
   };
 
-  // =============== BÚSQUEDA DE PRESUPUESTOS ===============
   presupuestosSugeridos: Presupuesto[] = [];
   mostrandoPresupuestos = false;
   buscandoPresupuestos = false;
   private busquedaPresupuesto = new Subject<string>();
   private reparacionesCache = new Map<number, string>();
 
+  mostrarCobros: { [key: number]: boolean } = {};
 
-  // =============== LIFECYCLE ===============
+  @ViewChild(CobrosModalComponent) cobrosModal!: CobrosModalComponent;
+
   ngOnInit(): void {
     this.cargar();
     window.addEventListener('scroll', this.onScroll, { passive: true });
@@ -104,7 +108,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // =============== CONFIGURACIÓN ===============
   private configurarBusquedaPresupuestos(): void {
     this.busquedaPresupuesto.pipe(
       debounceTime(50),
@@ -122,7 +125,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== NAVEGACIÓN Y ACCIONES ===============
   seleccionarAccion(a: Accion): void { 
     this.selectedAction = a; 
   }
@@ -135,7 +137,27 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.mostrarModalExportacion = false;
   }
 
-  // =============== CARGA Y PAGINACIÓN ===============
+  toggleCobros(facturaId: number): void {
+    this.mostrarCobros[facturaId] = !this.mostrarCobros[facturaId];
+  }
+
+  abrirModalCobros(factura: Factura): void {
+    if (!this.cobrosModal) {
+      this.alertService.showGenericError('Error al abrir el modal de pagos');
+      return;
+    }
+
+    this.cobrosModal.abrirModal(
+      factura.id,
+      `${factura.numero}${factura.letra ? ' (' + factura.letra + ')' : ''}`,
+      factura.monto_total || 0
+    );
+  }
+
+  cerrarModalCobros(): void {
+    // El cierre se maneja automáticamente en el modal
+  }
+
   cargar(): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -189,7 +211,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   };
 
-  // =============== BÚSQUEDA Y FILTRADO ===============
   private applyFilter(): void {
     const term = this.searchTerm.toLowerCase();
     
@@ -236,7 +257,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== GESTIÓN DE PRESUPUESTOS ===============
   onBuscarPresupuesto(termino: string, esEdicion: boolean = false): void {
     if (termino.length > 0) {
       this.mostrandoPresupuestos = true;
@@ -313,7 +333,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }, 200);
   }
 
-  // =============== GESTIÓN DE REPARACIONES ===============
   getDescripcionReparacion(reparacionId: number): string {
     const presupuesto = this.presupuestosSugeridos.find(p => p.reparacion_id === reparacionId);
     if (presupuesto?.reparacion_descripcion) {
@@ -340,7 +359,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== CRUD OPERATIONS ===============
   async crear(): Promise<void> {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
@@ -459,7 +477,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== EXPORTACIÓN ===============
   exportarTodasFacturas(): void {
     if (this.facturas.length === 0) {
       this.alertService.showGenericError('No hay facturas para exportar');
@@ -473,7 +490,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.mostrarModalExportacion = false;
   }
 
-  // =============== VALIDACIÓN Y UTILIDADES ===============
   private limpiar(obj: Partial<FacturaForm>): Partial<Factura> {
     const presupuestoId = typeof obj.presupuesto_id === 'string'
       ? Number(obj.presupuesto_id)

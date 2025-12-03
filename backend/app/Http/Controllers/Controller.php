@@ -65,7 +65,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="Proveedor",
  *     type="object",
@@ -81,7 +80,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="Reparacion",
  *     type="object",
@@ -96,7 +94,7 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
- * /**
+ * 
  * @OA\Schema(
  *     schema="MedioCobro",
  *     type="object",
@@ -108,7 +106,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="Repuesto",
  *     type="object",
@@ -122,7 +119,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="Factura",
  *     type="object",
@@ -139,7 +135,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="Equipo",
  *     type="object",
@@ -154,7 +149,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="CompraRepuesto",
  *     type="object",
@@ -170,7 +164,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="Cliente",
  *     type="object",
@@ -184,7 +177,6 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  * 
- * /**
  * @OA\Schema(
  *     schema="DetalleCobro",
  *     type="object",
@@ -197,6 +189,146 @@ namespace App\Http\Controllers;
  *     @OA\Property(property="fecha", type="string", format="date-time"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ * 
+ * // =============================================
+ * // SCHEMAS NUEVOS AGREGADOS PARA COMPLETAR
+ * // =============================================
+ * 
+ * @OA\Schema(
+ *     schema="Cobro",
+ *     type="object",
+ *     title="Cobro",
+ *     description="Modelo que representa un cobro/pago registrado para una factura",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="factura_id", type="integer", example=1),
+ *     @OA\Property(property="monto", type="number", format="float", example=15000.50),
+ *     @OA\Property(property="fecha", type="string", format="date-time", example="2024-01-15T14:30:00.000000Z"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(
+ *         property="factura",
+ *         ref="#/components/schemas/Factura",
+ *         description="Factura asociada al cobro"
+ *     ),
+ *     @OA\Property(
+ *         property="detalles",
+ *         type="array",
+ *         @OA\Items(ref="#/components/schemas/DetalleCobro"),
+ *         description="Detalles del cobro (medios de pago utilizados)"
+ *     )
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="Especializacion",
+ *     type="object",
+ *     title="Especialización",
+ *     description="Modelo que representa una especialización técnica",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="nombre", type="string", example="Reparación de Notebooks"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="PaginationLink",
+ *     type="object",
+ *     description="Enlace de paginación",
+ *     @OA\Property(property="url", type="string", nullable=true, example="http://localhost:8000/api/cobros?page=2"),
+ *     @OA\Property(property="label", type="string", example="Siguiente &raquo;"),
+ *     @OA\Property(property="active", type="boolean", example=false)
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="ErrorResponse",
+ *     type="object",
+ *     description="Respuesta de error genérico",
+ *     @OA\Property(property="error", type="string", example="Error interno del servidor"),
+ *     @OA\Property(property="detalle", type="string", example="Mensaje detallado del error", nullable=true)
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="NotFoundResponse",
+ *     type="object",
+ *     description="Respuesta cuando no se encuentra un recurso",
+ *     @OA\Property(property="error", type="string", example="Recurso no encontrado"),
+ *     @OA\Property(property="message", type="string", example="El recurso solicitado no existe")
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="ValidationErrorResponse",
+ *     type="object",
+ *     description="Respuesta de error de validación",
+ *     @OA\Property(property="error", type="string", example="Datos inválidos"),
+ *     @OA\Property(
+ *         property="detalles",
+ *         type="object",
+ *         description="Detalles de los errores de validación",
+ *         additionalProperties={
+ *             @OA\Property(type="array", @OA\Items(type="string", example="El campo es requerido"))
+ *         }
+ *     )
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="CobroCreatedResponse",
+ *     type="object",
+ *     description="Respuesta exitosa al crear un cobro",
+ *     @OA\Property(property="mensaje", type="string", example="Cobro registrado correctamente."),
+ *     @OA\Property(property="cobro", ref="#/components/schemas/Cobro"),
+ *     @OA\Property(property="factura_saldo_restante", type="number", format="float", example=5000.00)
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="CobroSaldoExcedidoError",
+ *     type="object",
+ *     description="Error cuando el monto excede el saldo pendiente",
+ *     @OA\Property(property="error", type="string", example="El monto pagado excede el saldo pendiente de la factura."),
+ *     @OA\Property(property="saldo_pendiente", type="number", format="float", example=10000.00)
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="SaldoInfo",
+ *     type="object",
+ *     description="Información de saldo de una factura",
+ *     @OA\Property(property="monto_total", type="number", format="float", example=20000.00),
+ *     @OA\Property(property="saldo_pendiente", type="number", format="float", example=5000.00)
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="PaginatedResponse",
+ *     type="object",
+ *     description="Estructura estándar para respuestas paginadas",
+ *     @OA\Property(property="current_page", type="integer", example=1),
+ *     @OA\Property(property="data", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="first_page_url", type="string"),
+ *     @OA\Property(property="from", type="integer"),
+ *     @OA\Property(property="last_page", type="integer"),
+ *     @OA\Property(property="last_page_url", type="string"),
+ *     @OA\Property(property="links", type="array", @OA\Items(ref="#/components/schemas/PaginationLink")),
+ *     @OA\Property(property="next_page_url", type="string", nullable=true),
+ *     @OA\Property(property="path", type="string"),
+ *     @OA\Property(property="per_page", type="integer"),
+ *     @OA\Property(property="prev_page_url", type="string", nullable=true),
+ *     @OA\Property(property="to", type="integer"),
+ *     @OA\Property(property="total", type="integer")
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="LoginRequest",
+ *     type="object",
+ *     required={"email", "password"},
+ *     @OA\Property(property="email", type="string", format="email", example="admin@example.com"),
+ *     @OA\Property(property="password", type="string", example="password123")
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="LoginResponse",
+ *     type="object",
+ *     @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
+ *     @OA\Property(property="token_type", type="string", example="bearer"),
+ *     @OA\Property(property="expires_in", type="integer", example=3600),
+ *     @OA\Property(property="user", ref="#/components/schemas/User")
  * )
  */
 abstract class Controller

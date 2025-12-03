@@ -11,6 +11,8 @@ class DetalleCobro extends Model
 
     protected $table = 'detalle_cobro';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'cobro_id',
         'medio_cobro_id',
