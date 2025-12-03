@@ -1,6 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+
 import { FacturaService, Factura, Paginated } from '../../services/facturas';
 import { PresupuestoService, Presupuesto } from '../../services/presupuesto.service';
 import { ReparacionService, Reparacion } from '../../services/reparacion.service';
@@ -8,8 +11,7 @@ import { SearchService } from '../../services/busquedaglobal';
 import { FacturaReportComponent } from '../factura-report/factura-report';
 import { ExportModalComponent } from '../export-modal/export-modal';
 import { ClienteService } from '../../services/cliente.service';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 
@@ -24,12 +26,22 @@ type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
 @Component({
   selector: 'app-facturas',
   standalone: true,
-  imports: [CommonModule, FormsModule, ExportModalComponent ],
+  imports: [CommonModule, FormsModule, ExportModalComponent],
   templateUrl: './facturas.html',
   styleUrls: ['./facturas.css']
 })
 export class FacturasComponent implements OnInit, OnDestroy {
+
+  private facService = inject(FacturaService);
+  private presupuestoService = inject(PresupuestoService);
+  private reparacionService = inject(ReparacionService);
+  private searchService = inject(SearchService);
+  private clienteService = inject(ClienteService);
+  private alertService = inject(AlertService);
+
+  // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
+  mostrarModalExportacion = false;
 
   private facturasAll: Factura[] = [];
   facturas: Factura[] = [];
@@ -38,7 +50,16 @@ export class FacturasComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
+  // =============== BÚSQUEDA GLOBAL ===============
+  private searchSub?: Subscription;
+  searchTerm = '';
+  private isServerSearch = false;
+  private serverSearchPage = 1;
+  private serverSearchLastPage = false;
+
+  // =============== EDICIÓN Y CREACIÓN ===============
   editingId: number | null = null;
+  
   editBuffer: FacturaForm = {
     presupuesto_id: undefined as any,
     numero: '',
@@ -59,45 +80,21 @@ export class FacturasComponent implements OnInit, OnDestroy {
     presupuestoBusqueda: ''
   };
 
+  // =============== BÚSQUEDA DE PRESUPUESTOS ===============
   presupuestosSugeridos: Presupuesto[] = [];
   mostrandoPresupuestos = false;
   buscandoPresupuestos = false;
   private busquedaPresupuesto = new Subject<string>();
   private reparacionesCache = new Map<number, string>();
 
-  private searchSub?: Subscription;
-  searchTerm = '';
 
-  private isServerSearch = false;
-  private serverSearchPage = 1;
-  private serverSearchLastPage = false;
-
-  mostrarModalExportacion = false;
-
-  constructor(
-    private facService: FacturaService,
-    private presupuestoService: PresupuestoService,
-    private reparacionService: ReparacionService,
-    private searchService: SearchService,
-    private clienteService: ClienteService
-  ) {}
-
+  // =============== LIFECYCLE ===============
   ngOnInit(): void {
     this.cargar();
     window.addEventListener('scroll', this.onScroll, { passive: true });
     
-    this.busquedaPresupuesto.pipe(
-      debounceTime(50),
-      distinctUntilChanged()
-    ).subscribe(termino => {
-      this.buscarPresupuestos(termino);
-    });
-
-    this.searchService.setCurrentComponent('facturas');
-    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
-      this.searchTerm = (term || '').trim();
-      this.applyFilter();
-    });
+    this.configurarBusquedaPresupuestos();
+    this.configurarBusquedaGlobal();
   }
 
   ngOnDestroy(): void {
@@ -107,10 +104,38 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  seleccionarAccion(a: Accion) { 
+  // =============== CONFIGURACIÓN ===============
+  private configurarBusquedaPresupuestos(): void {
+    this.busquedaPresupuesto.pipe(
+      debounceTime(50),
+      distinctUntilChanged()
+    ).subscribe(termino => {
+      this.buscarPresupuestos(termino);
+    });
+  }
+
+  private configurarBusquedaGlobal(): void {
+    this.searchService.setCurrentComponent('facturas');
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      this.searchTerm = (term || '').trim();
+      this.applyFilter();
+    });
+  }
+
+  // =============== NAVEGACIÓN Y ACCIONES ===============
+  seleccionarAccion(a: Accion): void { 
     this.selectedAction = a; 
   }
 
+  abrirModalExportacion(): void {
+    this.mostrarModalExportacion = true;
+  }
+
+  cerrarModalExportacion(): void {
+    this.mostrarModalExportacion = false;
+  }
+
+  // =============== CARGA Y PAGINACIÓN ===============
   cargar(): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -129,25 +154,12 @@ export class FacturasComponent implements OnInit, OnDestroy {
       },
       error: () => { 
         this.loading = false; 
+        this.alertService.showGenericError('Error al cargar las facturas');
       }
     });
   }
 
-  onScroll = () => {
-    if (this.loading) return;
-    
-    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
-    
-    if (nearBottom) {
-      if (this.isServerSearch && !this.serverSearchLastPage) {
-        this.buscarEnServidor(this.searchTerm);
-      } else if (!this.isServerSearch && !this.lastPage) {
-        this.cargar();
-      }
-    }
-  };
-
-  resetLista() {
+  resetLista(): void {
     this.facturasAll = [];
     this.facturas = [];
     this.page = 1;
@@ -163,6 +175,21 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   }
 
+  onScroll = (): void => {
+    if (this.loading) return;
+    
+    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
+    
+    if (nearBottom) {
+      if (this.isServerSearch && !this.serverSearchLastPage) {
+        this.buscarEnServidor(this.searchTerm);
+      } else if (!this.isServerSearch && !this.lastPage) {
+        this.cargar();
+      }
+    }
+  };
+
+  // =============== BÚSQUEDA Y FILTRADO ===============
   private applyFilter(): void {
     const term = this.searchTerm.toLowerCase();
     
@@ -201,7 +228,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
         this.serverSearchLastPage = res.next_page_url === null;
         this.loading = false;
       },
-      error: (error) => {
+      error: () => {
         this.loading = false;
         this.isServerSearch = false;
         this.facturas = this.searchService.search(this.facturasAll, termino, 'facturas');
@@ -209,6 +236,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // =============== GESTIÓN DE PRESUPUESTOS ===============
   onBuscarPresupuesto(termino: string, esEdicion: boolean = false): void {
     if (termino.length > 0) {
       this.mostrandoPresupuestos = true;
@@ -219,7 +247,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   }
 
-  buscarPresupuestos(termino: string): void {
+  private buscarPresupuestos(termino: string): void {
     const terminoLimpio = termino.trim();
     
     if (!terminoLimpio) {
@@ -245,46 +273,38 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   seleccionarPresupuesto(presupuesto: Presupuesto, esEdicion: boolean = false): void {
-    if (esEdicion) {
-      this.editBuffer.presupuestoSeleccionado = presupuesto;
-      this.editBuffer.presupuesto_id = presupuesto.id;
-      this.editBuffer.presupuestoBusqueda = `Presupuesto #${presupuesto.id}`;
-    } else {
-      this.nuevo.presupuestoSeleccionado = presupuesto;
-      this.nuevo.presupuesto_id = presupuesto.id;
-      this.nuevo.presupuestoBusqueda = `Presupuesto #${presupuesto.id}`;
-    }
+    const target = esEdicion ? this.editBuffer : this.nuevo;
+    
+    target.presupuestoSeleccionado = presupuesto;
+    target.presupuesto_id = presupuesto.id;
+    target.presupuestoBusqueda = `Presupuesto #${presupuesto.id}`;
     
     this.mostrandoPresupuestos = false;
     this.presupuestosSugeridos = [];
 
-    const montoTarget = esEdicion ? this.editBuffer : this.nuevo;
-    if (!montoTarget.monto_total && presupuesto.monto_total != null) {
-      montoTarget.monto_total = presupuesto.monto_total;
+    if (!target.monto_total && presupuesto.monto_total != null) {
+      target.monto_total = presupuesto.monto_total;
     }
     
-    if (!montoTarget.detalle) {
-      montoTarget.detalle = `Factura asociada al presupuesto #${presupuesto.id}`;
+    if (!target.detalle) {
+      target.detalle = `Factura asociada al presupuesto #${presupuesto.id}`;
     }
+  }
+
+  limpiarPresupuesto(esEdicion: boolean = false): void {
+    const target = esEdicion ? this.editBuffer : this.nuevo;
+    
+    target.presupuestoSeleccionado = undefined;
+    target.presupuesto_id = undefined as any;
+    target.presupuestoBusqueda = '';
+    
+    this.presupuestosSugeridos = [];
+    this.mostrandoPresupuestos = false;
   }
 
   cerrarMenuSugerencias(): void {
     this.mostrandoPresupuestos = false;
     this.presupuestosSugeridos = [];
-  }
-
-  limpiarPresupuesto(esEdicion: boolean = false): void {
-    if (esEdicion) {
-      this.editBuffer.presupuestoSeleccionado = undefined;
-      this.editBuffer.presupuesto_id = undefined as any;
-      this.editBuffer.presupuestoBusqueda = '';
-    } else {
-      this.nuevo.presupuestoSeleccionado = undefined;
-      this.nuevo.presupuesto_id = undefined as any;
-      this.nuevo.presupuestoBusqueda = '';
-    }
-    this.presupuestosSugeridos = [];
-    this.mostrandoPresupuestos = false;
   }
 
   ocultarPresupuestos(): void {
@@ -293,6 +313,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }, 200);
   }
 
+  // =============== GESTIÓN DE REPARACIONES ===============
   getDescripcionReparacion(reparacionId: number): string {
     const presupuesto = this.presupuestosSugeridos.find(p => p.reparacion_id === reparacionId);
     if (presupuesto?.reparacion_descripcion) {
@@ -319,13 +340,17 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
-  crear(): void {
+  // =============== CRUD OPERATIONS ===============
+  async crear(): Promise<void> {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Creando factura...');
+
     this.facService.create(payload).subscribe({
       next: (nuevaFactura: any) => {
+        this.alertService.closeLoading();
         const facturaCompleta = { ...payload, id: nuevaFactura.id, fecha: payload.fecha! } as Factura;
         this.facturasAll.unshift(facturaCompleta);
         this.applyFilter();
@@ -342,24 +367,34 @@ export class FacturasComponent implements OnInit, OnDestroy {
           presupuestoBusqueda: ''
         };
         this.selectedAction = 'listar';
+        this.alertService.showFacturaCreada();
       },
       error: (e) => { 
-        alert(e?.error?.error ?? 'Error al crear la factura'); 
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al crear la factura'); 
       }
     });
   }
 
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar esta factura?')) return;
+  async eliminar(id: number): Promise<void> {
+    const factura = this.facturasAll.find(f => f.id === id);
+    const numeroFactura = `${factura?.numero || ''}${factura?.letra || ''}`;
+    const confirmed = await this.alertService.confirmDeleteFactura(numeroFactura);
+    if (!confirmed) return;
     
+    this.alertService.showLoading('Eliminando factura...');
+
     this.facService.delete(id).subscribe({
       next: () => { 
+        this.alertService.closeLoading();
         this.facturasAll = this.facturasAll.filter(f => f.id !== id);
         this.applyFilter();
         this.searchService.setSearchData(this.facturasAll);
+        this.alertService.showFacturaEliminada();
       },
-      error: (e) => { 
-        alert(e?.error?.error ?? 'No se pudo eliminar'); 
+      error: () => { 
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('No se pudo eliminar la factura'); 
       }
     });
   }
@@ -391,16 +426,23 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }; 
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiar(this.editBuffer);
     if (!this.valida(payload)) return;
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Actualizando factura...');
+
     this.facService.update(id, payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         const updateLocal = (arr: Factura[]) => {
           const idx = arr.findIndex(f => f.id === id);
-          if (idx >= 0) arr[idx] = { ...arr[idx], ...payload, fecha: payload.fecha! } as Factura;
+          arr[idx] = { 
+            ...arr[idx],
+            ...payload, 
+            fecha: payload.fecha!
+          } as Factura;        
         };
         
         updateLocal(this.facturasAll);
@@ -408,34 +450,30 @@ export class FacturasComponent implements OnInit, OnDestroy {
         
         this.searchService.setSearchData(this.facturasAll);
         this.cancelEdit();
+        this.alertService.showFacturaActualizada();
       },
-      error: (e) => { 
-        alert(e?.error?.error ?? 'Error al actualizar'); 
+      error: () => { 
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al actualizar la factura'); 
       }
     });
   }
 
-  abrirModalExportacion(): void {
-    this.mostrarModalExportacion = true;
-  }
-
-  cerrarModalExportacion(): void {
-    this.mostrarModalExportacion = false;
-  }
-
+  // =============== EXPORTACIÓN ===============
   exportarTodasFacturas(): void {
     if (this.facturas.length === 0) {
-      alert('No hay facturas para exportar');
+      this.alertService.showGenericError('No hay facturas para exportar');
       return;
     }
 
-    const reportComponent = new FacturaReportComponent();
+    const reportComponent = new FacturaReportComponent(this.alertService)
     reportComponent.facturas = this.facturas;
     reportComponent.titulo = 'Todas las Facturas';
     reportComponent.generarReporte();
     this.mostrarModalExportacion = false;
   }
 
+  // =============== VALIDACIÓN Y UTILIDADES ===============
   private limpiar(obj: Partial<FacturaForm>): Partial<Factura> {
     const presupuestoId = typeof obj.presupuesto_id === 'string'
       ? Number(obj.presupuesto_id)
@@ -463,15 +501,15 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
   private valida(p: Partial<Factura>): boolean {
     if (!p.presupuesto_id || !p.numero || !p.letra || !p.fecha || p.monto_total === undefined || p.monto_total === null) {
-      alert('Completá: presupuesto_id, número, letra, fecha y monto_total.');
+      this.alertService.showGenericError('Completá: presupuesto_id, número, letra, fecha y monto_total.');
       return false;
     }
     if (isNaN(Number(p.presupuesto_id)) || Number(p.presupuesto_id) <= 0) { 
-      alert('presupuesto_id inválido.'); 
+      this.alertService.showGenericError('presupuesto_id inválido.'); 
       return false; 
     }
     if (isNaN(Number(p.monto_total))) { 
-      alert('monto_total debe ser numérico.'); 
+      this.alertService.showGenericError('monto_total debe ser numérico.'); 
       return false; 
     }
     return true;

@@ -5,17 +5,16 @@
     <div class="dashboard-header">
       <h1 class="dashboard-title">Panel de Control</h1>
       <p class="dashboard-subtitle">Sistema de Gestión Integral Maq</p>
-    </div>
-
 
     <!-- Grid de módulos -->
     <div class="dashboard-grid">
       <a
-        *ngFor="let card of filteredCards"
+        *ngFor="let card of filteredCards()"
         class="dashboard-card"
         [class.disabled]="card.disabled"
-        [attr.href]="card.disabled ? null : card.route"
+        [routerLink]="card.disabled ? [] : card.route"
         [class.fade-in]="true"
+        [title]="card.disabled ? 'No tienes permisos para acceder a este módulo' : card.description"
       >
         <i class="bi {{card.icon}} card-icon"></i>
         <h3 class="card-title">{{ card.title }}</h3>
@@ -23,7 +22,7 @@
         
         <!-- Badge de estado -->
         <span *ngIf="card.disabled" class="badge bg-warning">
-          <i class="bi bi-clock me-1"></i>Próximamente
+          <i class="bi bi-lock me-1"></i>Sin permiso
         </span>
         <span *ngIf="!card.disabled" class="badge bg-primary">
           <i class="bi bi-play-circle me-1"></i>Acceder
@@ -32,7 +31,7 @@
     </div>
 
     <!-- Estado vacío -->
-    <div *ngIf="filteredCards.length === 0 && searchTerm" class="empty-state">
+    <div *ngIf="filteredCards().length === 0 && searchTerm" class="empty-state">
       <div class="icon-wrap">
         <i class="bi bi-search"></i>
       </div>

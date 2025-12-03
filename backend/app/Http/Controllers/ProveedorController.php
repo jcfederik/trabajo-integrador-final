@@ -66,12 +66,11 @@ class ProveedorController extends Controller
             // Búsqueda por término
             if ($request->has('search') && $request->search !== '') {
                 $search = $request->search;
+
                 $query->where(function ($q) use ($search) {
                     $q->where('razon_social', 'LIKE', "%$search%")
-                      ->orWhere('cuit', 'LIKE', "%$search%")
-                      ->orWhere('telefono', 'LIKE', "%$search%")
-                      ->orWhere('email', 'LIKE', "%$search%")
-                      ->orWhere('direccion', 'LIKE', "%$search%");
+                    ->orWhere('email', 'LIKE', "%$search%")
+                    ->orWhere('direccion', 'LIKE', "%$search%");
                 });
             }
 

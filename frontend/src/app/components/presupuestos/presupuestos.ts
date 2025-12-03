@@ -1,6 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription, catchError, of, forkJoin } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+
 import {
   PresupuestoService,
   Presupuesto,
@@ -8,8 +11,7 @@ import {
 } from '../../services/presupuesto.service';
 import { SearchService } from '../../services/busquedaglobal';
 import { ReparacionService, Reparacion } from '../../services/reparacion.service';
-import { Subject, Subscription, catchError, of, forkJoin } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 
@@ -39,6 +41,9 @@ type PresupuestoEditForm = {
   styleUrls: ['./presupuestos.css']
 })
 export class PresupuestosComponent implements OnInit, OnDestroy {
+
+  // cache
+  private reparacionesInfoCache = new Map<number, Reparacion>();
   
   // =============== ESTADO DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
@@ -60,9 +65,11 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   private serverSearchLastPage = false;
   private busquedaPresupuesto = new Subject<string>();
 
+  // =============== EDICIÓN ===============
   editingId: number | null = null;
   editBuffer: PresupuestoEditForm = { reparacionBusqueda: '' };
 
+  // =============== CREACIÓN ===============
   nuevo: PresupuestoForm = {
     reparacion_id: undefined as any,
     fecha: new Date().toISOString().slice(0, 10),
@@ -71,6 +78,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     reparacionBusqueda: ''
   };
 
+  // =============== BÚSQUEDA DE REPARACIONES ===============
   reparacionesSugeridas: Reparacion[] = [];
   mostrandoReparaciones = false;
   buscandoReparaciones = false;
@@ -81,15 +89,18 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   reparacionesSugeridasEdit: Reparacion[] = [];
   private busquedaReparacionEdit = new Subject<string>();
 
+  // =============== CACHE DE REPARACIONES ===============
   private reparacionesCache = new Map<number, string>();
+  cargandoDescripciones = new Set<number>();
 
   constructor(
     private svc: PresupuestoService,
     private reparacionSvc: ReparacionService,
-    public searchService: SearchService
+    public searchService: SearchService,
+    private alertService: AlertService
   ) {}
 
-  // =============== CICLO DE VIDA ===============
+  // =============== LIFECYCLE ===============
   ngOnInit(): void {
     this.cargar();
     window.addEventListener('scroll', this.onScroll, { passive: true });
@@ -98,10 +109,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.configurarBusquedaPresupuestos();
     this.configurarBusquedaReparaciones();
     this.configurarBusquedaReparacionesEdicion();
-
-    setTimeout(() => {
-      this.items = [...this.items];
-    }, 1000);
   }
 
   ngOnDestroy(): void {
@@ -168,11 +175,13 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.buscandoPresupuestos = true;
 
     if (terminoLimpio.length <= 2) {
-      // Búsqueda local para términos cortos
-      this.applyFilterLocal();
+      this.page = 1;
+      this.lastPage = false;
+      this.itemsAll = [];
+
+      this.buscarEnServidor(termino);
       this.buscandoPresupuestos = false;
     } else {
-      // Búsqueda en servidor para términos largos
       this.busquedaPresupuesto.next(terminoLimpio);
     }
   }
@@ -192,7 +201,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.buscandoPresupuestos = false;
         this.mostrandoSugerencias = true;
         
-        // Actualizar datos para búsqueda local
         const itemsForSearch = this.itemsAll.map(p => ({
           ...p,
           reparacion_descripcion: this.getDescripcionReparacion(p.reparacion_id),
@@ -201,7 +209,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.searchService.setSearchData(itemsForSearch);
       },
       error: (error) => {
-        console.error('Error en búsqueda servidor:', error);
         this.applyFilterLocal();
         this.buscandoPresupuestos = false;
       }
@@ -225,7 +232,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
   }
 
   private applyFilter(): void {
-
     if (!this.searchTerm || this.searchTerm.trim() === '') {
       this.items = [...this.itemsAll];
       return;
@@ -237,6 +243,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       this.items = [...this.itemsAll];
     }
   }
+
   cerrarMenuSugerencias(): void {
     this.mostrandoSugerencias = false;
   }
@@ -246,17 +253,23 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       this.mostrandoSugerencias = false;
     }, 200);
   }
+private resetBusqueda(): void {
+  this.searchTerm = '';
+  this.isServerSearch = false;
+  this.serverSearchPage = 1;
+  this.serverSearchLastPage = false;
 
-  private resetBusqueda(): void {
-    this.isServerSearch = false;
-    this.serverSearchPage = 1;
-    this.serverSearchLastPage = false;
-    this.mostrandoSugerencias = false;
-    this.buscandoPresupuestos = false;
-    this.items = [...this.itemsAll];
-  }
+  this.itemsAll = [];
+  this.items = [];
 
-  // =============== GESTIÓN DE REPARACIONES - CORREGIDO ===============
+  this.page = 1;
+  this.lastPage = false;
+
+  this.cargar(); // 🔥 Vuelve a pedir la lista completa al servidor
+}
+
+
+  // =============== GESTIÓN DE REPARACIONES ===============
   onBuscarReparacion(termino: string): void {
     this.busquedaReparacion.next(termino);
   }
@@ -269,7 +282,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     const terminoLimpio = termino || '';
     
     if (!terminoLimpio.trim()) {
-
       this.searchTerm = '';
       this.isServerSearch = false;
       this.searchService.setSearchTerm('');
@@ -294,7 +306,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.actualizarCacheReparaciones(this.reparacionesSugeridas);
       },
       error: (error) => {
-        console.error('Error buscando reparaciones:', error);
         this.buscandoReparaciones = false;
         this.reparacionesSugeridas = [];
       }
@@ -312,7 +323,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
     this.buscandoReparacionesEdit = true;
     
-    // ✅ CORREGIDO: Usar el método correcto del servicio
     this.reparacionSvc.buscarReparaciones(terminoLimpio).subscribe({
       next: (response: any | { data: any[] }) => {
         const reparaciones = response.data || response;
@@ -322,7 +332,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.actualizarCacheReparaciones(this.reparacionesSugeridasEdit);
       },
       error: (error) => {
-        console.error('Error buscando reparaciones en edición:', error);
         this.buscandoReparacionesEdit = false;
         this.reparacionesSugeridasEdit = [];
       }
@@ -337,17 +346,43 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  seleccionarReparacion(reparacion: Reparacion): void {
-    this.nuevo.reparacionSeleccionada = reparacion;
-    this.nuevo.reparacion_id = reparacion.id;
-    this.nuevo.reparacionBusqueda = reparacion.descripcion || '';
-    this.mostrandoReparaciones = false;
-    
-    if (reparacion.descripcion) {
-      this.reparacionesCache.set(reparacion.id, reparacion.descripcion);
-    }
+seleccionarReparacion(reparacion: Reparacion): void {
+  this.nuevo.reparacionSeleccionada = reparacion;
+  this.nuevo.reparacion_id = reparacion.id;
+  this.nuevo.reparacionBusqueda = reparacion.descripcion || '';
+  this.mostrandoReparaciones = false;
+  
+  // Guardar en caches
+  this.reparacionesInfoCache.set(reparacion.id, reparacion);
+  if (reparacion.descripcion) {
+    this.reparacionesCache.set(reparacion.id, reparacion.descripcion);
   }
 
+  // Si la reparación no tiene información completa, cargarla
+  if (!reparacion.equipo || !reparacion.tecnico) {
+    this.cargarInformacionCompletaReparacion(reparacion.id);
+  }
+}
+
+private cargarInformacionCompletaReparacion(reparacionId: number): void {
+  this.reparacionSvc.show(reparacionId).subscribe({
+    next: (reparacionCompleta: Reparacion) => {
+      // Actualizar la reparación seleccionada con información completa
+      if (this.nuevo.reparacionSeleccionada?.id === reparacionId) {
+        this.nuevo.reparacionSeleccionada = reparacionCompleta;
+      }
+      
+      // Actualizar cache
+      this.reparacionesInfoCache.set(reparacionId, reparacionCompleta);
+      if (reparacionCompleta.descripcion) {
+        this.reparacionesCache.set(reparacionId, reparacionCompleta.descripcion);
+      }
+    },
+    error: (error) => {
+      console.error(`Error cargando información completa de reparación ${reparacionId}:`, error);
+    }
+  });
+}
   seleccionarReparacionEdit(reparacion: Reparacion): void {
     this.editBuffer.reparacionSeleccionada = reparacion;
     this.editBuffer.reparacion_id = reparacion.id;
@@ -387,11 +422,14 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     }, 200);
   }
 
+  // =============== GESTIÓN DE DESCRIPCIONES DE REPARACIONES ===============
   getDescripcionReparacion(reparacionId: number): string {
     if (this.reparacionesCache.has(reparacionId)) {
       return this.reparacionesCache.get(reparacionId)!;
     }
 
+    this.cargandoDescripciones.add(reparacionId);
+    
     const descripcionTemporal = `Reparación #${reparacionId}`;
     this.reparacionesCache.set(reparacionId, descripcionTemporal);
     this.cargarReparacionIndividual(reparacionId);
@@ -404,10 +442,12 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       next: (reparacion) => {
         const descripcion = reparacion.descripcion || `Reparación #${reparacionId}`;
         this.reparacionesCache.set(reparacionId, descripcion);
+        this.cargandoDescripciones.delete(reparacionId);
         this.items = [...this.items];
       },
       error: () => {
         this.reparacionesCache.set(reparacionId, `Reparación #${reparacionId}`);
+        this.cargandoDescripciones.delete(reparacionId);
         this.items = [...this.items];
       }
     });
@@ -424,6 +464,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       }
 
       reparacionesFaltantes.forEach(id => {
+        this.cargandoDescripciones.add(id);
         this.reparacionesCache.set(id, `Cargando...`);
       });
 
@@ -431,6 +472,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.reparacionSvc.show(id).pipe(
           catchError(() => {
             this.reparacionesCache.set(id, `Reparación #${id}`);
+            this.cargandoDescripciones.delete(id);
             return of(null);
           })
         )
@@ -439,52 +481,75 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
       forkJoin(requests).subscribe(results => {
         results.forEach((reparacion, index) => {
           const id = reparacionesFaltantes[index];
+          this.cargandoDescripciones.delete(id);
           if (reparacion) {
             const descripcion = reparacion.descripcion || `Reparación #${id}`;
             this.reparacionesCache.set(id, descripcion);
           }
         });
+        this.items = [...this.items];
         resolve();
       });
     });
   }
 
   // =============== CARGA DE DATOS ===============
-  cargar(): void {
-    if (this.loading || this.lastPage) return;
-    this.loading = true;
+cargar(): void {
+  if (this.loading || this.lastPage) return;
+  this.loading = true;
 
-    this.svc.list(this.page, this.perPage).subscribe({
-      next: (res: Paginated<Presupuesto>) => {
-        const batch = res.data ?? [];
+  // Intentar con el endpoint optimizado, si falla usar el normal
+  this.svc.listOptimizado(this.page, this.perPage, this.searchTerm).pipe(
+    catchError((error) => {
+      console.warn('Endpoint optimizado falló, usando endpoint normal', error);
+      return this.svc.list(this.page, this.perPage);
+    })
+  ).subscribe({
+    next: (res: Paginated<Presupuesto>) => {
+      const batch = res.data ?? [];
+      
+      // Procesar batch
+      const batchProcesado = batch.map(presupuesto => {
+        if (presupuesto.reparacion) {
+          this.reparacionesInfoCache.set(presupuesto.reparacion_id, presupuesto.reparacion);
+          if (presupuesto.reparacion.descripcion) {
+            this.reparacionesCache.set(presupuesto.reparacion_id, presupuesto.reparacion.descripcion);
+          }
+        }
         
-        if (this.page === 1) {
-          this.itemsAll = batch;
-        } else {
-          this.itemsAll = [...this.itemsAll, ...batch];
-        }
-
-        if (!this.searchTerm) {
-          const itemsForSearch = this.itemsAll.map(p => ({
-            ...p,
-            reparacion_descripcion: this.getDescripcionReparacion(p.reparacion_id),
-            estado_legible: p.aceptado ? 'aceptado' : 'pendiente'
-          }));
-
-          this.applyFilter();
-          this.searchService.setSearchData(itemsForSearch);
-        }
-
-        this.page++;
-        this.lastPage = (res.next_page_url === null) || (this.page > res.last_page);
-        this.loading = false;
-        this.cargarTodasLasReparaciones();
-      },
-      error: () => { 
-        this.loading = false; 
+        return {
+          ...presupuesto,
+          reparacion_descripcion: presupuesto.reparacion?.descripcion || `Reparación #${presupuesto.reparacion_id}`,
+          estado_legible: presupuesto.aceptado ? 'aceptado' : 'pendiente'
+        };
+      });
+      
+      if (this.page === 1) {
+        this.itemsAll = batchProcesado;
+      } else {
+        this.itemsAll = [...this.itemsAll, ...batchProcesado];
       }
-    });
-  }
+
+      this.applyFilter();
+      
+      const itemsForSearch = this.itemsAll.map(p => ({
+        ...p,
+        reparacion_descripcion: p.reparacion?.descripcion || `Reparación #${p.reparacion_id}`,
+        estado_legible: p.aceptado ? 'aceptado' : 'pendiente'
+      }));
+      this.searchService.setSearchData(itemsForSearch);
+
+      this.page++;
+      this.lastPage = (res.next_page_url === null) || (this.page > res.last_page);
+      this.loading = false;
+    },
+    error: (error) => { 
+      console.error('Error cargando presupuestos:', error);
+      this.loading = false; 
+      this.alertService.showGenericError('Error al cargar los presupuestos');
+    }
+  });
+}
 
   onScroll = () => {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
@@ -512,7 +577,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
           this.itemsAll = [...this.itemsAll, ...nuevosPresupuestos];
           this.items = [...this.itemsAll];
           
-          // Actualizar datos para búsqueda local
           const itemsForSearch = this.itemsAll.map(p => ({
             ...p,
             reparacion_descripcion: this.getDescripcionReparacion(p.reparacion_id),
@@ -526,7 +590,6 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error cargando más resultados:', error);
         this.loading = false;
         this.serverSearchLastPage = true;
       }
@@ -552,14 +615,17 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.selectedAction = a; 
   }
 
-  crear(): void {
+  async crear(): Promise<void> {
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
 
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Creando presupuesto...');
+
     this.svc.create(payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.resetLista();
         this.nuevo = {
           reparacion_id: undefined as any,
@@ -569,17 +635,24 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
           reparacionBusqueda: ''
         };
         this.selectedAction = 'listar';
+        this.alertService.showPresupuestoCreado();
       },
       error: (e) => {
-        alert(e?.error?.error ?? 'Error al crear el presupuesto');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al crear el presupuesto');
       }
     });
   }
 
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar este presupuesto?')) return;
+  async eliminar(id: number): Promise<void> {
+    const confirmed = await this.alertService.confirmDeletePresupuesto(id);
+    if (!confirmed) return;
+
+    this.alertService.showLoading('Eliminando presupuesto...');
+
     this.svc.delete(id).subscribe({
       next: () => { 
+        this.alertService.closeLoading();
         this.itemsAll = this.itemsAll.filter(i => i.id !== id);
         const itemsForSearch = this.itemsAll.map(p => ({
           ...p,
@@ -588,13 +661,16 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         }));
         this.applyFilter();
         this.searchService.setSearchData(itemsForSearch);
+        this.alertService.showPresupuestoEliminado();
       },
       error: (e) => {
-        alert(e?.error?.error ?? 'No se pudo eliminar');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('No se pudo eliminar el presupuesto');
       }
     });
   }
 
+  // =============== EDICIÓN ===============
   startEdit(item: Presupuesto): void {
     this.editingId = item.id;
     const descripcionReparacion = this.getDescripcionReparacion(item.reparacion_id);
@@ -615,14 +691,17 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     this.editBuffer = { reparacionBusqueda: '' };
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiarEdit(this.editBuffer);
     if (!this.valida(payload)) return;
 
     payload.fecha = this.toISODate(payload.fecha as string);
 
+    this.alertService.showLoading('Actualizando presupuesto...');
+
     this.svc.update(id, payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         const updateLocal = (arr: Presupuesto[]) => {
           const idx = arr.findIndex(i => i.id === id);
           if (idx >= 0) {
@@ -640,9 +719,11 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
         }));
         this.searchService.setSearchData(itemsForSearch);
         this.cancelEdit();
+        this.alertService.showPresupuestoActualizado();
       },
       error: (e) => {
-        alert(e?.error?.error ?? 'Error al actualizar');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al actualizar el presupuesto');
       }
     });
   }
@@ -694,17 +775,17 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
 
   private valida(p: Partial<Presupuesto>): boolean {
     if (!p.reparacion_id || !p.fecha || p.monto_total == null || typeof p.aceptado !== 'boolean') {
-      alert('Completá: reparación, fecha, monto_total y aceptado.');
+      this.alertService.showGenericError('Completá: reparación, fecha, monto_total y aceptado.');
       return false;
     }
     
     if (isNaN(Number(p.reparacion_id)) || Number(p.reparacion_id) <= 0) {
-      alert('reparacion_id inválido.');
+      this.alertService.showGenericError('reparacion_id inválido.');
       return false;
     }
     
     if (typeof p.monto_total !== 'number' || isNaN(p.monto_total) || p.monto_total < 0) {
-      alert('monto_total debe ser numérico y >= 0.');
+      this.alertService.showGenericError('monto_total debe ser numérico y >= 0.');
       return false;
     }
     
@@ -730,4 +811,42 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     if (!yyyyMMdd) return new Date().toISOString();
     return new Date(yyyyMMdd + 'T00:00:00Z').toISOString();
   }
+
+getTituloPresupuesto(p: Presupuesto): string {
+  const rep = p.reparacion || this.reparacionesInfoCache.get(p.reparacion_id);
+
+  if (!rep) return `Presupuesto #${p.id}`;
+
+  const cliente =
+    rep.cliente_nombre ||
+    rep.equipo?.cliente?.nombre ||
+    'Cliente';
+
+  const equipo =
+    rep.equipo_nombre ||
+    rep.equipo?.descripcion ||
+    'Equipo';
+
+  const estado = p.aceptado ? 'Aceptado' : 'Pendiente';
+
+  return `Presupuesto #${p.id} - ${cliente} | ${equipo}`;
+}
+
+
+getInfoEquipo(reparacionId: number): string {
+  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+  return reparacionInfo?.equipo_nombre || '';
+}
+
+getInfoTecnico(reparacionId: number): string {
+  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+  return reparacionInfo?.tecnico_nombre || '';
+}
+
+getInfoCliente(reparacionId: number): string {
+  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+  return reparacionInfo?.cliente_nombre || '';
+}
+
+
 }

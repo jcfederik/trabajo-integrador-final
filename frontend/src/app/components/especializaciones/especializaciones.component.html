@@ -1,0 +1,210 @@
+<div class="container-fluid py-4">
+  <div class="especializaciones-container">
+    <!-- Header -->
+    <div class="especializaciones-header">
+      <h1 class="especializaciones-title">Gestión de Especializaciones</h1>
+      
+      <!--CREAR -->
+      <button *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')" 
+              class="action-pill" 
+              (click)="mostrarFormulario = !mostrarFormulario">
+        <i class="bi bi-plus-circle"></i>
+        {{ mostrarFormulario ? 'Cancelar' : 'Nueva Especialización' }}
+      </button>
+    </div>
+
+    <!-- Formulario de creación -->
+    <div class="crear-especializacion-card" *ngIf="mostrarFormulario && (authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))">
+      <div class="crear-especializacion-header">
+        <i class="bi bi-tags"></i>
+        <h3 class="crear-especializacion-title">Crear Nueva Especialización</h3>
+      </div>
+      <div class="card-body">
+        <form (ngSubmit)="crearEspecializacion()">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="form-group-enhanced">
+                <label class="form-label-enhanced">Nombre de la Especialización</label>
+                <input type="text" class="form-control-enhanced" 
+                       [(ngModel)]="nuevaEspecializacion.nombre" name="nombre" 
+                       placeholder="Ej: Reparación de Notebooks, Mantenimiento de PCs..." required>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="action-pill success active">
+              <i class="bi bi-check-circle"></i>
+              Crear Especialización
+            </button>
+            <button type="button" class="action-pill" (click)="cancelarCreacion()">
+              <i class="bi bi-x-circle"></i>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Lista de especializaciones -->
+    <div class="especializaciones-table-container">
+      <div class="table-header">
+        <h3 class="table-title">
+          <i class="bi bi-mortarboard"></i>
+          Lista de Especializaciones
+          <span class="badge bg-primary ms-2">{{ especializaciones.length }}</span>
+        </h3>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th width="80">ID</th>
+              <th>Especialización</th>
+              <th width="120">Técnicos</th>
+              <th width="200" class="text-center" *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let esp of especializaciones">
+              <!-- Modo visualización normal -->
+              <tr *ngIf="editandoEspecializacion?.id !== esp.id && asignandoTecnicos?.id !== esp.id" 
+                  class="especializacion-row">
+                <td class="fw-bold text-muted">#{{ esp.id }}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-tag me-3 text-warning" style="font-size: 1.5rem;"></i>
+                    <div>
+                      <strong class="d-block">{{ esp.nombre }}</strong>
+                      <small class="text-muted">Área de especialización técnica</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-info">
+                    <i class="bi bi-people me-1"></i>
+                    {{ contarTecnicosPorEspecializacion(esp.id) }}
+                  </span>
+                  
+                  <!-- BOTÓN AUTO-ASIGNAR -->
+                  <button *ngIf="authService.canSelfAssignEspecializaciones() && !authService.isAdmin()" 
+                          class="btn btn-sm btn-outline-success ms-2"
+                          (click)="autoAsignarEspecializacion(esp.id)"
+                          title="Auto-asignarme esta especialización">
+                    <i class="bi bi-person-plus"></i>
+                  </button>
+                </td>
+                <td class="text-center" *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">
+                  <div class="btn-action-group">
+                    <!-- EDITAR SOLO ADMIN -->
+                    <button *ngIf="authService.canManageEspecializaciones()"
+                            class="btn-editar" 
+                            title="Editar especialización"
+                            (click)="iniciarEdicion(esp)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    
+                    <!-- ASIGNAR SOLO ADMIN -->
+                    <button *ngIf="authService.canAssignEspecializaciones()"
+                            class="btn-asignar" 
+                            title="Asignar técnicos"
+                            (click)="iniciarAsignacion(esp)">
+                      <i class="bi bi-person-plus"></i>
+                    </button>
+                    
+                    <!-- ELIMINAR SOLO ADMIN -->
+                    <button *ngIf="authService.canManageEspecializaciones()"
+                            class="btn-eliminar" 
+                            (click)="eliminarEspecializacion(esp.id)"
+                            title="Eliminar especialización">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Modo edición (solo para administradores) -->
+              <tr *ngIf="editandoEspecializacion?.id === esp.id && authService.canManageEspecializaciones()">
+                <td class="fw-bold text-muted">#{{ editandoEspecializacion!.id }}</td>
+                <td colspan="2">
+                  <div class="row g-3 align-items-center">
+                    <div class="col-md-8">
+                      <input type="text" class="form-control form-control-sm" 
+                             [(ngModel)]="especializacionEditada.nombre" 
+                             placeholder="Nombre de la especialización">
+                    </div>
+                    <div class="col-md-4">
+                      <div class="btn-action-group">
+                        <button class="btn btn-success btn-sm" (click)="guardarEdicion()">
+                          <i class="bi bi-check"></i> Guardar
+                        </button>
+                        <button class="btn btn-secondary btn-sm" (click)="cancelarEdicion()">
+                          <i class="bi bi-x"></i> Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td></td>
+              </tr>
+
+              <!-- Modo asignación de técnicos (solo para administradores) -->
+              <tr *ngIf="asignandoTecnicos && asignandoTecnicos.id === esp.id && authService.canAssignEspecializaciones()">
+                <td class="fw-bold text-muted">#{{ asignandoTecnicos.id }}</td>
+                <td colspan="3">
+                  <div class="asignacion-container">
+                    <h6 class="mb-3">Asignar técnicos a: <strong>{{ asignandoTecnicos.nombre }}</strong></h6>
+                    
+                    <div class="tecnicos-grid">
+                      <div *ngFor="let tecnico of tecnicos" class="tecnico-checkbox">
+                        <label class="checkbox-label">
+                          <input type="checkbox" 
+                                 [checked]="estaSeleccionado(tecnico.id)"
+                                 (change)="toggleTecnico(tecnico.id)">
+                          <span class="checkmark"></span>
+                          <i class="bi bi-person-gear me-2"></i>
+                          {{ tecnico.nombre }}
+                          <small class="text-muted ms-2">({{ tecnico.tipo }})</small>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                      <button class="btn btn-success btn-sm" (click)="guardarAsignacion()">
+                        <i class="bi bi-check"></i> Guardar Asignación
+                      </button>
+                      <button class="btn btn-secondary btn-sm" (click)="cancelarAsignacion()">
+                        <i class="bi bi-x"></i> Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty-especializaciones" *ngIf="especializaciones.length === 0">
+        <div class="empty-icon">
+          <i class="bi bi-mortarboard"></i>
+        </div>
+        <h3 class="empty-title">No hay especializaciones registradas</h3>
+        <p class="empty-description">Comienza creando la primera especialización técnica</p>
+        
+        <button *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')" 
+                class="action-pill" 
+                (click)="mostrarFormulario = true">
+          <i class="bi bi-plus-circle"></i>
+          Crear Primera Especialización
+        </button>
+        
+        <div *ngIf="!(authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))" class="alert alert-info mt-3">
+          <i class="bi bi-info-circle"></i>
+          No tienes permisos para crear especializaciones. Contacta al administrador.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

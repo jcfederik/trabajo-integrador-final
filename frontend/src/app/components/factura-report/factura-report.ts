@@ -1,5 +1,9 @@
 import { Component, Input } from '@angular/core';
 import { Factura } from '../../services/facturas';
+import { Cliente } from '../../services/cliente.service';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { AlertService } from '../../services/alert.service';
 
 @Component({
   selector: 'app-factura-report',
@@ -7,224 +11,177 @@ import { Factura } from '../../services/facturas';
   template: ''
 })
 export class FacturaReportComponent {
+  
+  // =============== INPUTS ===============
   @Input() facturas: Factura[] = [];
   @Input() titulo: string = 'Listado de Facturas';
-  
+  @Input() cliente?: Cliente;
+
+  constructor(private alertService: AlertService) {}
+
+  // =============== MÉTODO PRINCIPAL ===============
   generarReporte(): void {
     if (this.facturas.length === 0) {
-      alert('No hay facturas para generar el reporte');
+      this.alertService.showGenericError('No hay facturas para generar el reporte');
       return;
     }
 
-    const ventana = window.open('', '_blank', 'width=1024,height=768');
-    if (!ventana) {
-      alert('No se pudo abrir la ventana de reporte. Por favor, permite ventanas emergentes.');
-      return;
+    try {
+      this.alertService.showReportLoading();
+      
+      const doc = new jsPDF();
+      
+      this.configurarDocumento(doc);
+      this.agregarTitulo(doc);
+      
+      if (this.cliente) {
+        this.agregarInfoCliente(doc);
+      }
+      
+      this.agregarTablaFacturas(doc);
+      this.agregarTotal(doc);
+      
+      const fileName = this.generarNombreArchivo();
+      doc.save(fileName);
+      
+      this.alertService.closeLoading();
+      this.alertService.showReportSuccess();
+      
+    } catch (error) {
+      this.alertService.closeLoading();
+      this.alertService.showReportError();
+    }
+  }
+
+  // =============== CONFIGURACIÓN DEL DOCUMENTO ===============
+  private configurarDocumento(doc: jsPDF): void {
+    doc.setProperties({
+      title: this.titulo,
+      subject: 'Reporte de Facturas',
+      creator: 'Sistema de Gestión',
+      author: 'Sistema'
+    });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+  }
+
+  private agregarTitulo(doc: jsPDF): void {
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.text(this.titulo, 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const fechaGeneracion = `Generado el ${new Date().toLocaleDateString('es-AR')} - ${this.facturas.length} factura(s)`;
+    doc.text(fechaGeneracion, 14, 30);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 35, 196, 35);
+  }
+
+  private agregarInfoCliente(doc: jsPDF): void {
+    if (!this.cliente) return;
+    
+    doc.setFontSize(11);
+    doc.setTextColor(60, 60, 60);
+    
+    doc.text(`Cliente: ${this.cliente.nombre}`, 14, 45);
+    
+    if (this.cliente.email) {
+      doc.text(`Email: ${this.cliente.email}`, 14, 52);
     }
     
-    ventana.document.write(this.generarHTML());
-    ventana.document.close();
-    ventana.focus();
-  }
-
-  private generarHTML(): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          ${this.generarHead()}
-        </head>
-        <body>
-          ${this.generarBody()}
-        </body>
-      </html>
-    `;
-  }
-
-  private generarHead(): string {
-    return `
-      <title>${this.titulo}</title>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-      <style>
-        ${this.generarEstilos()}
-      </style>
-    `;
-  }
-
-  private generarBody(): string {
-    return `
-      <div class="header-container">
-        <div>
-          <h1 class="report-title">${this.titulo}</h1>
-          <div class="report-subtitle">
-            Generado el ${new Date().toLocaleDateString('es-AR')} - ${this.facturas.length} factura(s)
-          </div>
-        </div>
-      </div>
-
-      <div class="button-container no-print">
-        <button class="btn btn-primary" onclick="window.print()">
-          <i class="bi bi-printer me-2"></i>Imprimir
-        </button>
-        <button class="btn btn-success" onclick="window.print()">
-          <i class="bi bi-download me-2"></i>Descargar PDF
-        </button>
-      </div>
-
-      <div class="table-responsive">
-        <table class="table table-striped table-bordered align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Número</th>
-              <th>Letra</th>
-              <th>Fecha</th>
-              <th class="text-end">Monto</th>
-              <th>Detalle</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this.generarFilas()}
-          </tbody>
-          <tfoot>
-            <tr class="total-row">
-              <td colspan="3" class="text-end fw-bold">Total:</td>
-              <td class="text-end fw-bold">${this.calcularTotal()}</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <script>
-        window.addEventListener('beforeprint', function() {
-          document.querySelector('.button-container').style.display = 'none';
-        });
-
-        window.addEventListener('afterprint', function() {
-          document.querySelector('.button-container').style.display = 'flex';
-        });
-      </script>
-    `;
-  }
-
-  private generarFilas(): string {
-    if (this.facturas.length === 0) {
-      return '<tr><td colspan="5" class="text-center text-muted">No hay facturas para mostrar</td></tr>';
+    if (this.cliente.telefono) {
+      doc.text(`Teléfono: ${this.cliente.telefono}`, 14, 59);
     }
-
-    return this.facturas.map(factura => `
-      <tr>
-        <td>${factura.numero || 'N/A'}</td>
-        <td>${factura.letra || 'N/A'}</td>
-        <td>${this.formatearFecha(factura.fecha)}</td>
-        <td class="text-end">${this.formatearMonto(factura.monto_total)}</td>
-        <td>${factura.detalle || '—'}</td>
-      </tr>
-    `).join('');
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 63, 196, 63);
   }
 
-  private generarEstilos(): string {
-    return `
-      @media print {
-        .no-print, .button-container { display: none !important; }
-        @page { margin: 1cm; size: A4; }
-        body { padding: 0 !important; font-size: 12px; }
-        .header-container { margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; }
-        .report-title { font-size: 1.5rem !important; margin-bottom: 0.5rem !important; }
-        table { font-size: 11px !important; }
-        th, td { padding: 8px 6px !important; }
-        .total-row { background-color: #f8f9fa !important; }
-      }
-      
-      body { 
-        padding: 24px; 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-        background-color: #f8f9fa;
-      }
-      
-      .button-container { 
-        position: fixed; 
-        top: 20px; 
-        right: 20px; 
-        z-index: 1000;
-        display: flex; 
-        gap: 15px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border: 1px solid #dee2e6;
-      }
-      
-      .btn { 
-        border-radius: 6px; 
-        font-weight: 500; 
-        padding: 10px 20px;
-        transition: all 0.2s ease;
-        border: 2px solid transparent;
-      }
-      
-      .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        border-color: currentColor;
-      }
-      
-      .header-container { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 2rem; 
-        padding-bottom: 1rem; 
-        border-bottom: 2px solid #e9ecef;
-        background: white;
-        padding: 2rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      }
-      
-      .report-title { 
-        color: #2c3e50; 
-        font-size: 1.8rem; 
-        font-weight: 700; 
-        margin: 0;
-      }
-      
-      .report-subtitle { 
-        color: #6c757d; 
-        font-size: 1rem; 
-        margin-top: 0.5rem;
-      }
-      
-      .table-responsive { 
-        border-radius: 8px; 
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        background: white;
-      }
-      
-      .text-end { text-align: right; }
-      
-      .total-row { 
-        background-color: #e3f2fd !important; 
-        font-weight: 700; 
-      }
-      
-      th { 
-        background-color: #f8f9fa !important; 
-        font-weight: 600; 
-        color: #495057;
-        border-bottom: 2px solid #dee2e6 !important;
-      }
-    `;
+  // =============== TABLA DE FACTURAS ===============
+  private agregarTablaFacturas(doc: jsPDF): void {
+    const startY = this.cliente ? 68 : 40;
+    
+    const tableData = this.facturas.map((factura, index) => [
+      (index + 1).toString(),
+      `${factura.numero || 'N/A'}${factura.letra || ''}`,
+      this.formatearFecha(factura.fecha),
+      this.formatearMonto(factura.monto_total),
+      factura.detalle || '—'
+    ]);
+
+    autoTable(doc, {
+      head: [['#', 'Número Factura', 'Fecha', 'Monto', 'Detalle']],
+      body: tableData,
+      startY: startY,
+      theme: 'grid',
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: [66, 139, 202],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 9,
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 35, halign: 'right' },
+        4: { cellWidth: 'auto' }
+      },
+      margin: { top: startY }
+    });
+  }
+
+  private agregarTotal(doc: jsPDF): void {
+    const total = this.facturas.reduce((sum, factura) => 
+      sum + (Number(factura.monto_total) || 0), 0
+    );
+
+    const finalY = (doc as any).lastAutoTable?.finalY || 100;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    
+    doc.setFillColor(240, 240, 240);
+    doc.rect(14, finalY + 5, 182, 8, 'F');
+    
+    doc.text('TOTAL GENERAL:', 120, finalY + 10);
+    doc.text(this.formatearMonto(total), 182, finalY + 10, { align: 'right' });
+  }
+
+  // =============== UTILIDADES ===============
+  private generarNombreArchivo(): string {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    let baseName = 'facturas';
+    
+    if (this.cliente) {
+      const clienteName = this.cliente.nombre.toLowerCase().replace(/\s+/g, '_');
+      baseName = `facturas_${clienteName}`;
+    } else if (this.titulo.includes('Factura')) {
+      const numeroFactura = this.titulo.replace('Factura ', '').replace(/\s+/g, '_');
+      baseName = `factura_${numeroFactura}`;
+    } else if (this.titulo.includes('Todas')) {
+      baseName = 'todas_las_facturas';
+    }
+    
+    return `${baseName}_${timestamp}.pdf`;
   }
 
   private formatearMonto(monto: number | null | undefined): string {
     const montoNumero = Number(monto) || 0;
     return montoNumero.toLocaleString('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
@@ -239,12 +196,5 @@ export class FacturaReportComponent {
     } catch {
       return fecha.toString().slice(0, 10);
     }
-  }
-
-  private calcularTotal(): string {
-    const total = this.facturas.reduce((sum, factura) => 
-      sum + (Number(factura.monto_total) || 0), 0
-    );
-    return this.formatearMonto(total);
   }
 }

@@ -8,6 +8,7 @@ import { EquipoService, Equipo, PaginatedResponse } from '../../services/equipos
 import { ClienteService } from '../../services/cliente.service';
 import { SearchSelectorComponent, SearchResult } from '../search-selector/search-selector.component';
 import { SearchService } from '../../services/busquedaglobal';
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'crear';
 type EquipoUI = Equipo;
@@ -31,21 +32,17 @@ export class EquiposComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
-  // Búsqueda global
   private searchSub?: Subscription;
   searchTerm = '';
   
-  // Búsqueda en servidor
   private isServerSearch = false;
   private serverSearchPage = 1;
   private serverSearchLastPage = false;
   private busquedaEquipo = new Subject<string>();
 
-  // Sugerencias y búsqueda en tiempo real
   mostrandoSugerencias = false;
   buscandoEquipos = false;
 
-  // Edición inline
   editingId: number | null = null;
   editBuffer: Partial<EquipoUI> = {
     descripcion: '',
@@ -56,7 +53,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
   };
   clienteEditSeleccionado: SearchResult | null = null;
 
-  // Creación
   nuevo: Partial<EquipoUI> = {
     descripcion: '',
     cliente_id: undefined,
@@ -65,17 +61,16 @@ export class EquiposComponent implements OnInit, OnDestroy {
     nro_serie: ''
   };
 
-  // Selección de cliente
   clienteSeleccionado: SearchResult | null = null;
 
-  // Referencias a componentes de búsqueda
   @ViewChild('clienteSelector') clienteSelector!: SearchSelectorComponent;
   @ViewChild('clienteEditSelector') clienteEditSelector!: SearchSelectorComponent;
 
   constructor(
     private equipoService: EquipoService,
     private clienteService: ClienteService,
-    public searchService: SearchService
+    public searchService: SearchService,
+    private alertService: AlertService
   ) {}
 
   // ====== LIFECYCLE ======
@@ -129,7 +124,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.clienteSelector.updateSuggestions(clientes);
       },
       error: (e) => {
-        console.error('Error al buscar clientes', e);
         this.clienteSelector.updateSuggestions([]);
       }
     });
@@ -146,7 +140,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.clienteEditSelector.updateSuggestions(clientes);
       },
       error: (e) => {
-        console.error('Error al buscar clientes para edición', e);
         this.clienteEditSelector.updateSuggestions([]);
       }
     });
@@ -159,7 +152,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.clienteSelector.updateSuggestions(clientes.slice(0, 5));
       },
       error: (e) => {
-        console.error('Error al cargar clientes iniciales', e);
         this.clienteSelector.updateSuggestions([]);
       }
     });
@@ -172,7 +164,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.clienteEditSelector.updateSuggestions(clientes.slice(0, 5));
       },
       error: (e) => {
-        console.error('Error al cargar clientes iniciales para edición', e);
         this.clienteEditSelector.updateSuggestions([]);
       }
     });
@@ -241,7 +232,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.searchService.setSearchData(itemsForSearch);
       },
       error: (error) => {
-        console.error('Error en búsqueda servidor:', error);
         this.applyFilterLocal();
         this.buscandoEquipos = false;
       }
@@ -316,7 +306,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: (e) => {
-        console.error('Error al obtener equipos', e);
         this.loading = false;
       }
     });
@@ -366,7 +355,6 @@ export class EquiposComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error cargando más resultados:', error);
         this.loading = false;
         this.serverSearchLastPage = true;
       }
@@ -390,12 +378,15 @@ export class EquiposComponent implements OnInit, OnDestroy {
   }
 
   // ====== CRUD OPERATIONS ======
-  crear(): void {
+  async crear(): Promise<void> {
     const payload = this.limpiarPayload(this.nuevo);
     if (!this.validarPayload(payload)) return;
 
+    this.alertService.showLoading('Creando equipo...');
+
     this.equipoService.createEquipo(payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.selectedAction = 'listar';
         this.nuevo = { 
           descripcion: '', 
@@ -406,73 +397,76 @@ export class EquiposComponent implements OnInit, OnDestroy {
         };
         this.limpiarCliente();
         this.resetLista();
-        alert('Equipo creado exitosamente!');
+        this.alertService.showEquipoCreado();
       },
       error: (e) => {
-        console.error('Error al crear equipo', e);
-        alert(e?.error?.error ?? 'Error al crear equipo');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError(e?.error?.error ?? 'Error al crear equipo');
       }
     });
   }
 
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar este equipo?')) return;
+  async eliminar(id: number): Promise<void> {
+    const equipo = this.equiposAll.find(e => e.id === id);
+    const confirmed = await this.alertService.confirmDeleteEquipo(equipo?.descripcion || 'este equipo');
+    if (!confirmed) return;
+
+    this.alertService.showLoading('Eliminando equipo...');
 
     this.equipoService.deleteEquipo(id).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.equiposAll = this.equiposAll.filter(x => x.id !== id);
         this.applyFilter();
         this.searchService.setSearchData(this.equiposAll);
-        alert('Equipo eliminado exitosamente!');
+        this.alertService.showEquipoEliminado();
       },
-      error: (e) => { 
-        console.error('Error al eliminar equipo', e);
-        alert('Error al eliminar el equipo');
+      error: (e) => {
+        this.alertService.closeLoading();
+        this.alertService.showGenericError('Error al eliminar el equipo');
       }
     });
   }
 
   // ====== EDICIÓN INLINE ======
-startEdit(item: EquipoUI): void {
-  this.editingId = item.id;
-  this.editBuffer = {
-    descripcion: item.descripcion ?? '',
-    cliente_id: item.cliente_id ?? undefined,
-    marca: item.marca ?? '',
-    modelo: item.modelo ?? '',
-    nro_serie: item.nro_serie ?? ''
-  };
-  
-  // PRECARGAR EL CLIENTE ACTUAL - BUSCAR EN LA LISTA DE CLIENTES
-  if (item.cliente_id) {
-    const clienteActual = this.clientes.find(c => c.id === item.cliente_id);
-    if (clienteActual) {
-      this.clienteEditSeleccionado = {
-        id: clienteActual.id,
-        nombre: clienteActual.nombre,
-        email: clienteActual.email,
-        telefono: clienteActual.telefono
-      };
+  startEdit(item: EquipoUI): void {
+    this.editingId = item.id;
+    this.editBuffer = {
+      descripcion: item.descripcion ?? '',
+      cliente_id: item.cliente_id ?? undefined,
+      marca: item.marca ?? '',
+      modelo: item.modelo ?? '',
+      nro_serie: item.nro_serie ?? ''
+    };
+    
+    if (item.cliente_id) {
+      const clienteActual = this.clientes.find(c => c.id === item.cliente_id);
+      if (clienteActual) {
+        this.clienteEditSeleccionado = {
+          id: clienteActual.id,
+          nombre: clienteActual.nombre,
+          email: clienteActual.email,
+          telefono: clienteActual.telefono
+        };
+      } else {
+        this.clienteService.getCliente(item.cliente_id).subscribe({
+          next: (cliente) => {
+            this.clienteEditSeleccionado = {
+              id: cliente.id,
+              nombre: cliente.nombre,
+              email: cliente.email,
+              telefono: cliente.telefono
+            };
+          },
+          error: (err) => {
+            // Silently handle error
+          }
+        });
+      }
     } else {
-      // Si no está en la lista cargada, buscar específicamente
-      this.clienteService.getCliente(item.cliente_id).subscribe({
-        next: (cliente) => {
-          this.clienteEditSeleccionado = {
-            id: cliente.id,
-            nombre: cliente.nombre,
-            email: cliente.email,
-            telefono: cliente.telefono
-          };
-        },
-        error: (err) => {
-          console.error('Error al cargar cliente para edición:', err);
-        }
-      });
+      this.clienteEditSeleccionado = null;
     }
-  } else {
-    this.clienteEditSeleccionado = null;
   }
-}
 
   cancelEdit(): void {
     this.editingId = null;
@@ -486,24 +480,27 @@ startEdit(item: EquipoUI): void {
     this.clienteEditSeleccionado = null;
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiarPayload(this.editBuffer);
     if (!this.validarPayload(payload)) return;
 
+    this.alertService.showLoading('Actualizando equipo...');
+
     this.equipoService.updateEquipo(id, payload).subscribe({
       next: () => {
+        this.alertService.closeLoading();
         this.actualizarEquipoLocal(id, payload);
         this.cancelEdit();
-        alert('Equipo actualizado exitosamente!');
+        this.alertService.showEquipoActualizado();
       },
       error: (e) => {
-        console.error('Error al actualizar equipo', e);
-        alert(e?.error?.error ?? 'No se pudo actualizar el equipo');
+        this.alertService.closeLoading();
+        this.alertService.showGenericError(e?.error?.error ?? 'No se pudo actualizar el equipo');
       }
     });
   }
 
-   // ====== HELPERS ======
+  // ====== HELPERS ======
   private limpiarPayload(obj: Partial<EquipoUI>): Partial<EquipoUI> {
     return {
       descripcion: obj.descripcion?.toString().trim(),
@@ -516,11 +513,11 @@ startEdit(item: EquipoUI): void {
 
   private validarPayload(p: any): boolean {
     if (!p.descripcion || p.descripcion.trim() === '') {
-      alert('Completá la descripción del equipo.');
+      this.alertService.showRequiredFieldError('descripción');
       return false;
     }
     if (!p.cliente_id) {
-      alert('Debes seleccionar un cliente.');
+      this.alertService.showRequiredFieldError('cliente');
       return false;
     }
     return true;
@@ -548,7 +545,7 @@ startEdit(item: EquipoUI): void {
         this.clientes = res.data ?? res;
       },
       error: (err) => {
-        console.error("Error al cargar clientes", err);
+        // Silently handle error
       }
     });
   }
@@ -567,7 +564,6 @@ startEdit(item: EquipoUI): void {
     this.searchService.clearSearch();
   }
 
-  // Agregar estos métodos auxiliares para el template
   isListar(): boolean {
     return this.selectedAction === 'listar';
   }

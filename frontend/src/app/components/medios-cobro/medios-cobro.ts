@@ -13,22 +13,24 @@ import { MedioCobroService, MedioCobro, PaginatedResponse } from '../../services
   styleUrls: ['./medios-cobro.css'],
 })
 export class MediosCobroComponent implements OnInit, OnDestroy {
+
+  // =============== ESTADOS DEL COMPONENTE ===============
   medios: MedioCobro[] = [];
   filteredMedios: MedioCobro[] = [];
   selectedAction: 'listar' | 'crear' = 'listar';
   loading = false;
 
-  // Paginación
+  // =============== PAGINACIÓN ===============
   currentPage = 1;
   lastPage = 1;
   perPage = 10;
   total = 0;
   hasMorePages = true;
 
-  // Crear
+  // =============== CREACIÓN ===============
   nuevo: Partial<MedioCobro> = { nombre: '' };
 
-  // Editar inline
+  // =============== EDICIÓN ===============
   editingId: number | null = null;
   editBuffer: Partial<MedioCobro> = {};
 
@@ -39,6 +41,7 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
     private searchService: SearchService
   ) {}
 
+  // =============== LIFECYCLE ===============
   ngOnInit(): void {
     this.obtenerMedios();
     this.searchService.setCurrentComponent('medios-cobro');
@@ -55,6 +58,7 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
+  // =============== CARGA DE DATOS ===============
   obtenerMedios(page: number = 1): void {
     if (this.loading || !this.hasMorePages) return;
     this.loading = true;
@@ -74,12 +78,12 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
         this.searchService.setSearchData(this.medios);
       },
       error: (err) => {
-        console.error('Error al obtener medios de cobro', err);
         this.loading = false;
       },
     });
   }
 
+  // =============== PAGINACIÓN Y SCROLL ===============
   onScroll = () => {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
     if (nearBottom && this.hasMorePages && !this.loading) {
@@ -87,6 +91,13 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
     }
   };
 
+  resetLista() {
+    this.currentPage = 1;
+    this.hasMorePages = true;
+    this.obtenerMedios(1);
+  }
+
+  // =============== BÚSQUEDA Y FILTRADO ===============
   filterMedios(term: string) {
     if (!term) {
       this.filteredMedios = [...this.medios];
@@ -95,10 +106,12 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
     this.filteredMedios = this.searchService.search(this.medios, term, 'medios-cobro');
   }
 
+  // =============== NAVEGACIÓN ===============
   seleccionarAccion(a: 'listar' | 'crear') {
     this.selectedAction = a;
   }
 
+  // =============== CREACIÓN ===============
   crear() {
     if (!this.nuevo.nombre?.trim()) {
       alert('Debe ingresar un nombre');
@@ -113,12 +126,12 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
         this.selectedAction = 'listar';
       },
       error: (err) => {
-        console.error('Error al crear medio de cobro', err);
-        alert(err.error?.error || 'Error al crear medio de cobro');
+        alert('Error al crear medio de cobro');
       },
     });
   }
 
+  // =============== ELIMINACIÓN ===============
   eliminar(id: number) {
     if (!confirm('¿Eliminar este medio de cobro?')) return;
 
@@ -128,13 +141,12 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
         this.filteredMedios = [...this.medios];
       },
       error: (err) => {
-        console.error('Error al eliminar medio de cobro', err);
-        alert(err.error?.error || 'No se pudo eliminar');
+        alert('No se pudo eliminar');
       },
     });
   }
 
-  // ======== EDICIÓN INLINE ========
+  // =============== EDICIÓN INLINE ===============
   startEdit(medio: MedioCobro) {
     this.editingId = medio.id;
     this.editBuffer = { nombre: medio.nombre };
@@ -158,15 +170,8 @@ export class MediosCobroComponent implements OnInit, OnDestroy {
         this.cancelEdit();
       },
       error: (err) => {
-        console.error('Error al actualizar medio', err);
-        alert(err.error?.error || 'Error al actualizar');
+        alert('Error al actualizar');
       },
     });
-  }
-
-  resetLista() {
-    this.currentPage = 1;
-    this.hasMorePages = true;
-    this.obtenerMedios(1);
   }
 }

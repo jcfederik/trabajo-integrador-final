@@ -23,8 +23,19 @@
   <div *ngIf="selectedAction==='listar'">
     <h4 class="text-center mb-3">Presupuestos</h4>
 
+    <!-- Pantalla de carga durante búsqueda -->
+    <div *ngIf="buscandoPresupuestos && items.length === 0" class="search-loading">
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Buscando...</span>
+        </div>
+        <h5 class="text-muted">Buscando presupuestos...</h5>
+        <p class="text-muted small">Buscando "{{ searchTerm }}"</p>
+      </div>
+    </div>
+
     <!-- Skeleton primera carga -->
-    <div *ngIf="loading && items.length === 0" class="list-group">
+    <div *ngIf="loading && items.length === 0 && !buscandoPresupuestos" class="list-group">
       <div class="list-group-item" *ngFor="let s of [1,2,3,4,5]">
         <div class="placeholder-glow">
           <span class="placeholder col-4 me-2"></span>
@@ -38,7 +49,7 @@
     </div>
 
     <!-- Estado vacío -->
-    <ng-container *ngIf="!loading && items.length === 0; else listContent">
+    <ng-container *ngIf="!loading && items.length === 0 && !buscandoPresupuestos; else listContent">
       <div class="empty-state">
         <div class="icon-wrap">
           <i class="bi bi-clipboard-check"></i>
@@ -60,7 +71,7 @@
 
     <!-- Contenido listado -->
     <ng-template #listContent>
-      <div *ngIf="searchTerm && items.length === 0 && !loading" class="empty-state">
+      <div *ngIf="searchTerm && items.length === 0 && !loading && !buscandoPresupuestos" class="empty-state">
         <div class="icon-wrap">
           <i class="bi bi-search"></i>
         </div>
@@ -85,24 +96,65 @@
             <!-- Izquierda: datos -->
             <div class="flex-grow-1">
               <ng-container *ngIf="editingId !== p.id; else editRow">
-                <div class="fw-semibold mb-1">
-                  Presupuesto #{{ p.id }}
-                  <span class="badge ms-2" [class.bg-success]="p.aceptado" [class.bg-secondary]="!p.aceptado">
-                    {{ p.aceptado ? 'Aceptado' : 'Pendiente' }}
-                  </span>
-                </div>
-                <div class="text-muted small">
-                  <div class="mb-1">
-                    <strong>Reparación:</strong> {{ getDescripcionReparacion(p.reparacion_id) }}
-                  </div>
-                  <div>
-                    <i class="bi bi-calendar me-1"></i>Fecha: {{ p.fecha | date:'dd/MM/yyyy' }} · 
-                    <i class="bi bi-currency-dollar me-1"></i>Monto: {{ (p.monto_total ?? 0) | number:'1.2-2' }}
-                  </div>
-                </div>
+                <!-- REEMPLAZA la sección de datos del presupuesto con esto -->
+<div class="fw-semibold mb-2 presupuesto-titulo">
+  <span *ngIf="cargandoDescripciones.has(p.reparacion_id)" class="loading-dots">
+    <span class="loading-dots-text">Cargando información</span>
+    <span class="loading-dots-container">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </span>
+  </span>
+  
+  <span *ngIf="!cargandoDescripciones.has(p.reparacion_id)">
+    {{ getTituloPresupuesto(p) }}
+    <span class="badge ms-2 estado-badge" [class.bg-success]="p.aceptado" [class.bg-secondary]="!p.aceptado">
+      {{ p.aceptado ? 'Aceptado' : 'Pendiente' }}
+    </span>
+  </span>
+</div>
+
+<div class="presupuesto-info">
+  <!-- Línea principal de la reparación -->
+  <div class="info-line principal">
+    <i class="bi bi-tools icono-destacado"></i>
+    <span class="info-label">Reparación:</span>
+    <span class="info-value destacado">{{ getDescripcionReparacion(p.reparacion_id) }}</span>
+  </div>
+
+  <!-- Información del equipo y cliente -->
+  <div class="info-line" *ngIf="getInfoEquipo(p.reparacion_id) || getInfoCliente(p.reparacion_id)">
+    <i class="bi bi-pc-display"></i>
+    <span class="info-label">Equipo:</span>
+    <span class="info-value">{{ getInfoEquipo(p.reparacion_id) }}</span>
+    <span class="info-separator">|</span>
+    <i class="bi bi-person"></i>
+    <span class="info-label">Cliente:</span>
+    <span class="info-value">{{ getInfoCliente(p.reparacion_id) }}</span>
+  </div>
+
+  <!-- Información del técnico -->
+  <div class="info-line" *ngIf="getInfoTecnico(p.reparacion_id)">
+    <i class="bi bi-person-gear"></i>
+    <span class="info-label">Técnico:</span>
+    <span class="info-value">{{ getInfoTecnico(p.reparacion_id) }}</span>
+  </div>
+
+  <!-- Fecha y monto -->
+  <div class="info-line datos-financieros">
+    <i class="bi bi-calendar"></i>
+    <span class="info-label">Fecha:</span>
+    <span class="info-value">{{ p.fecha | date:'dd/MM/yyyy' }}</span>
+    <span class="info-separator">|</span>
+    <i class="bi bi-currency-dollar"></i>
+    <span class="info-label">Monto:</span>
+    <span class="info-value monto-destacado">{{ (p.monto_total ?? 0) | number:'1.2-2' }}</span>
+  </div>
+</div>
               </ng-container>
 
-              <!-- BÚSQUEDA INTELIGENTE EN EDICIÓN -->
+              <!-- EDICIÓN -->
               <ng-template #editRow>
                 <div class="row g-2">
                   <div class="col-12">
@@ -228,7 +280,7 @@
       </div>
 
       <!-- CTA si hay pocos ítems -->
-      <div *ngIf="!loading && items.length && items.length < 3 && !searchTerm" class="text-center mt-3">
+      <div *ngIf="!loading && items.length && items.length < 3 && !searchTerm && !buscandoPresupuestos" class="text-center mt-3">
         <button class="action-pill success" (click)="seleccionarAccion('crear')">
           <i class="bi bi-clipboard-plus me-1"></i> Registrar nuevo presupuesto
         </button>
@@ -269,24 +321,50 @@
 
             <!-- Dropdown de sugerencias -->
             <div *ngIf="mostrandoReparaciones && reparacionesSugeridas.length > 0" 
-                 class="sugerencias-menu">
+                class="sugerencias-menu">
               <div class="sugerencias-header">
                 <i class="bi bi-search"></i>
                 Reparaciones encontradas
                 <span class="sugerencias-count">{{ reparacionesSugeridas.length }}</span>
               </div>
               <div *ngFor="let reparacion of reparacionesSugeridas" 
-                   class="sugerencia-item"
-                   (mousedown)="seleccionarReparacion(reparacion)">
+                  class="sugerencia-item"
+                  (mousedown)="seleccionarReparacion(reparacion)">
                 <div class="sugerencia-content">
-                  <strong>{{ reparacion.descripcion }}</strong>
-                  <div class="sugerencia-details">
-                    Equipo: {{ reparacion.equipo?.descripcion }} | 
-                    Técnico: {{ reparacion.tecnico?.nombre }} | 
-                    Estado: {{ reparacion.estado }}
+                  <!-- Línea principal en negrita -->
+                  <div class="sugerencia-titulo">
+                    <strong>{{ reparacion.descripcion }}</strong>
+                    <span class="sugerencia-id">#{{ reparacion.id }}</span>
                   </div>
+                  
+                  <!-- Información secundaria -->
                   <div class="sugerencia-details">
-                    Fecha: {{ reparacion.fecha | date:'dd/MM/yyyy' }} | ID: {{ reparacion.id }}
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-pc-display"></i>
+                      {{ reparacion.equipo?.descripcion || reparacion.equipo_nombre || 'Equipo no especificado' }}
+                    </span>
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-person"></i>
+                      {{ reparacion.equipo?.cliente?.nombre || reparacion.cliente_nombre || 'Cliente no especificado' }}
+                    </span>
+                  </div>
+                  
+                  <!-- Información adicional -->
+                  <div class="sugerencia-details">
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-person-gear"></i>
+                      {{ reparacion.tecnico?.nombre || reparacion.tecnico_nombre || 'Técnico no asignado' }}
+                    </span>
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-calendar"></i>
+                      {{ reparacion.fecha | date:'dd/MM/yyyy' }}
+                    </span>
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-tag"></i>
+                      <span [class]="'badge ' + getEstadoBadgeClass(reparacion.estado)">
+                        {{ reparacion.estado }}
+                      </span>
+                    </span>
                   </div>
                 </div>
                 <i class="bi bi-chevron-right"></i>

@@ -49,3 +49,99 @@
 .navbar-brand:hover, .user-info:hover {
   filter: brightness(1.1);
 }
+
+/* Dropdown de usuario */
+.user-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.user-dropdown .dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  min-width: 200px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.user-dropdown .dropdown-item {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.user-dropdown .dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.user-dropdown .dropdown-item.text-danger:hover {
+  background-color: #fff5f5;
+  color: #dc3545 !important;
+}
+
+.user-link.dropdown-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-link.dropdown-toggle::after {
+  margin-left: 0.5rem;
+}
+
+/* 🔥 NUEVO: Estilos para el badge de especializaciones */
+.especializaciones-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--success);
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border: 2px solid white;
+  line-height: 1;
+}
+
+.user-avatar {
+  position: relative;
+}
+
+/* 🔥 NUEVO: Estilos mejorados para el dropdown */
+.dropdown-menu {
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  border: none;
+  padding: 0.5rem;
+}
+
+.dropdown-item {
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1rem;
+  margin: 0.1rem 0;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: var(--gray-light);
+  transform: translateX(2px);
+}
+
+.dropdown-divider {
+  margin: 0.3rem 0;
+}

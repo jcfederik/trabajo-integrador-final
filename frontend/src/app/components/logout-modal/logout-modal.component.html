@@ -1,0 +1,109 @@
+<div class="modal-backdrop fade show" style="z-index: 1055;"></div>
+<div class="modal fade show d-block" style="z-index: 1060;" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    
+    <!-- VISTA DE PERFIL -->
+    <div *ngIf="!mostrarConfirmacion" class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-person-circle me-2"></i>
+          Mi Perfil
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="cancelar()"></button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Información del usuario -->
+        <div class="user-info mb-4">
+          <div class="d-flex align-items-center mb-3">
+            <div class="avatar bg-light text-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
+                 style="width: 50px; height: 50px;">
+              <i class="bi bi-person-fill"></i>
+            </div>
+            <div>
+              <h6 class="mb-0 fw-bold">{{ currentUser()?.nombre }}</h6>
+              <span class="badge bg-secondary">{{ currentUser()?.tipo | titlecase }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Especializaciones -->
+        <div class="especializaciones-section">
+          <h6 class="fw-bold mb-3 text-primary">
+            <i class="bi bi-mortarboard me-2"></i>
+            Mis Especializaciones
+          </h6>
+          
+          <div *ngIf="currentUser()?.especializaciones && currentUser()!.especializaciones.length > 0; else sinEspecializaciones">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <span *ngFor="let esp of currentUser()!.especializaciones" 
+                    class="badge bg-success">
+                {{ esp.nombre }}
+              </span>
+            </div>
+            <small class="text-muted">
+              Total: {{ currentUser()!.especializaciones.length }} especialización(es)
+            </small>
+          </div>
+
+          <ng-template #sinEspecializaciones>
+            <div class="alert alert-warning py-2 mb-3">
+              <small>
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                No tenés especializaciones asignadas
+              </small>
+            </div>
+          </ng-template>
+
+          <button class="btn btn-outline-primary btn-sm w-100" 
+                  (click)="irAEspecializaciones()">
+            <i class="bi bi-mortarboard me-1"></i>
+            Gestionar especializaciones
+          </button>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelar()">
+          <i class="bi bi-x-circle me-1"></i>
+          Cerrar
+        </button>
+        <button type="button" class="btn btn-warning" (click)="mostrarLogout()">
+          <i class="bi bi-box-arrow-right me-1"></i>
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+
+    <!-- VISTA DE CONFIRMACIÓN DE LOGOUT -->
+    <div *ngIf="mostrarConfirmacion" class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title">
+          <i class="bi bi-box-arrow-right me-2"></i>
+          Cerrar Sesión
+        </h5>
+        <button type="button" class="btn-close" (click)="volverAlPerfil()"></button>
+      </div>
+      
+      <div class="modal-body text-center py-4">
+        <div class="logout-icon mb-3">
+          <i class="bi bi-question-circle text-warning" style="font-size: 3rem;"></i>
+        </div>
+        <h5 class="mb-3">¿Estás seguro de que querés cerrar sesión?</h5>
+        <p class="text-muted">Serás redirigido al login y deberás ingresar nuevamente.</p>
+      </div>
+      
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-outline-secondary me-3" (click)="volverAlPerfil()">
+          <i class="bi bi-arrow-left me-1"></i>
+          Volver al Perfil
+        </button>
+        <button type="button" class="btn btn-warning" (click)="confirmarLogout()">
+          <i class="bi bi-box-arrow-right me-1"></i>
+          Sí, Cerrar Sesión
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
