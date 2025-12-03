@@ -50,7 +50,11 @@ export class AuthService {
 
   hasPermission(permission: string): boolean {
     const user = this.currentUser();
-    // ✅ Usar el método del backend si está disponible, sino verificar en array
+
+    if(this.isAdmin()){
+      return true;
+    }
+
     if (user && typeof user.hasPermission === 'function') {
       return user.hasPermission(permission);
     }
@@ -58,6 +62,9 @@ export class AuthService {
   }
 
   hasAnyPermission(permissions: string[]): boolean {
+    if(this.isAdmin()){
+      return true;
+    }
     return permissions.some(permission => this.hasPermission(permission));
   }
 

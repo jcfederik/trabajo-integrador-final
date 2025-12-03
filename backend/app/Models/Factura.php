@@ -36,10 +36,23 @@ class Factura extends Model
         return $this->hasOneThrough(
             Cliente::class,
             Presupuesto::class,
-            'id', 
-            'id', 
-            'presupuesto_id', 
-            'reparacion_id' 
+            'id',
+            'id',
+            'presupuesto_id',
+            'reparacion_id'
         )->via('presupuesto');
+    }
+
+    public function cobros()
+    {
+        // Una factura puede tener muchos cobros (para el caso de pagos en cuotas)
+        return $this->hasMany(Cobro::class, 'factura_id');
+    }
+
+    // ✅ IMPORTANTE: Método para calcular el saldo
+    public function getSaldoPendienteAttribute(): float
+    {
+        $montoCobrado = $this->cobros()->sum('monto');
+        return $this->monto_total - $montoCobrado;
     }
 }

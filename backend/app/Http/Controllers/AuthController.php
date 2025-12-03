@@ -78,12 +78,15 @@ class AuthController extends Controller
 
             $user = JWTAuth::user();
 
+            // ✅ SOLUCIÓN DEFINITIVA: Mapear permisos manualmente
+            $permissions = $this->getPermissionsByTipo($user->tipo);
+
             // ✅ PREPARAR USUARIO CON PERMISOS
             $userData = [
                 'id' => $user->id,
                 'nombre' => $user->nombre,
                 'tipo' => $user->tipo,
-                'permissions' => $user->permissions, // ← ESTO ES CLAVE
+                'permissions' => $permissions,
             ];
 
             // ✅ OPCIONAL: Incluir especializaciones si el usuario es técnico o admin
@@ -93,7 +96,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'message' => 'Inicio de sesión exitoso',
-                'user' => $userData, // ← ENVIAR USUARIO CON PERMISOS
+                'user' => $userData,
                 'token' => $token,
                 'token_type' => 'bearer',
                 'expires_in' => JWTAuth::factory()->getTTL() * 60
@@ -200,12 +203,18 @@ class AuthController extends Controller
         try {
             $user = JWTAuth::user();
             
+            if (!$user) {
+                return response()->json(['error' => 'Usuario no autenticado.'], 401);
+            }
+
             // ✅ Misma estructura que en login
+            $permissions = $this->getPermissionsByTipo($user->tipo);
+            
             $userData = [
                 'id' => $user->id,
                 'nombre' => $user->nombre,
                 'tipo' => $user->tipo,
-                'permissions' => $user->permissions,
+                'permissions' => $permissions,
             ];
 
             if (in_array($user->tipo, ['tecnico', 'administrador'])) {
@@ -221,5 +230,65 @@ class AuthController extends Controller
         } catch (JWTException $e) {
             return response()->json(['error' => 'No se encontró un token válido.'], 401);
         }
+    }
+
+    /**
+     * Método privado para obtener permisos por tipo de usuario
+     */
+    private function getPermissionsByTipo($tipo)
+    {
+        $permissionsMap = [
+            'administrador' => [
+                'users.manage',
+                'clients.manage',
+                'equipos.manage',
+                'reparaciones.manage',
+                'facturas.manage',
+                'cobros.manage',
+                'proveedores.manage',
+                'repuestos.manage',
+                'presupuestos.manage',
+                'especializaciones.manage',
+                'reports.view',
+                'dashboard.view',
+                'admin.full'
+            ],
+            'usuario' => [
+                'clients.view',
+                'clients.create',
+                'clients.edit',
+                'equipos.view', 
+                'equipos.create',
+                'reparaciones.view',
+                'reparaciones.create',
+                'facturas.view',
+                'facturas.create',
+                'facturas.edit',
+                'cobros.view',
+                'cobros.create',
+                'presupuestos.view',
+                'presupuestos.create',
+                'dashboard.view',
+                'user.basic'
+            ],
+            'tecnico' => [
+                'reparaciones.view',
+                'reparaciones.update',
+                'reparaciones.create',
+                'presupuestos.create',
+                'presupuestos.view',
+                'equipos.view',
+                'equipos.create', 
+                'repuestos.view',
+                'especializaciones.view',
+                'especializaciones.manage',
+                'especializaciones.create',
+                'especializaciones.self_assign',
+                'dashboard.view',
+                'tecnico.basic'
+            ]
+        ];
+
+        return $permissionsMap[$tipo] ?? [];
     }
 }

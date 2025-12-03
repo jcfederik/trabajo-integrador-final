@@ -18,7 +18,6 @@
       Crear
     </button>
 
-    <!-- 🔥 CAMBIADO: Ahora abre el modal de exportación -->
     <button class="action-pill"
             (click)="abrirModalExportacion()"
             [disabled]="!facturas.length"
@@ -80,7 +79,7 @@
                 </div>
                 <div class="factura-info">
                   Fecha: {{ f.fecha | date:'yyyy-MM-dd' }} ·
-                  Monto: {{ f.monto_total | number:'1.2-2' }} ·
+                  Monto: {{ (f.monto_total || 0) | number:'1.2-2' }} ·
                   Presupuesto: {{ f.presupuesto_id }}
                 </div>
                 <div class="factura-detalle">
@@ -88,7 +87,7 @@
                 </div>
               </ng-container>
 
-              <!-- Edición inline MEJORADA -->
+              <!-- Edición inline -->
               <ng-template #editRow>
                 <div class="formulario-edicion">
                   <div class="fila-campos">
@@ -117,7 +116,7 @@
                           <i class="bi bi-x"></i>
                         </button>
 
-                        <!-- Dropdown de sugerencias (compartido) -->
+                        <!-- Dropdown de sugerencias -->
                         <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
                             class="menu-sugerencias">
                           <div class="cabecera-sugerencias">
@@ -127,7 +126,7 @@
                           </div>
                           <div *ngFor="let presupuesto of presupuestosSugeridos" 
                               class="item-sugerencia"
-                              (mousedown)="seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()"> <!-- 🔥 AGREGADO cerrarMenuSugerencias() -->
+                              (mousedown)="seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()">
                             <div class="contenido-sugerencia">
                               <strong>{{ presupuesto.displayText }}</strong>
                               <div class="detalles-sugerencia">
@@ -208,6 +207,11 @@
                 </button>
               </ng-container>
 
+              <!-- Botón para modal de pagos -->
+              <button class="boton-accion boton-cobros" (click)="abrirModalCobros(f)" title="Gestionar pagos">
+                <i class="bi bi-wallet2"></i>
+              </button>
+
               <button class="boton-accion boton-eliminar" (click)="eliminar(f.id)" title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
@@ -216,18 +220,15 @@
         </div>
       </div>
 
-      <!-- Loader incremental -->
+      <!-- Elementos de paginación -->
       <div class="cargando-mas" *ngIf="loading && facturas.length > 0">
         <div class="spinner-carga" role="status"></div>
       </div>
 
-      <!-- Fin de listado -->
-      <div class="fin-lista"
-           *ngIf="!loading && lastPage && facturas.length">
+      <div class="fin-lista" *ngIf="!loading && lastPage && facturas.length">
         Llegaste al final.
       </div>
 
-      <!-- CTA cuando hay pocos ítems -->
       <div *ngIf="!loading && facturas.length && facturas.length < 3" class="cta-agregar">
         <button class="action-pill success" (click)="seleccionarAccion('crear')">
           <i class="bi bi-file-earmark-plus me-1"></i> Registrar nueva factura
@@ -243,7 +244,7 @@
     <form (ngSubmit)="crear()" class="formulario-crear">
       <div class="fila-campos">
         
-        <!-- BÚSQUEDA INTELIGENTE DE PRESUPUESTO -->
+        <!-- Búsqueda inteligente de presupuesto -->
         <div class="campo-grupo ancho-completo">
           <label class="etiqueta-campo">Presupuesto <span class="campo-obligatorio">*</span></label>
           <div class="contenedor-busqueda">
@@ -277,7 +278,7 @@
               </div>
                 <div *ngFor="let presupuesto of presupuestosSugeridos" 
                     class="item-sugerencia"
-                    (mousedown)="seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()"> <!-- 🔥 AGREGADO cerrarMenuSugerencias() -->
+                    (mousedown)="seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()">
                   <div class="contenido-sugerencia">
                     <strong>{{ presupuesto.displayText }}</strong>
                     <div class="detalles-sugerencia">
@@ -378,9 +379,18 @@
     </form>
   </div>
 
+  <!-- MODALES -->
+  
+  <!-- Modal de Exportación -->
   <app-export-modal 
       *ngIf="mostrarModalExportacion"
       (cerrar)="cerrarModalExportacion()"
       (exportarTodas)="exportarTodasFacturas()"> 
   </app-export-modal>
+
+  <!-- Modal de Cobros -->
+  <app-cobros-modal 
+      #cobrosModal
+      (cerrar)="cerrarModalCobros()">
+  </app-cobros-modal>
 </div>

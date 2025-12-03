@@ -68,28 +68,17 @@
         </div>
       }
 
-      <!-- 🔥 USUARIO DERECHA (siempre visible excepto en login) -->
+      <!-- 🔥 USUARIO DERECHA - BOTÓN DIRECTO AL MODAL -->
       <div class="navbar-right">
         <div class="user-info">
           <div class="user-avatar">
             <i class="bi bi-person-fill"></i>
-            <!-- ❌ ELIMINADO: Badge con número de especializaciones del avatar -->
           </div>
-          <div class="user-dropdown">
-            <button class="user-link dropdown-toggle" (click)="toggleDropdown()">
-              {{ usuarioActual }}
-              <span class="badge bg-primary ms-2">{{ getUserTipo() }}</span>
-            </button>
-            @if (showDropdown) {
-              <div class="dropdown-menu show">
-                <!-- 🔥 MODIFICADO: Sin badge en el dropdown -->
-                <button class="dropdown-item" (click)="abrirModalLogout()">
-                  <i class="bi bi-person-circle me-2"></i>Mi Perfil
-                  <!-- ❌ ELIMINADO: Badge de especializaciones -->
-                </button>
-              </div>
-            }
-          </div>
+          <!-- ✅ MODIFICADO: Botón directo al modal sin dropdown -->
+          <button class="user-link" (click)="abrirModalPerfil()">
+            {{ usuarioActual }}
+            <span class="badge bg-primary ms-2">{{ getUserTipo() }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -98,5 +87,5 @@
 
 <!-- Modal de Perfil -->
 @if (mostrarModalLogout) {
-  <app-logout-modal (closed)="cerrarModalLogout()"></app-logout-modal>
+  <app-logout-modal (closed)="cerrarModalPerfil()"></app-logout-modal>
 }

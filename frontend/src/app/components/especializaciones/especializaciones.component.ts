@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
+import { AlertService } from '../../services/alert.service';
 
 interface Especializacion {
   id: number;
@@ -46,7 +47,8 @@ export class EspecializacionesComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private router: Router,
-    public authService: AuthService
+    public authService: AuthService,
+    private alertService: AlertService
   ) { }
 
   ngOnInit() {
@@ -56,72 +58,47 @@ export class EspecializacionesComponent implements OnInit {
   }
 
   private verificarPermisos(): void {
-
     if (!this.authService.isAuthenticated()) {
-      alert('Debes iniciar sesión para acceder a esta página');
+      this.alertService.showError('Acceso denegado', 'Debes iniciar sesión para acceder a esta página');
       this.router.navigate(['/login']);
       return;
     }
 
     if (!this.authService.canViewEspecializaciones()) {
-      alert('No tienes permisos para acceder a la gestión de especializaciones');
+      this.alertService.showError('Permisos insuficientes', 'No tienes permisos para acceder a la gestión de especializaciones');
       this.router.navigate(['/dashboard']);
       return;
     }
-
-    console.log('✅ Usuario tiene permisos para ver especializaciones');
   }
 
-  // ✅ CORREGIDO: Técnicos pueden crear/editar pero no eliminar
   private puedeCrearOEditar(): boolean {
-    const puede = this.authService.canManageEspecializaciones() || 
-                  this.authService.hasPermission('especializaciones.create');
-    if (!puede) {
-      alert('No tienes permisos para realizar esta acción');
-    }
-    return puede;
+    return this.authService.canManageEspecializaciones() || 
+           this.authService.hasPermission('especializaciones.create');
   }
 
-  // ✅ CORREGIDO: Solo administradores pueden eliminar
   private puedeEliminar(): boolean {
-    const puede = this.authService.canManageEspecializaciones(); // Solo admin tiene 'especializaciones.manage'
-    if (!puede) {
-      // ❌ REMOVIDO: No mostrar alerta para eliminar si no tiene permisos
-      return false;
-    }
-    return puede;
+    return this.authService.canManageEspecializaciones();
   }
 
-  // ✅ CORREGIDO: Solo administradores pueden asignar a otros
   private puedeAsignarTecnicos(): boolean {
-    const puede = this.authService.canAssignEspecializaciones();
-    if (!puede) {
-      // ❌ REMOVIDO: No mostrar alerta para asignar si no tiene permisos
-      return false;
-    }
-    return puede;
+    return this.authService.canAssignEspecializaciones();
   }
 
   cargarEspecializaciones() {
-    console.log('🔍 Cargando especializaciones...');
-    
     this.http.get<any>('http://127.0.0.1:8000/api/especializaciones').subscribe({
       next: (response) => {
         this.especializaciones = response.data || [];
-        console.log(`✅ Especializaciones cargadas: ${this.especializaciones.length}`);
       },
       error: (error) => {
-        console.error('❌ Error cargando especializaciones:', error);
-        
         if (error.status === 403) {
-          alert('No tienes permisos para ver las especializaciones');
+          this.alertService.showError('Permisos insuficientes', 'No tienes permisos para ver las especializaciones');
           this.router.navigate(['/dashboard']);
         } else if (error.status === 401) {
-          alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+          this.alertService.showError('Sesión expirada', 'Por favor, inicia sesión nuevamente.');
           this.authService.logout();
           this.router.navigate(['/login']);
         } else {
-          alert('Error al cargar especializaciones: ' + (error.error?.message || error.message));
+          this.alertService.showGenericError('Error al cargar especializaciones');
         }
       }
     });
@@ -133,13 +110,8 @@ export class EspecializacionesComponent implements OnInit {
         this.tecnicos = (response.data || []).filter((user: Tecnico) =>
           user.tipo === 'tecnico' || user.tipo === 'administrador'
         );
-        console.log(`✅ Técnicos cargados: ${this.tecnicos.length}`);
       },
       error: (error) => {
-        console.error('❌ Error cargando técnicos:', error);
-        
-        // ❌ REMOVIDO: No mostrar alerta si no puede ver técnicos
-        // Solo log en consola
         if (error.status === 403) {
           console.warn('Usuario no tiene permisos para ver los técnicos');
         }
@@ -148,36 +120,38 @@ export class EspecializacionesComponent implements OnInit {
   }
 
   crearEspecializacion() {
-    if (!this.puedeCrearOEditar()) return;
-
-    if (!this.nuevaEspecializacion.nombre.trim()) {
-      alert('Por favor ingresa un nombre para la especialización');
+    if (!this.puedeCrearOEditar()) {
+      this.alertService.showError('Permisos insuficientes', 'No tienes permisos para crear especializaciones');
       return;
     }
 
-    console.log('📝 Creando especialización:', this.nuevaEspecializacion);
+    if (!this.nuevaEspecializacion.nombre.trim()) {
+      this.alertService.showValidationError('nombre');
+      return;
+    }
 
     this.http.post('http://127.0.0.1:8000/api/especializaciones', this.nuevaEspecializacion).subscribe({
-      next: (response: any) => {
+      next: () => {
         this.mostrarFormulario = false;
         this.nuevaEspecializacion = { nombre: '' };
         this.cargarEspecializaciones();
-        alert('✅ Especialización creada exitosamente');
+        this.alertService.showCreateSuccess('Especialización');
       },
       error: (error) => {
-        console.error('❌ Error creando especialización:', error);
-        
         if (error.status === 403) {
-          alert('No tienes permisos para crear especializaciones');
+          this.alertService.showError('Permisos insuficientes', 'No tienes permisos para crear especializaciones');
         } else {
-          alert(error.error?.message || 'Error al crear especialización');
+          this.alertService.showGenericError('Error al crear especialización');
         }
       }
     });
   }
 
   iniciarEdicion(especializacion: Especializacion) {
-    if (!this.puedeCrearOEditar()) return;
+    if (!this.puedeCrearOEditar()) {
+      this.alertService.showError('Permisos insuficientes', 'No tienes permisos para editar especializaciones');
+      return;
+    }
 
     this.editandoEspecializacion = especializacion;
     this.especializacionEditada = { nombre: especializacion.nombre };
@@ -187,7 +161,7 @@ export class EspecializacionesComponent implements OnInit {
     if (!this.editandoEspecializacion || !this.puedeCrearOEditar()) return;
 
     if (!this.especializacionEditada.nombre.trim()) {
-      alert('Por favor ingresa un nombre para la especialización');
+      this.alertService.showValidationError('nombre');
       return;
     }
 
@@ -198,15 +172,13 @@ export class EspecializacionesComponent implements OnInit {
           this.especializaciones[index] = { ...this.especializaciones[index], ...response.data };
         }
         this.cancelarEdicion();
-        alert('✅ Especialización actualizada exitosamente');
+        this.alertService.showUpdateSuccess('Especialización');
       },
       error: (error) => {
-        console.error('❌ Error actualizando especialización:', error);
-        
         if (error.status === 403) {
-          alert('No tienes permisos para editar especializaciones');
+          this.alertService.showError('Permisos insuficientes', 'No tienes permisos para editar especializaciones');
         } else {
-          alert(error.error?.message || 'Error al actualizar especialización');
+          this.alertService.showGenericError('Error al actualizar especialización');
         }
       }
     });
@@ -217,23 +189,22 @@ export class EspecializacionesComponent implements OnInit {
     this.especializacionEditada = { nombre: '' };
   }
 
-  eliminarEspecializacion(id: number) {
+  async eliminarEspecializacion(id: number) {
     if (!this.puedeEliminar()) return;
 
-    if (!confirm('¿Estás seguro de eliminar esta especialización?')) return;
+    const confirmado = await this.alertService.confirmDelete('especialización');
+    if (!confirmado) return;
 
     this.http.delete(`http://127.0.0.1:8000/api/especializaciones/${id}`).subscribe({
       next: () => {
         this.cargarEspecializaciones();
-        alert('✅ Especialización eliminada exitosamente');
+        this.alertService.showDeleteSuccess('Especialización');
       },
       error: (error) => {
-        console.error('❌ Error eliminando especialización:', error);
-        
         if (error.status === 403) {
-          alert('No tienes permisos para eliminar especializaciones');
+          this.alertService.showError('Permisos insuficientes', 'No tienes permisos para eliminar especializaciones');
         } else {
-          alert(error.error?.message || 'Error al eliminar especialización');
+          this.alertService.showGenericError('Error al eliminar especialización');
         }
       }
     });
@@ -259,11 +230,9 @@ export class EspecializacionesComponent implements OnInit {
             this.tecnicosSeleccionados.push(usuario.id);
           }
         });
-        
-        console.log(`👥 Técnicos asignados cargados: ${this.tecnicosSeleccionados.length}`);
       },
       error: (error) => {
-        console.error('❌ Error cargando técnicos asignados:', error);
+        console.error('Error cargando técnicos asignados:', error);
       }
     });
   }
@@ -272,8 +241,6 @@ export class EspecializacionesComponent implements OnInit {
     if (!this.asignandoTecnicos || !this.puedeAsignarTecnicos()) return;
 
     try {
-      console.log(`🔄 Asignando ${this.tecnicosSeleccionados.length} técnicos...`);
-
       const asignaciones = this.tecnicosSeleccionados.map(tecnicoId =>
         this.asignarEspecializacionAdmin(tecnicoId, this.asignandoTecnicos!.id)
       );
@@ -284,11 +251,10 @@ export class EspecializacionesComponent implements OnInit {
       this.tecnicosSeleccionados = [];
       this.cargarEspecializaciones();
       this.cargarTecnicos();
-      alert('✅ Técnicos asignados exitosamente');
+      this.alertService.showSuccess('Técnicos asignados exitosamente');
 
     } catch (error) {
-      console.error('❌ Error asignando técnicos:', error);
-      alert('Error al asignar técnicos');
+      this.alertService.showGenericError('Error al asignar técnicos');
     }
   }
 
@@ -297,15 +263,10 @@ export class EspecializacionesComponent implements OnInit {
       this.http.post(`http://127.0.0.1:8000/api/admin/users/${tecnicoId}/especializaciones`, {
         especializaciones: [especializacionId]
       }).subscribe({
-        next: () => {
-          console.log(`✅ Técnico ${tecnicoId} asignado a especialización ${especializacionId}`);
-          resolve();
-        },
+        next: () => resolve(),
         error: (error) => {
-          console.error(`❌ Error asignando especialización al técnico ${tecnicoId}:`, error);
-          
           if (error.status === 403) {
-            alert('No tienes permisos de administrador para asignar especializaciones');
+            this.alertService.showError('Permisos insuficientes', 'No tienes permisos de administrador para asignar especializaciones');
           }
           reject(error);
         }
@@ -345,16 +306,15 @@ export class EspecializacionesComponent implements OnInit {
     ).length;
   }
 
-  // ✅ MÉTODO PARA AUTO-ASIGNACIÓN (PARA TÉCNICOS)
   autoAsignarEspecializacion(especializacionId: number): void {
     if (!this.authService.canSelfAssignEspecializaciones()) {
-      alert('No tienes permisos para auto-asignarte especializaciones');
+      this.alertService.showError('Permisos insuficientes', 'No tienes permisos para auto-asignarte especializaciones');
       return;
     }
 
     const userId = this.authService.getCurrentUser()?.id;
     if (!userId) {
-      alert('No se pudo identificar tu usuario');
+      this.alertService.showGenericError('No se pudo identificar tu usuario');
       return;
     }
 
@@ -362,12 +322,11 @@ export class EspecializacionesComponent implements OnInit {
       especializaciones: [especializacionId]
     }).subscribe({
       next: () => {
-        alert('✅ Especialización auto-asignada correctamente');
-        this.cargarTecnicos(); // Recargar para ver cambios
+        this.alertService.showSuccess('Especialización auto-asignada correctamente');
+        this.cargarTecnicos();
       },
       error: (error) => {
-        console.error('❌ Error auto-asignando especialización:', error);
-        alert(error.error?.message || 'Error al auto-asignar especialización');
+        this.alertService.showGenericError('Error al auto-asignar especialización');
       }
     });
   }

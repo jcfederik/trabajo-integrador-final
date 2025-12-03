@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\Factura;
 
- /**
+/**
  * @OA\Tag(
  *     name="Facturas",
  *     description="Operaciones relacionadas con la gestión de facturas"
@@ -62,12 +63,12 @@ class FacturaController extends Controller
             $q = Factura::query()->orderByDesc('fecha');
 
             if (!empty($search)) {
-                $q->where(function($query) use ($search) {
+                $q->where(function ($query) use ($search) {
                     $query->where('numero', 'LIKE', "%{$search}%")
-                          ->orWhere('letra', 'LIKE', "%{$search}%")
-                          ->orWhere('detalle', 'LIKE', "%{$search}%")
-                          ->orWhere('monto_total', 'LIKE', "%{$search}%")
-                          ->orWhere('presupuesto_id', 'LIKE', "%{$search}%");
+                        ->orWhere('letra', 'LIKE', "%{$search}%")
+                        ->orWhere('detalle', 'LIKE', "%{$search}%")
+                        ->orWhere('monto_total', 'LIKE', "%{$search}%")
+                        ->orWhere('presupuesto_id', 'LIKE', "%{$search}%");
                 });
             }
 
@@ -79,7 +80,7 @@ class FacturaController extends Controller
         }
     }
 
-     /**
+    /**
      * @OA\Post(
      *     path="/api/factura",
      *     summary="Crear una nueva factura",
@@ -115,7 +116,7 @@ class FacturaController extends Controller
 
         $validator = Validator::make($request->all(), [
             'presupuesto_id' => 'required|exists:presupuesto,id',
-            'numero'         => ['required','string','max:50', Rule::unique($table, 'numero')],
+            'numero'         => ['required', 'string', 'max:50', Rule::unique($table, 'numero')],
             'letra'          => 'required|string|in:A,B,C',
             'monto_total'    => 'required|numeric|min:0',
             'detalle'        => 'nullable|string',
@@ -137,7 +138,6 @@ class FacturaController extends Controller
                 'mensaje' => 'Factura creada correctamente',
                 'factura' => $factura
             ], 201);
-
         } catch (\Throwable $e) {
             \Log::error('Error creando factura', ['err' => $e->getMessage()]);
             return response()->json([
@@ -148,7 +148,7 @@ class FacturaController extends Controller
     }
 
 
-     /**
+    /**
      * @OA\Get(
      *     path="/api/factura/{id}",
      *     summary="Obtener una factura por ID",
@@ -174,11 +174,12 @@ class FacturaController extends Controller
     {
         $factura = Factura::find($id);
         if (!$factura) return response()->json(['error' => 'Factura no encontrada'], 404);
+        $factura->load('cobros');
         return response()->json($factura, 200);
     }
 
 
-     /**
+    /**
      * @OA\Put(
      *     path="/api/factura/{id}",
      *     summary="Actualizar una factura",
@@ -228,7 +229,7 @@ class FacturaController extends Controller
 
         $validator = Validator::make($request->all(), [
             'presupuesto_id' => 'sometimes|required|exists:presupuesto,id',
-            'numero'         => ['sometimes','required','string','max:50', Rule::unique($table, 'numero')->ignore($id)],
+            'numero'         => ['sometimes', 'required', 'string', 'max:50', Rule::unique($table, 'numero')->ignore($id)],
             'letra'          => 'sometimes|required|string|in:A,B,C',
             'fecha'          => 'sometimes|required|date',
             'monto_total'    => 'sometimes|required|numeric|min:0',
@@ -252,7 +253,6 @@ class FacturaController extends Controller
                 'mensaje' => 'Factura actualizada correctamente',
                 'factura' => $factura
             ], 200);
-
         } catch (\Throwable $e) {
             \Log::error('Error actualizando factura', ['err' => $e->getMessage()]);
             return response()->json([
@@ -262,7 +262,7 @@ class FacturaController extends Controller
         }
     }
 
-     /**
+    /**
      * @OA\Delete(
      *     path="/api/factura/{id}",
      *     summary="Eliminar una factura",
@@ -302,4 +302,71 @@ class FacturaController extends Controller
         }
     }
 
+    /**
+     * Obtener el monto total y el saldo pendiente de una factura específica.
+     * Endpoint: GET /api/facturas/{id}/saldo
+     * * @OA\Get(
+     * path="/api/facturas/{id}/saldo",
+     * summary="Obtener saldo pendiente de una factura",
+     * tags={"Facturas", "Cobros"},
+     * @OA\Parameter(name="id", in="path", required=true, description="ID de la factura", @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200, 
+     * description="Saldo pendiente calculado",
+     * @OA\JsonContent(
+     * @OA\Property(property="monto_total", type="number", example=15000.50),
+     * @OA\Property(property="saldo_pendiente", type="number", example=5000.50)
+     * )
+     * ),
+     * @OA\Response(response=404, description="Factura no encontrada")
+     * )
+     */
+    public function getSaldoPendiente($id)
+    {
+        try {
+            // Utilizamos 'with('cobros')' para asegurar que la relación esté cargada para calcular el saldo
+            $factura = Factura::with('cobros')->findOrFail($id);
+
+            // Este método asume que has añadido getSaldoPendienteAttribute() al modelo Factura.
+            $saldo = $factura->getSaldoPendienteAttribute();
+
+            return response()->json([
+                'monto_total' => $factura->monto_total,
+                'saldo_pendiente' => $saldo
+            ], 200);
+        } catch (\Exception $e) {
+            // Error al no encontrar la factura o cualquier otro problema
+            \Log::error('Error obteniendo saldo de factura', ['id' => $id, 'err' => $e->getMessage()]);
+            return response()->json(['error' => 'Factura no encontrada o error de cálculo', 'detalle' => $e->getMessage()], 404);
+        }
+    }
+
+
+    /**
+     * Obtener el historial de cobros (pagos) realizados a una factura específica.
+     * Endpoint: GET /api/facturas/{id}/cobros
+     * * @OA\Get(
+     * path="/api/facturas/{id}/cobros",
+     * summary="Obtener historial de cobros de una factura",
+     * tags={"Facturas", "Cobros"},
+     * @OA\Parameter(name="id", in="path", required=true, description="ID de la factura", @OA\Schema(type="integer")),
+     * @OA\Response(response=200, description="Historial de cobros", @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Cobro"))),
+     * @OA\Response(response=404, description="Factura no encontrada")
+     * )
+     */
+    public function getCobrosPorFactura($id)
+    {
+        try {
+            // Aseguramos que la factura existe
+            $factura = Factura::findOrFail($id);
+
+            // Obtenemos los cobros asociados, cargando los detalles (medio de cobro)
+            $cobros = $factura->cobros()->with('detalles.medioCobro')->orderByDesc('fecha')->get();
+
+            return response()->json($cobros, 200);
+        } catch (\Exception $e) {
+            \Log::error('Error obteniendo cobros por factura', ['id' => $id, 'err' => $e->getMessage()]);
+            return response()->json(['error' => 'Factura no encontrada o error al obtener cobros', 'detalle' => $e->getMessage()], 404);
+        }
+    }
 }

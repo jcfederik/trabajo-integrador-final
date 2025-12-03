@@ -1,0 +1,170 @@
+<div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <!-- Header del Modal -->
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="bi bi-wallet2"></i>
+        Gestión de Pagos - Factura {{ facturaNumero }}
+      </div>
+      <button class="btn-close" (click)="cerrarModal()" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Body del Modal -->
+    <div class="modal-body">
+      
+      <!-- Resumen de la Factura -->
+      <div class="resumen-factura">
+        <div class="resumen-item">
+          <span>Monto Total:</span>
+          <strong>${{ (montoTotal || 0) | number:'1.2-2' }}</strong>
+        </div>
+        <div class="resumen-item">
+          <span>Total Cobrado:</span>
+          <strong>${{ totalCobrado | number:'1.2-2' }}</strong>
+        </div>
+        <div class="resumen-item saldo-pendiente">
+          <span>Saldo Pendiente:</span>
+          <strong>${{ saldoPendiente | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+
+      <!-- Botón para agregar pago -->
+      <div class="acciones-superiores" *ngIf="!mostrarFormulario">
+        <button class="btn btn-primary btn-agregar" (click)="mostrarFormularioPago()">
+          <i class="bi bi-plus-circle"></i>
+          Registrar Nuevo Pago
+        </button>
+      </div>
+
+      <!-- Formulario de Registro de Pago -->
+      <div *ngIf="mostrarFormulario" class="formulario-cobro">
+        <h5 class="form-title">
+          <i class="bi bi-credit-card"></i>
+          Registrar Nuevo Pago
+        </h5>
+
+        <form (ngSubmit)="registrarCobro()" *ngIf="mediosCobro.length > 0">
+          
+          <!-- Información de Saldo -->
+          <div *ngIf="saldoInfo" class="saldo-info">
+            <div class="saldo-item">
+              <span>Saldo Pendiente:</span>
+              <strong>${{ (saldoInfo.saldo_pendiente || 0) | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <!-- Monto a Pagar -->
+          <div class="form-group">
+            <label class="form-label">
+              Monto a Pagar <span class="campo-obligatorio">*</span>
+            </label>
+            <input type="number" step="0.01" min="0.01" [(ngModel)]="nuevoCobro.monto_pagado" 
+                   name="monto_pagado" class="form-control" placeholder="0.00" required>
+          </div>
+
+          <!-- Medio de Cobro -->
+          <div class="form-group">
+            <label class="form-label">
+              Medio de Pago <span class="campo-obligatorio">*</span>
+            </label>
+            <select [(ngModel)]="nuevoCobro.medio_cobro_id" name="medio_cobro_id" class="form-control" required>
+              <option value="" disabled selected>Seleccionar medio de pago</option>
+              <option *ngFor="let medio of mediosCobro" [value]="medio.id">
+                {{ medio.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Fecha (opcional) -->
+          <div class="form-group">
+            <label class="form-label">
+              Fecha de Pago (opcional)
+            </label>
+            <input type="datetime-local" [(ngModel)]="nuevoCobro.fecha" name="fecha" class="form-control">
+          </div>
+
+          <!-- Botones del Formulario -->
+          <div class="form-buttons">
+            <button type="submit" [disabled]="procesando" class="btn btn-primary">
+              <span *ngIf="!procesando">
+                <i class="bi bi-check-circle"></i>
+                Registrar Pago
+              </span>
+              <span *ngIf="procesando">
+                <i class="bi bi-arrow-repeat spinner"></i>
+                Procesando...
+              </span>
+            </button>
+            <button type="button" (click)="cancelarFormulario()" [disabled]="procesando" class="btn btn-secondary">
+              <i class="bi bi-x-circle"></i>
+              Cancelar
+            </button>
+          </div>
+        </form>
+
+        <!-- Estados de carga del formulario -->
+        <div *ngIf="cargandoMedios" class="loading-form">
+          <i class="bi bi-arrow-repeat spinner"></i>
+          Cargando medios de pago...
+        </div>
+      </div>
+
+      <!-- Lista de Cobros -->
+      <div class="lista-cobros" *ngIf="!mostrarFormulario">
+        <h5 class="lista-title">
+          <i class="bi bi-clock-history"></i>
+          Historial de Pagos
+        </h5>
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="loading-cobros">
+          <i class="bi bi-arrow-repeat spinner"></i>
+          Cargando pagos...
+        </div>
+
+        <!-- Estado vacío -->
+        <div *ngIf="!loading && !tieneCobros" class="empty-cobros">
+          <i class="bi bi-wallet2"></i>
+          <h6>No hay pagos registrados</h6>
+          <p>Aún no se han registrado pagos para esta factura.</p>
+        </div>
+
+        <!-- Tabla de cobros -->
+        <div *ngIf="!loading && tieneCobros" class="table-container">
+          <table class="cobros-table">
+            <thead>
+              <tr>
+                <th class="col-fecha">Fecha y Hora</th>
+                <th class="col-monto">Monto</th>
+                <th class="col-medio">Medio de Pago</th>
+                <th class="col-estado">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cobro of cobros">
+                <td class="col-fecha">
+                  <div class="fecha-hora">
+                    <span class="fecha">{{ cobro.fecha | date:'dd/MM/yyyy' }}</span>
+                    <span class="hora">{{ cobro.fecha | date:'HH:mm' }}</span>
+                  </div>
+                </td>
+                <td class="col-monto">
+                  <span class="monto-value">${{ (cobro.monto || 0) | number:'1.2-2' }}</span>
+                </td>
+                <td class="col-medio">
+                  {{ cobro.detalles[0]?.medioCobro?.nombre || 'Medio no especificado' }}
+                </td>
+                <td class="col-estado">
+                  <span class="badge badge-success">Completado</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
