@@ -176,7 +176,9 @@ class ReparacionController extends Controller
      *             @OA\Property(property="usuario_id", type="integer", example=5),
      *             @OA\Property(property="descripcion", type="string", example="Reemplazo de placa madre"),
      *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
-     *             @OA\Property(property="estado", type="string", example="pendiente")
+     *             @OA\Property(property="estado", type="string", example="pendiente"),
+     *             @OA\Property(property="fecha_estimada", type="string", format="date", example="2025-10-20"),
+    * 
      *         )
      *     ),
      *     @OA\Response(
@@ -199,7 +201,8 @@ class ReparacionController extends Controller
             'usuario_id' => 'required|exists:usuario,id',
             'descripcion' => 'required|string',
             'fecha' => 'required|date',
-            'estado' => 'required|string|max:50'
+            'estado' => 'required|string|max:50',
+            'fecha_estimada' => 'nullable|date'
         ]);
 
         if ($validator->fails()) {
@@ -272,7 +275,9 @@ class ReparacionController extends Controller
      *             @OA\Property(property="usuario_id", type="integer", example=5),
      *             @OA\Property(property="descripcion", type="string", example="Cambio de disco rígido y reinstalación de sistema operativo"),
      *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
-     *             @OA\Property(property="estado", type="string", example="finalizada")
+     *             @OA\Property(property="estado", type="string", example="finalizada"),
+     *             @OA\Property(property="fecha_estimada", type="string", format="date", example="2025-10-20")
+     *
      *         )
      *     ),
      *     @OA\Response(

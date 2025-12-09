@@ -7,8 +7,8 @@ export interface Reparacion {
   id: number;
   descripcion: string;
   fecha: string;
+  fecha_estimada?: string | null;  // ← NUEVO
   estado: string;
-
   equipo_id: number;
   usuario_id: number;
 
@@ -185,13 +185,16 @@ listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedR
     const tecnicoNombre = rep.tecnico?.nombre || 'Sin técnico';
     const clienteNombre = rep.equipo?.cliente?.nombre || 'No especificado';
     const fecha = rep.fecha ? new Date(rep.fecha).toLocaleDateString() : 'Sin fecha';
+    const fechaEst = rep.fecha_estimada 
+    ? new Date(rep.fecha_estimada).toLocaleDateString() 
+    : 'Sin estimada';
 
     return {
       ...rep,
       equipo_nombre: equipoNombre,
       tecnico_nombre: tecnicoNombre,
       cliente_nombre: clienteNombre,
-      displayText: `#${rep.id} - ${rep.descripcion} | ${equipoNombre} | ${tecnicoNombre} | ${fecha}`
+      displayText: `#${rep.id} - ${rep.descripcion} | ${equipoNombre} | ${tecnicoNombre} | ${fecha} | Est.: ${fechaEst}`
     };
   }
   // ============================================================
