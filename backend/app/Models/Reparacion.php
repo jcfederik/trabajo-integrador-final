@@ -47,4 +47,10 @@ class Reparacion extends Model
     {
         return $this->hasManyThrough(Factura::class, Presupuesto::class, 'reparacion_id', 'presupuesto_id');
     }
+
+    public function repuestosAsignados()
+    {
+        return $this->belongsToMany(Repuesto::class, 'reparacion_repuesto')
+                    ->withPivot('id', 'cantidad', 'costo_unitario', 'created_at', 'updated_at');
+    }
 }

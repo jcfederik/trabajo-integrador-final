@@ -28,6 +28,17 @@ export interface Reparacion {
     };
   };
 
+    repuestos?: {
+    id: number;
+    nombre: string;
+    stock: number;
+    costo_base: number;
+    pivot?: {
+      id: number;
+      cantidad: number;
+      costo_unitario: number;
+    };
+  }[];
 
 
   tecnico?: {
@@ -185,5 +196,26 @@ listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedR
       cliente_nombre: clienteNombre,
       displayText: `#${rep.id} - ${rep.descripcion} | ${equipoNombre} | ${tecnicoNombre} | ${fecha} | Est.: ${fechaEst}`
     };
+  }
+  // ============================================================
+  // ▓▓▓   GESTIÓN DE REPUESTOS EN REPARACIONES   ▓▓▓
+  // ============================================================
+
+  // Asignar repuesto a reparación
+  assignRepuesto(reparacionId: number, repuestoId: number, cantidad: number = 1): Observable<any> {
+    return this.http.post(`${this.base}/${reparacionId}/repuestos`, {
+      repuesto_id: repuestoId,
+      cantidad: cantidad
+    });
+  }
+
+  // Remover repuesto de reparación
+  removeRepuesto(reparacionId: number, pivotId: number): Observable<any> {
+    return this.http.delete(`${this.base}/${reparacionId}/repuestos/${pivotId}`);
+  }
+
+  // Obtener repuestos asignados a una reparación
+  getRepuestosAsignados(reparacionId: number): Observable<any> {
+    return this.http.get(`${this.base}/${reparacionId}/repuestos`);
   }
 }
