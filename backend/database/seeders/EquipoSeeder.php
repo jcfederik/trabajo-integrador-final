@@ -13,40 +13,45 @@ class EquipoSeeder extends Seeder
     {
         $clientes = Cliente::all();
 
+        if ($clientes->count() < 5) {
+            $this->command->warn('No hay suficientes clientes para asignar equipos.');
+            return;
+        }
+
         $equipos = [
             [
-                'descripcion' => 'Notebook Lenovo con pantalla rota',
-                'marca' => 'Lenovo',
-                'modelo' => 'IdeaPad 320',
-                'nro_serie' => 'SN-LEN-001',
+                'descripcion' => 'Motosierra con dificultades de encendido',
+                'marca' => 'Stihl',
+                'modelo' => 'MS 170',
+                'nro_serie' => 'STH-MS170-001',
                 'cliente_id' => $clientes[0]->id,
             ],
             [
-                'descripcion' => 'PC de escritorio no enciende',
-                'marca' => 'HP',
-                'modelo' => 'Pavilion',
-                'nro_serie' => 'SN-HP-002',
+                'descripcion' => 'Motoguadaña pierde potencia al acelerar',
+                'marca' => 'Husqvarna',
+                'modelo' => '128R',
+                'nro_serie' => 'HSQ-128R-002',
                 'cliente_id' => $clientes[1]->id,
             ],
             [
-                'descripcion' => 'Monitor con líneas verticales',
-                'marca' => 'Samsung',
-                'modelo' => 'S24F350',
-                'nro_serie' => 'SN-SAM-003',
+                'descripcion' => 'Cortadora de césped no arranca',
+                'marca' => 'Honda',
+                'modelo' => 'HRR216',
+                'nro_serie' => 'HND-HRR216-003',
                 'cliente_id' => $clientes[2]->id,
             ],
             [
-                'descripcion' => 'Teclado con teclas que no funcionan',
-                'marca' => 'Logitech',
-                'modelo' => 'K120',
-                'nro_serie' => 'SN-LOG-004',
+                'descripcion' => 'Generador hace ruido excesivo y vibra',
+                'marca' => 'Gamma',
+                'modelo' => 'GE-3500',
+                'nro_serie' => 'GMM-GE3500-004',
                 'cliente_id' => $clientes[3]->id,
             ],
             [
-                'descripcion' => 'Impresora atasca papel',
-                'marca' => 'Epson',
-                'modelo' => 'L3110',
-                'nro_serie' => 'SN-EPS-005',
+                'descripcion' => 'Motor estacionario presenta pérdida de combustible',
+                'marca' => 'Briggs & Stratton',
+                'modelo' => 'CR950',
+                'nro_serie' => 'BGS-CR950-005',
                 'cliente_id' => $clientes[4]->id,
             ]
         ];
@@ -55,6 +60,6 @@ class EquipoSeeder extends Seeder
             Equipo::create($equipo);
         }
 
-        $this->command->info('5 equipos de prueba creados exitosamente!');
+        $this->command->info('5 equipos de maquinaria y jardinería creados exitosamente!');
     }
 }

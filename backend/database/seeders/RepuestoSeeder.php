@@ -12,36 +12,61 @@ class RepuestoSeeder extends Seeder
     {
         $repuestos = [
             [
-                'nombre' => 'Disco SSD 500GB',
-                'stock' => 10,
-                'costo_base' => 45000.00,
+                'nombre' => 'Filtro de aire para motosierra',
+                'stock' => 30,
+                'costo_base' => 3500.00,
             ],
             [
-                'nombre' => 'Memoria RAM 8GB DDR4',
+                'nombre' => 'Bujía NGK BPMR7A',
+                'stock' => 50,
+                'costo_base' => 2200.00,
+            ],
+            [
+                'nombre' => 'Carburador para motoguadaña 43cc',
                 'stock' => 15,
-                'costo_base' => 25000.00,
+                'costo_base' => 14500.00,
             ],
             [
-                'nombre' => 'Pantalla LCD 15.6"',
-                'stock' => 5,
-                'costo_base' => 85000.00,
+                'nombre' => 'Cuchilla para cortadora de césped 20"',
+                'stock' => 12,
+                'costo_base' => 18000.00,
             ],
             [
-                'nombre' => 'Teclado Universal',
-                'stock' => 20,
-                'costo_base' => 12000.00,
-            ],
-            [
-                'nombre' => 'Mouse Óptico',
+                'nombre' => 'Correa trapezoidal A-33',
                 'stock' => 25,
-                'costo_base' => 8000.00,
-            ]
+                'costo_base' => 7500.00,
+            ],
+            [
+                'nombre' => 'Filtro de combustible universal',
+                'stock' => 40,
+                'costo_base' => 1200.00,
+            ],
+            [
+                'nombre' => 'Embrague para motosierra 52cc',
+                'stock' => 10,
+                'costo_base' => 19500.00,
+            ],
+            [
+                'nombre' => 'Retén de cigüeñal 20x35x7',
+                'stock' => 35,
+                'costo_base' => 900.00,
+            ],
+            [
+                'nombre' => 'Aceite 2T sintético 1L',
+                'stock' => 60,
+                'costo_base' => 4500.00,
+            ],
+            [
+                'nombre' => 'Bobina de encendido para motor estacionario 6.5HP',
+                'stock' => 8,
+                'costo_base' => 23000.00,
+            ],
         ];
 
         foreach ($repuestos as $repuesto) {
             Repuesto::create($repuesto);
         }
 
-        $this->command->info('5 repuestos de prueba creados exitosamente!');
+        $this->command->info('Repuestos típicos de maquinaria y jardinería creados exitosamente!');
     }
 }

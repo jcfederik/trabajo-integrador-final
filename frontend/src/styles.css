@@ -505,7 +505,6 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  max-width: 600px;
   margin: 0 2rem;
 }
 
