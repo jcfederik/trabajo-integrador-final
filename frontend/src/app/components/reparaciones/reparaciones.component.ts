@@ -65,6 +65,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   // ====== PROPIEDADES DE CREACIÓN ======
   nuevo: Partial<Reparacion> = {
     fecha: new Date().toISOString().slice(0, 10),
+    fecha_estimada: null,
     estado: 'pendiente'
   };
 
@@ -457,6 +458,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       equipo_id: item.equipo_id,
       usuario_id: item.usuario_id,
       fecha: item.fecha?.slice(0, 10),
+      fecha_estimada: item.fecha_estimada ? item.fecha_estimada.slice(0, 10) : null,
       estado: item.estado,
     };
 
