@@ -55,7 +55,7 @@ class CompraRepuestoSeeder extends Seeder
                 'stock_nuevo'    => $repuesto->stock,
                 'origen_id'      => $c->id,
                 'origen_tipo'    => 'compra_repuesto',
-                'user_id'        => 1, // si querés luego se ajusta
+                'usuario_id'     => 1, // si querés luego se ajusta
             ]);
         }
 

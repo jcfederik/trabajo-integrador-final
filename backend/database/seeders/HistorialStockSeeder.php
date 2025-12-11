@@ -17,7 +17,7 @@ class HistorialStockSeeder extends Seeder
             'stock_nuevo' => 10,
             'origen_id' => null,
             'origen_tipo' => null,
-            'user_id' => 1
+            'usuario_id' => 1
         ]);
     }
 }
