@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authMatchGuard, permissionGuard, loginBlockGuard } from './services/auth-guard';
+import { HistorialStockComponent } from './components/historial-stock/historial-stock.component';
 
 export const routes: Routes = [
   // Públicas
@@ -73,6 +74,11 @@ export const routes: Routes = [
       .then(m => m.EspecializacionesComponent),
     canMatch: [permissionGuard],
     data: { permission: 'especializaciones.manage' }
+  },
+  {
+    path: 'historial-stock',
+    component: HistorialStockComponent,
+    title: 'Historial de Stock'
   },
 
   // Redirect raíz
