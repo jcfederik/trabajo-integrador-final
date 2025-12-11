@@ -8,6 +8,19 @@ export const authMatchGuard: CanMatchFn = (_route, _segments): boolean | UrlTree
   return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
 };
 
+export const loginBlockGuard: CanMatchFn = (): boolean | UrlTree => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  // Si ya está autenticado → NO dejar entrar al login
+  if (auth.isAuthenticated()) {
+    return router.createUrlTree(['/dashboard']);
+  }
+
+  return true;
+};
+
+
 // ✅ NUEVO: Guard para permisos específicos
 export const permissionGuard: CanMatchFn = (route, segments): boolean | UrlTree => {
     const auth = inject(AuthService);
@@ -41,4 +54,7 @@ export const permissionGuard: CanMatchFn = (route, segments): boolean | UrlTree 
     // Si tiene el permiso requerido, se concede el acceso
     console.log(`🔓 Acceso concedido: Permiso "${requiredPermission}" verificado.`);
     return true;
+
+
+    
 };

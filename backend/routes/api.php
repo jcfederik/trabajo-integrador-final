@@ -16,7 +16,9 @@ use App\Http\Controllers\{
     RepuestoController,
     EspecializacionController,
     DetalleCobroController,
-    CobroController // ⬅️ ¡Nuevo controlador importado!
+    CobroController,
+    HistorialStockController
+
 };
 
 // RUTAS PÚBLICAS
@@ -74,6 +76,10 @@ Route::middleware(['jwt.auth'])->group(function () {
     
     Route::apiResource('compras-repuestos', CompraRepuestoController::class);
     Route::apiResource('proveedores', ProveedorController::class);
+    Route::get('/proveedores/{id}/repuestos', [ProveedorController::class, 'repuestos']);
+    Route::post('/proveedores/{id}/repuestos', [ProveedorController::class, 'asignarRepuesto']);
+    Route::put('/proveedores/{id}/repuestos/{repuestoId}', [ProveedorController::class, 'actualizarRepuesto']);
+
     Route::apiResource('repuestos', RepuestoController::class);
     
     // ----------------------------------------------------

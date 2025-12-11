@@ -691,3 +691,48 @@ router-outlet + * {
   width: 100%;
 }
 
+/* Botón verde para Guardar */
+.btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.45rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+  color: #fff;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-save:hover {
+  background: linear-gradient(135deg, #218838, #19692c);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Botón gris moderno para Cancelar */
+.btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.45rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #e9ecef;
+  color: #495057;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-cancel:hover {
+  background: #d6d8db;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}

@@ -307,4 +307,171 @@ class ProveedorController extends Controller
             return response()->json(['error' => 'Error al eliminar el proveedor', 'detalle' => $e->getMessage()], 500);
         }
     }
+
+    /**
+ * @OA\Get(
+ *     path="/api/proveedores/{id}/repuestos",
+ *     summary="Obtener la lista de repuestos que vende un proveedor",
+ *     tags={"Proveedores"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID del proveedor",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lista de repuestos del proveedor",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(ref="#/components/schemas/Repuesto")
+ *         )
+ *     ),
+ *     @OA\Response(response=404, description="Proveedor no encontrado"),
+ * )
+ */
+public function repuestos($id)
+{
+    $proveedor = Proveedor::with(['repuestos'])->find($id);
+
+    if (!$proveedor) {
+        return response()->json(['error' => 'Proveedor no encontrado'], 404);
+    }
+
+    return response()->json($proveedor->repuestos, 200);
+}
+
+
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/proveedores/{id}/repuestos",
+ *     summary="Asignar un repuesto a un proveedor con precio",
+ *     tags={"Proveedores"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID del proveedor",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"repuesto_id", "precio"},
+ *             @OA\Property(property="repuesto_id", type="integer", example=5),
+ *             @OA\Property(property="precio", type="number", format="float", example=1500.75)
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Repuesto asignado correctamente",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="mensaje", type="string", example="Repuesto asignado al proveedor correctamente")
+ *         )
+ *     ),
+ *     @OA\Response(response=400, description="Datos inválidos"),
+ *     @OA\Response(response=404, description="Proveedor no encontrado")
+ * )
+ */
+public function asignarRepuesto(Request $request, $id)
+{
+    $validator = Validator::make($request->all(), [
+        'repuesto_id' => 'required|exists:repuesto,id',
+        'precio'      => 'required|numeric|min:0',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'error'    => 'Datos inválidos',
+            'detalles' => $validator->errors()
+        ], 400);
+    }
+
+    $proveedor = Proveedor::find($id);
+    if (!$proveedor) {
+        return response()->json(['error' => 'Proveedor no encontrado'], 404);
+    }
+
+    $proveedor->repuestos()->syncWithoutDetaching([
+        $request->repuesto_id => ['precio' => $request->precio, 'activo' => true]
+    ]);
+
+    return response()->json(['mensaje' => 'Repuesto asignado al proveedor correctamente'], 200);
+}
+
+
+/**
+ * @OA\Put(
+ *     path="/api/proveedores/{id}/repuestos/{repuestoId}",
+ *     summary="Actualizar precio o estado de un repuesto vendido por un proveedor",
+ *     tags={"Proveedores"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID del proveedor",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="repuestoId",
+ *         in="path",
+ *         required=true,
+ *         description="ID del repuesto",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=false,
+ *         @OA\JsonContent(
+ *             @OA\Property(property="precio", type="number", example=1800.50),
+ *             @OA\Property(property="activo", type="boolean", example=true)
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Repuesto actualizado correctamente",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="mensaje", type="string", example="Repuesto actualizado correctamente")
+ *         )
+ *     ),
+ *     @OA\Response(response=400, description="Datos inválidos"),
+ *     @OA\Response(response=404, description="Proveedor no encontrado")
+ * )
+ */
+public function actualizarRepuesto(Request $request, $id, $repuestoId)
+{
+    $validator = Validator::make($request->all(), [
+        'precio' => 'sometimes|numeric|min:0',
+        'activo' => 'sometimes|boolean'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'error'    => 'Datos inválidos',
+            'detalles' => $validator->errors()
+        ], 400);
+    }
+
+    $proveedor = Proveedor::find($id);
+    if (!$proveedor) {
+        return response()->json(['error' => 'Proveedor no encontrado'], 404);
+    }
+
+    if (!$proveedor->repuestos()->where('repuesto_id', $repuestoId)->exists()) {
+        return response()->json(['error' => 'El proveedor no vende este repuesto'], 400);
+    }
+
+    $proveedor->repuestos()->updateExistingPivot($repuestoId, $request->only(['precio', 'activo']));
+
+    return response()->json(['mensaje' => 'Repuesto actualizado correctamente'], 200);
+}
+
+
+
 }
