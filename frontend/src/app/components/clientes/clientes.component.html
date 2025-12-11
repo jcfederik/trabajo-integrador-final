@@ -129,14 +129,15 @@
         <!-- Email -->
         <div class="col-12 col-md-6">
           <label class="form-label">Email</label>
-          <input 
-            type="email" 
-            class="form-control" 
-            [(ngModel)]="nuevo.email" 
-            name="email" 
-            placeholder="cliente@email.com"
-            required
-          />
+            <input
+              type="email"
+              class="form-control"
+              [(ngModel)]="nuevo.email"
+              name="email"
+              placeholder="cliente@email.com"
+              required
+              pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+            />
         </div>
 
         <!-- Teléfono -->
