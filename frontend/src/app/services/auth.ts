@@ -23,23 +23,32 @@ export class AuthService {
   }
 
   private loadUserFromStorage(): void {
-    const userData = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  const userData = localStorage.getItem('user');
 
-    if (userData && token) {
-      try {
-        const user = JSON.parse(userData);
-        // ✅ USAR LOS PERMISOS DIRECTAMENTE DEL BACKEND
-        this.currentUser.set(user);
-        this.isLoggedIn.set(true);
-
-        console.debug('AuthService: Usuario cargado desde storage', user);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        this.clearAuthData();
-      }
-    }
+  if (!token || !userData) {
+    this.clearAuthData();
+    return;
   }
+
+  // ⛔ Validar token ANTES de cargar usuario
+  if (!this.isTokenValid(token)) {
+    console.warn('Token inválido o expirado al cargar desde storage.');
+    this.clearAuthData();
+    return;
+  }
+
+  try {
+    const user = JSON.parse(userData);
+    this.currentUser.set(user);
+    this.isLoggedIn.set(true);
+    console.debug('AuthService: Usuario restaurado correctamente');
+  } catch (err) {
+    console.error('Error parseando usuario desde storage:', err);
+    this.clearAuthData();
+  }
+}
+
 
   // ✅ MÉTODOS DE PERMISOS - COINCIDEN CON BACKEND
   getUserPermissions(): string[] {
@@ -151,43 +160,19 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     const token = this.getToken();
-    if (!token) {
-      return false;
-    }
-
-    try {
-      // Verificar formato básico del token JWT
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        console.error('Token JWT inválido: formato incorrecto');
-        this.clearAuthData();
-        return false;
-      }
-
-      const payload = JSON.parse(atob(parts[1]));
-      const now = Math.floor(Date.now() / 1000);
-      // Verificar expiración
-      if (payload.exp && payload.exp < now) {
-        console.warn('Token expirado');
-        this.clearAuthData();
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error decodificando token:', error);
-      this.clearAuthData();
-      return false;
-    }
+    return !!token && this.isTokenValid(token);
   }
-
   // ====== LOGOUT ======
   logout(): void {
-    // Opcional: llamar al endpoint de logout del backend
-    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
-      next: () => console.log('Logged out successfully'),
-      error: (err) => console.error('Logout error:', err)
-    });
+    const token = this.getToken();
+
+    // Solo llamar al backend si el token es válido
+    if (token && this.isTokenValid(token)) {
+      this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
+        next: () => console.log('Logout backend OK'),
+        error: () => console.warn('Logout backend falló (token inválido)')
+      });
+    }
 
     this.clearAuthData();
   }
@@ -201,6 +186,19 @@ export class AuthService {
 
   // ====== USER MANAGEMENT ======
   getCurrentUser(): any {
-    return this.currentUser();
+      return this.currentUser();
+    }
+    private isTokenValid(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+
+      const payload = JSON.parse(atob(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+
+      return !(payload.exp && payload.exp < now);
+    } catch {
+      return false;
+    }
   }
 }

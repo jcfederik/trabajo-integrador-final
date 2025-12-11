@@ -84,6 +84,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::put('/proveedores/{id}/repuestos/{repuestoId}', [ProveedorController::class, 'actualizarRepuesto']);
 
     Route::apiResource('repuestos', RepuestoController::class);
+    Route::get('/historial-stock', [HistorialStockController::class, 'index']);
     
 
     // ----------------------------------------------------
