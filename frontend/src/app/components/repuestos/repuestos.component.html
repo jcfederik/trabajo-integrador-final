@@ -7,6 +7,10 @@
     <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="selectedAction==='crear'">
       <i class="bi bi-plus-circle"></i> Crear
     </button>
+    <button class="action-pill info" (click)="abrirModalCompra()">
+    <i class="bi bi-cart-plus"></i> Comprar Repuestos
+    </button>
+
   </div>
 
   <!-- LISTAR -->
@@ -163,4 +167,14 @@
       <i class="bi bi-check-lg"></i> Guardar Repuesto
     </button>
   </form>
+
+
+  
 </div>
+
+<app-modal-compra-repuesto
+  [mostrar]="mostrarModalCompra"
+  [repuestos]="repuestosAll"
+  (cerrar)="mostrarModalCompra=false"
+  (compraRealizada)="onCompraRealizada()">
+</app-modal-compra-repuesto>

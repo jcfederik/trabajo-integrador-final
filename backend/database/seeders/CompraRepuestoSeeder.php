@@ -36,17 +36,28 @@ class CompraRepuestoSeeder extends Seeder
 
         foreach ($compras as $compra) {
 
-            // 1) Crear compra
-            $c = CompraRepuesto::create($compra);
+            $precioUnitario = $compra['total'] / $compra['cantidad'];
 
-            // 2) Actualizar stock manualmente
+            // 1) Crear compra
+            $c = CompraRepuesto::create([
+                'proveedor_id' => $compra['proveedor_id'],
+                'repuesto_id'  => $compra['repuesto_id'],
+                'numero_comprobante' => $compra['numero_comprobante'],
+                'cantidad' => $compra['cantidad'],
+                'precio_unitario' => $precioUnitario,   // ← OBLIGATORIO
+                'total' => $compra['total'],
+                'estado' => $compra['estado'],
+                'usuario_id' => 1
+            ]);
+
+            // 2) Actualizar stock
             $repuesto = Repuesto::find($compra['repuesto_id']);
 
             $stockAnterior = $repuesto->stock;
             $repuesto->stock += $compra['cantidad'];
             $repuesto->save();
 
-            // 3) Registrar historial de stock
+            // 3) Registrar historial
             HistorialStock::create([
                 'repuesto_id'    => $repuesto->id,
                 'tipo_mov'       => 'COMPRA',
@@ -55,9 +66,10 @@ class CompraRepuestoSeeder extends Seeder
                 'stock_nuevo'    => $repuesto->stock,
                 'origen_id'      => $c->id,
                 'origen_tipo'    => 'compra_repuesto',
-                'usuario_id'     => 1, // si querés luego se ajusta
+                'usuario_id'     => 1,
             ]);
         }
+
 
         $this->command->info('Compras de repuestos creadas con stock + historial!');
     }

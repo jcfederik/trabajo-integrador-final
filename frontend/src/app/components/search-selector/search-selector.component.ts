@@ -17,6 +17,10 @@ export interface SearchResult {
   stock?: number;
   costo_base?: number;
   cantidad?: number;
+  // Nuevas propiedades para proveedores
+  razon_social?: string;
+  cuit?: string;
+  
 }
 
 @Component({
@@ -29,7 +33,7 @@ export interface SearchResult {
 export class SearchSelectorComponent implements OnInit {
   @Input() placeholder: string = 'Buscar...';
   @Input() disabled: boolean = false;
-  @Input() type: 'cliente' | 'equipo' | 'tecnico' | 'repuesto' = 'cliente'; // AGREGADO 'repuesto'
+  @Input() type: 'cliente' | 'equipo' | 'tecnico' | 'repuesto' | 'proveedor' = 'cliente';
   @Input() selectedItem: SearchResult | null = null;
   @Input() preloadOnFocus: boolean = true;
   
@@ -156,6 +160,9 @@ export class SearchSelectorComponent implements OnInit {
 
   getDisplayText(item: SearchResult): string {
     switch (this.type) {
+      case 'proveedor':
+        return item.razon_social || item.nombre || '';
+
       case 'cliente':
         return item.nombre || '';
       case 'equipo':
@@ -179,6 +186,9 @@ export class SearchSelectorComponent implements OnInit {
         return 'Técnicos disponibles';
       case 'repuesto':
         return 'Repuestos disponibles';
+      case 'proveedor':
+        return 'Proveedores encontrados';
+
       default:
         return 'Resultados';
     }
@@ -194,6 +204,9 @@ export class SearchSelectorComponent implements OnInit {
         return 'bi-person-gear';
       case 'repuesto':
         return 'bi-tools';
+      case 'proveedor':
+        return 'bi-truck';
+
       default:
         return 'bi-search';
     }
@@ -211,6 +224,10 @@ export class SearchSelectorComponent implements OnInit {
         const costo = item.costo_base ? `Costo: $${item.costo_base}` : '';
         const stock = item.stock !== undefined ? `Stock: ${item.stock}` : '';
         return [costo, stock].filter(Boolean).join(' | ');
+      case 'proveedor':
+        const cuit = item.cuit ? `CUIT: ${item.cuit}` : '';
+        const tel = item.telefono ? `Tel: ${item.telefono}` : '';
+        return [cuit, tel].filter(Boolean).join(' | ');
       default:
         return '';
     }

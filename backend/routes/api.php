@@ -86,9 +86,6 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('repuestos', RepuestoController::class);
     
 
-
-
-
     // ----------------------------------------------------
     // ✅ RUTAS DE COBRO AÑADIDAS
     // ----------------------------------------------------
