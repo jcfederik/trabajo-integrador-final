@@ -1,27 +1,29 @@
 <!-- Layout principal -->
 <div class="app-layout">
-  
-  <!-- Sidebar: solo visible en rutas que no sean login ni dashboard -->
+
+  <!-- Sidebar: visible solo cuando showSidebar = true -->
   @if (showSidebar) {
-    <app-sidebar 
+    <app-sidebar
       class="sidebar-container"
       (sidebarStateChange)="onSidebarStateChange($event)">
     </app-sidebar>
   }
-  
-  <!-- Área principal de contenido -->
-  <div class="main-content-area" 
+
+  <!-- Área principal -->
+  <div class="main-content-area"
        [class.sidebar-collapsed]="sidebarCollapsed && showSidebar"
        [class.no-sidebar]="!showSidebar">
-    
-    <!-- Navbar: visible en todas las rutas excepto login -->
+
+    <!-- Navbar: visible solo cuando showNavbar = true -->
     @if (showNavbar) {
       <nav-bar class="navbar-container"></nav-bar>
     }
-    
-    <!-- Contenido de la página -->
-    <main class="" [class.no-navbar]="!showNavbar">
+
+    <!-- Contenido dinámico -->
+    <main [class.no-navbar]="!showNavbar">
       <router-outlet></router-outlet>
     </main>
+
   </div>
 </div>
+y

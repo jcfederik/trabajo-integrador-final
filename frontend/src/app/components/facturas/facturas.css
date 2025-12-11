@@ -13,54 +13,6 @@
   flex-wrap: wrap;
 }
 
-/* Píldoras de acción */
-.action-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  border: 1px solid var(--bs-primary);
-  color: var(--bs-primary);
-  background: #fff;
-  padding: .55rem 1rem;
-  border-radius: 999px;
-  font-weight: 600;
-  transition: all .2s ease;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.action-pill:hover { 
-  background: rgba(13,110,253,.06); 
-  transform: translateY(-1px);
-}
-
-.action-pill.active { 
-  background: var(--bs-primary); 
-  color: #fff; 
-  border-color: var(--bs-primary); 
-}
-
-.action-pill.success { 
-  border-color: var(--bs-success); 
-  color: var(--bs-success); 
-}
-
-.action-pill.success.active { 
-  background: var(--bs-success); 
-  color: #fff; 
-  border-color: var(--bs-success); 
-}
-
-.action-pill:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.action-pill:disabled:hover {
-  background: #fff;
-  transform: none;
-}
 
 /* Títulos de sección */
 .titulo-seccion {

@@ -16,8 +16,10 @@ class Reparacion extends Model
         'usuario_id',
         'descripcion',
         'fecha',
-        'estado'
+        'estado',
+        'fecha_estimada', 
     ];
+
 
     public function equipo()
     {
@@ -44,5 +46,11 @@ class Reparacion extends Model
     public function facturas()
     {
         return $this->hasManyThrough(Factura::class, Presupuesto::class, 'reparacion_id', 'presupuesto_id');
+    }
+
+    public function repuestosAsignados()
+    {
+        return $this->belongsToMany(Repuesto::class, 'reparacion_repuesto')
+                    ->withPivot('id', 'cantidad', 'costo_unitario', 'created_at', 'updated_at');
     }
 }

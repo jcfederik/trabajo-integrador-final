@@ -16,7 +16,9 @@ use App\Http\Controllers\{
     RepuestoController,
     EspecializacionController,
     DetalleCobroController,
-    CobroController // ⬅️ ¡Nuevo controlador importado!
+    CobroController,
+    HistorialStockController
+
 };
 
 // RUTAS PÚBLICAS
@@ -55,22 +57,31 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
     Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
     Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
-    
+
     Route::apiResource('equipos', EquipoController::class);
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
     
     Route::apiResource('medios-cobro', MedioCobroController::class);
     Route::apiResource('facturas', FacturaController::class);
+    Route::get('/facturas/{id}/cobros', [FacturaController::class, 'getCobrosPorFactura']);
+    Route::get('/facturas/{id}/saldo', [FacturaController::class, 'getSaldoPendiente']);
     
     Route::apiResource('reparaciones', ReparacionController::class);
     Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
     Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
+    Route::post('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'assignRepuesto']);
+    Route::delete('/reparaciones/{reparacion}/repuestos/{pivotId}', [ReparacionController::class, 'removeRepuesto']);
+    Route::get('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'getRepuestosAsignados']);
     
     Route::apiResource('presupuestos', PresupuestoController::class);
     Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
     
     Route::apiResource('compras-repuestos', CompraRepuestoController::class);
     Route::apiResource('proveedores', ProveedorController::class);
+    Route::get('/proveedores/{id}/repuestos', [ProveedorController::class, 'repuestos']);
+    Route::post('/proveedores/{id}/repuestos', [ProveedorController::class, 'asignarRepuesto']);
+    Route::put('/proveedores/{id}/repuestos/{repuestoId}', [ProveedorController::class, 'actualizarRepuesto']);
+
     Route::apiResource('repuestos', RepuestoController::class);
     
     // ----------------------------------------------------

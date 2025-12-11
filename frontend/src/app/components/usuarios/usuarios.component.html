@@ -3,11 +3,15 @@
     <!-- Header -->
     <div class="usuarios-header">
       <h1 class="usuarios-title">Gestión de Usuarios</h1>
-      <button class="action-pill" (click)="mostrarFormulario = !mostrarFormulario">
-        <i class="bi bi-plus-circle"></i>
-        {{ mostrarFormulario ? 'Cancelar' : 'Nuevo Usuario' }}
-      </button>
+
+      <div class="usuarios-actions">
+        <button class="action-pill" (click)="mostrarFormulario = !mostrarFormulario">
+          <i class="bi bi-plus-circle"></i>
+          {{ mostrarFormulario ? 'Cancelar' : 'Nuevo Usuario' }}
+        </button>
+      </div>
     </div>
+
 
     <!-- Formulario de creación -->
     <div class="crear-usuario-card" *ngIf="mostrarFormulario">
@@ -123,12 +127,14 @@
                   </div>
                   <div class="col-md-3">
                     <div class="btn-action-group">
-                      <button class="btn btn-success btn-sm" (click)="guardarEdicion()">
-                        <i class="bi bi-check"></i> Guardar
-                      </button>
-                      <button class="btn btn-secondary btn-sm" (click)="cancelarEdicion()">
-                        <i class="bi bi-x"></i> Cancelar
-                      </button>
+                      <div class="btn-action-group">
+                        <button class="btn-save" (click)="guardarEdicion()">
+                          <i class="bi bi-check-circle"></i> Guardar
+                        </button>
+                        <button class="btn-cancel" (click)="cancelarEdicion()">
+                          <i class="bi bi-x-circle"></i> Cancelar
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

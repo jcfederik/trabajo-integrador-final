@@ -1,9 +1,13 @@
 import { Routes } from '@angular/router';
-import { authMatchGuard, permissionGuard } from './services/auth-guard';
+import { authMatchGuard, permissionGuard, loginBlockGuard } from './services/auth-guard';
 
 export const routes: Routes = [
   // Públicas
-  { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
+  {
+    path: 'login',
+    loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent),
+    canMatch: [loginBlockGuard]
+  },
   
   // Privadas con permisos específicos
   {
@@ -41,13 +45,6 @@ export const routes: Routes = [
       .then(m => m.PresupuestosComponent),
     canMatch: [permissionGuard],
     data: { permission: 'presupuestos.view' }
-  },
-  {
-    path: 'medios-cobro',
-    loadComponent: () => import('./components/medios-cobro/medios-cobro')
-      .then(m => m.MediosCobroComponent),
-    canMatch: [permissionGuard],
-    data: { permission: 'cobros.view' }
   },
   {
     path: 'repuestos',

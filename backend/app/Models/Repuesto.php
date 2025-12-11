@@ -20,13 +20,24 @@ class Repuesto extends Model
     /** Relaciones */
     public function reparaciones()
     {
-        return $this->belongsToMany(Reparacion::class, 'reparacion_repuesto')
-                    ->withPivot('cantidad', 'costo_unitario')
-                    ->withTimestamps();
+        return $this->belongsToMany(Reparacion::class, 'reparacion_repuesto', 'repuesto_id', 'reparacion_id')
+                    ->withPivot('id', 'cantidad', 'costo_unitario', 'created_at', 'updated_at');
     }
 
     public function compras()
     {
         return $this->hasMany(CompraRepuesto::class, 'repuesto_id');
+    }
+
+    public function historialStock()
+{
+    return $this->hasMany(HistorialStock::class, 'repuesto_id');
+}
+
+
+     public function proveedores()
+    {
+        return $this->belongsToMany(Proveedor::class, 'proveedor_repuesto')
+                    ->withPivot('precio', 'activo');
     }
 }

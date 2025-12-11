@@ -3,10 +3,11 @@
     <!-- Header -->
     <div class="especializaciones-header">
       <h1 class="especializaciones-title">Gestión de Especializaciones</h1>
-
+      
       <!--CREAR -->
-      <button *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')"
-        class="action-pill" (click)="mostrarFormulario = !mostrarFormulario">
+      <button *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')" 
+              class="action-pill" 
+              (click)="mostrarFormulario = !mostrarFormulario">
         <i class="bi bi-plus-circle"></i>
         {{ mostrarFormulario ? 'Cancelar' : 'Nueva Especialización' }}
       </button>
@@ -86,11 +87,12 @@
                     <i class="bi bi-people me-1"></i>
                     {{ contarTecnicosPorEspecializacion(esp.id) }}
                   </span>
-
+                  
                   <!-- BOTÓN AUTO-ASIGNAR -->
-                  <button *ngIf="authService.canSelfAssignEspecializaciones() && !authService.isAdmin()"
-                    class="btn btn-sm btn-outline-success ms-2" (click)="autoAsignarEspecializacion(esp.id)"
-                    title="Auto-asignarme esta especialización">
+                  <button *ngIf="authService.canSelfAssignEspecializaciones() && !authService.isAdmin()" 
+                          class="btn btn-sm btn-outline-success ms-2"
+                          (click)="autoAsignarEspecializacion(esp.id)"
+                          title="Auto-asignarme esta especialización">
                     <i class="bi bi-person-plus"></i>
                   </button>
                 </td>
@@ -98,20 +100,26 @@
                   *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">
                   <div class="btn-action-group">
                     <!-- EDITAR SOLO ADMIN -->
-                    <button *ngIf="authService.canManageEspecializaciones()" class="btn-editar"
-                      title="Editar especialización" (click)="iniciarEdicion(esp)">
+                    <button *ngIf="authService.canManageEspecializaciones()"
+                            class="btn-editar" 
+                            title="Editar especialización"
+                            (click)="iniciarEdicion(esp)">
                       <i class="bi bi-pencil"></i>
                     </button>
-
+                    
                     <!-- ASIGNAR SOLO ADMIN -->
-                    <button *ngIf="authService.canAssignEspecializaciones()" class="btn-asignar"
-                      title="Asignar técnicos" (click)="iniciarAsignacion(esp)">
+                    <button *ngIf="authService.canAssignEspecializaciones()"
+                            class="btn-asignar" 
+                            title="Asignar técnicos"
+                            (click)="iniciarAsignacion(esp)">
                       <i class="bi bi-person-plus"></i>
                     </button>
-
+                    
                     <!-- ELIMINAR SOLO ADMIN -->
-                    <button *ngIf="authService.canManageEspecializaciones()" class="btn-eliminar"
-                      (click)="eliminarEspecializacion(esp.id)" title="Eliminar especialización">
+                    <button *ngIf="authService.canManageEspecializaciones()"
+                            class="btn-eliminar" 
+                            (click)="eliminarEspecializacion(esp.id)"
+                            title="Eliminar especialización">
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>

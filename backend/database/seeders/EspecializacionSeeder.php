@@ -11,17 +11,20 @@ class EspecializacionSeeder extends Seeder
     public function run(): void
     {
         $especializaciones = [
-            ['nombre' => 'Hardware'],
-            ['nombre' => 'Software'],
-            ['nombre' => 'Redes'],
-            ['nombre' => 'Electrónica'],
-            ['nombre' => 'Impresoras'],
+            ['nombre' => 'Motores 2T'],                // motosierras, motoguadañas
+            ['nombre' => 'Motores 4T'],                // cortadoras, generadores
+            ['nombre' => 'Carburación y mezcla'],      // ajuste, limpieza
+            ['nombre' => 'Electricidad y encendido'],  // bobinas, bujías, chispa
+            ['nombre' => 'Corte y afilado'],           // cadenas, cuchillas
+            ['nombre' => 'Transmisión y embrague'],    // poleas, embragues centrífugos
+            ['nombre' => 'Sistema de combustible'],    // filtros, mangueras, pérdida
+            ['nombre' => 'Diagnóstico general'],       // evaluación completa del equipo
         ];
 
         foreach ($especializaciones as $especializacion) {
             Especializacion::create($especializacion);
         }
 
-        $this->command->info('5 especializaciones creadas exitosamente!');
+        $this->command->info(count($especializaciones) . ' especializaciones de maquinaria creadas exitosamente!');
     }
 }

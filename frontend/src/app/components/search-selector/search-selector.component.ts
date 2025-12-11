@@ -13,6 +13,10 @@ export interface SearchResult {
   modelo?: string;
   nro_serie?: string;
   cliente_id?: number;
+  // Nuevas propiedades para repuestos
+  stock?: number;
+  costo_base?: number;
+  cantidad?: number;
 }
 
 @Component({
@@ -25,15 +29,15 @@ export interface SearchResult {
 export class SearchSelectorComponent implements OnInit {
   @Input() placeholder: string = 'Buscar...';
   @Input() disabled: boolean = false;
-  @Input() type: 'cliente' | 'equipo' | 'tecnico' = 'cliente';
+  @Input() type: 'cliente' | 'equipo' | 'tecnico' | 'repuesto' = 'cliente'; // AGREGADO 'repuesto'
   @Input() selectedItem: SearchResult | null = null;
-  @Input() preloadOnFocus: boolean = true; // Nueva propiedad para cargar al hacer focus
+  @Input() preloadOnFocus: boolean = true;
   
   @Output() search = new EventEmitter<string>();
   @Output() selectItem = new EventEmitter<SearchResult>();
   @Output() clearSelection = new EventEmitter<void>();
   @Output() focus = new EventEmitter<void>();
-  @Output() loadInitialData = new EventEmitter<void>(); // Nuevo evento para cargar datos iniciales
+  @Output() loadInitialData = new EventEmitter<void>();
 
   @ViewChild('searchInput', { static: false }) searchInput!: ElementRef<HTMLInputElement>;
 
@@ -42,9 +46,15 @@ export class SearchSelectorComponent implements OnInit {
   suggestions: SearchResult[] = [];
   hasSearched: boolean = false;
 
+  // Propiedades para mensajes contextuales
+  _showNoClientMessage: boolean = false;
+  _showNoResultsMessage: boolean = false;
+  _showNoEquiposMessage: boolean = false;
+  _showNoRepuestosMessage: boolean = false;
+
   ngOnInit() {
     // Configurar placeholder dinámico con instrucción
-    if (!this.placeholder.includes('para buscar')) {
+    if (!this.placeholder.includes('para buscar') && !this.placeholder.includes('Buscar')) {
       this.placeholder = `${this.placeholder} (escribe al menos 2 caracteres)`;
     }
   }
@@ -54,6 +64,28 @@ export class SearchSelectorComponent implements OnInit {
     this.suggestions = results;
     this.showSuggestions = results.length > 0;
     this.hasSearched = true;
+    
+    // Resetear mensajes
+    this._showNoResultsMessage = false;
+    this._showNoRepuestosMessage = false;
+  }
+
+  // Método para mostrar mensajes específicos
+  showMessage(type: 'noClient' | 'noResults' | 'noEquipos' | 'noRepuestos', show: boolean): void {
+    switch (type) {
+      case 'noClient':
+        this._showNoClientMessage = show;
+        break;
+      case 'noResults':
+        this._showNoResultsMessage = show;
+        break;
+      case 'noEquipos':
+        this._showNoEquiposMessage = show;
+        break;
+      case 'noRepuestos':
+        this._showNoRepuestosMessage = show;
+        break;
+    }
   }
 
   onSearch(term: string) {
@@ -61,6 +93,9 @@ export class SearchSelectorComponent implements OnInit {
     if (term.length >= 2) {
       this.search.emit(term);
       this.hasSearched = true;
+      // Ocultar mensajes cuando se realiza una búsqueda
+      this._showNoResultsMessage = false;
+      this._showNoRepuestosMessage = false;
     } else {
       this.suggestions = [];
       this.showSuggestions = false;
@@ -76,6 +111,8 @@ export class SearchSelectorComponent implements OnInit {
     this.searchTerm = this.getDisplayText(item);
     this.showSuggestions = false;
     this.suggestions = []; // Limpiar sugerencias después de seleccionar
+    // Limpiar mensajes al seleccionar
+    this.clearMessages();
   }
 
   onClear() {
@@ -85,6 +122,7 @@ export class SearchSelectorComponent implements OnInit {
     this.showSuggestions = false;
     this.hasSearched = false;
     this.clearSelection.emit();
+    this.clearMessages();
     
     if (this.searchInput) {
       this.searchInput.nativeElement.focus();
@@ -124,6 +162,8 @@ export class SearchSelectorComponent implements OnInit {
         return `${item.descripcion || ''} ${item.modelo ? `(${item.modelo})` : ''}`.trim();
       case 'tecnico':
         return item.nombre || '';
+      case 'repuesto':
+        return `${item.nombre || ''} ${item.stock !== undefined ? `(Stock: ${item.stock})` : ''}`.trim();
       default:
         return item.nombre || item.descripcion || '';
     }
@@ -137,6 +177,8 @@ export class SearchSelectorComponent implements OnInit {
         return 'Equipos encontrados';
       case 'tecnico':
         return 'Técnicos disponibles';
+      case 'repuesto':
+        return 'Repuestos disponibles';
       default:
         return 'Resultados';
     }
@@ -150,6 +192,8 @@ export class SearchSelectorComponent implements OnInit {
         return 'bi-pc';
       case 'tecnico':
         return 'bi-person-gear';
+      case 'repuesto':
+        return 'bi-tools';
       default:
         return 'bi-search';
     }
@@ -163,9 +207,44 @@ export class SearchSelectorComponent implements OnInit {
         return `${item.marca || ''} ${item.modelo || ''} ${item.nro_serie ? '| Serie: ' + item.nro_serie : ''}`.trim();
       case 'tecnico':
         return item.tipo || '';
+      case 'repuesto':
+        const costo = item.costo_base ? `Costo: $${item.costo_base}` : '';
+        const stock = item.stock !== undefined ? `Stock: ${item.stock}` : '';
+        return [costo, stock].filter(Boolean).join(' | ');
       default:
         return '';
     }
+  }
+
+  // Método para obtener el mensaje actual
+  getCurrentMessage(): string {
+    if (this._showNoClientMessage) {
+      return 'Primero selecciona un cliente';
+    }
+    if (this._showNoResultsMessage) {
+      return 'No se encontraron resultados';
+    }
+    if (this._showNoEquiposMessage) {
+      return 'Este cliente no tiene equipos registrados';
+    }
+    if (this._showNoRepuestosMessage) {
+      return 'No hay repuestos disponibles';
+    }
+    return '';
+  }
+
+  // Método para verificar si hay algún mensaje activo
+  hasMessage(): boolean {
+    return this._showNoClientMessage || this._showNoResultsMessage || 
+           this._showNoEquiposMessage || this._showNoRepuestosMessage;
+  }
+
+  // Método para limpiar todos los mensajes
+  private clearMessages(): void {
+    this._showNoClientMessage = false;
+    this._showNoResultsMessage = false;
+    this._showNoEquiposMessage = false;
+    this._showNoRepuestosMessage = false;
   }
 
   // Método para limpiar completamente el componente
@@ -175,5 +254,6 @@ export class SearchSelectorComponent implements OnInit {
     this.suggestions = [];
     this.showSuggestions = false;
     this.hasSearched = false;
+    this.clearMessages();
   }
 }
