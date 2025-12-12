@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-
+import { ModalCompraRepuestoComponent } from '../modal-compra/modal-compra.component';
 import { RepuestoService, Repuesto, PaginatedResponse } from '../../services/repuestos.service';
 import { SearchService } from '../../services/busquedaglobal';
 
@@ -11,7 +11,7 @@ type Accion = 'listar' | 'crear';
 @Component({
   selector: 'app-repuestos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ModalCompraRepuestoComponent],
   templateUrl: './repuestos.component.html',
   styleUrls: ['./repuestos.component.css']
 })
@@ -20,6 +20,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   repuestosAll: Repuesto[] = [];
   repuestos: Repuesto[] = [];
+  mostrarModalCompra = false;
 
   page = 1;
   perPage = 15;
@@ -335,5 +336,20 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
     this.fetch(1);
   }
+
+
+
+  // modal
+
+
+  abrirModalCompra() {
+  this.mostrarModalCompra = true;
+}
+
+onCompraRealizada() {
+  this.resetLista(); // recargar stock
+}
+
+
 
 }

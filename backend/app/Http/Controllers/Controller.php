@@ -219,16 +219,6 @@ namespace App\Http\Controllers;
  *     )
  * )
  * 
- * @OA\Schema(
- *     schema="Especializacion",
- *     type="object",
- *     title="Especialización",
- *     description="Modelo que representa una especialización técnica",
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="nombre", type="string", example="Reparación de Notebooks"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
- * )
  * 
  * @OA\Schema(
  *     schema="PaginationLink",

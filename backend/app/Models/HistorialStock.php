@@ -19,11 +19,11 @@ class HistorialStock extends Model
         'stock_nuevo',
         'origen_id',
         'origen_tipo',
-        'user_id',
+        'usuario_id',
     ];
 
     public function repuesto()
     {
-        return $this->belongsTo(Repuesto::class);
+        return $this->belongsTo(Repuesto::class, 'repuesto_id');
     }
 }

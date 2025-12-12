@@ -190,32 +190,53 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   // =============== CREACIÓN ===============
-  async crear(): Promise<void> {
-    const payload = this.limpiar(this.nuevo);
-    if (!this.valida(payload)) return;
+async crear(): Promise<void> {
+  console.log("➡️ Iniciando creación de cliente...");
 
-    this.alertService.showLoading('Creando cliente...');
+  const payload = this.limpiar(this.nuevo);
+  console.log("📦 Payload enviado al backend →", payload);
 
-    this.clienteService.createCliente(payload).subscribe({
-      next: (nuevoCliente: any) => {
-        this.alertService.closeLoading();
-        const clienteCompleto = { ...payload, id: nuevoCliente.id } as Cliente;
-
-        this.clientesAll.unshift(clienteCompleto);
-        this.applyFilter();
-        this.searchService.setSearchData(this.clientesAll);
-
-        this.nuevo = { nombre: '', email: '', telefono: '' };
-        this.selectedAction = 'listar';
-        
-        this.alertService.showClienteCreado(payload.nombre!);
-      },
-      error: (e) => {
-        this.alertService.closeLoading();
-        this.alertService.showGenericError('Error al crear el cliente');
-      }
-    });
+  if (!this.valida(payload)) {
+    console.warn("❌ Validación fallida, abortando creación");
+    return;
   }
+
+  this.alertService.showLoading('Creando cliente...');
+
+  this.clienteService.createCliente(payload).subscribe({
+    next: (nuevoCliente: any) => {
+      console.log("✅ Respuesta del backend (cliente creado) →", nuevoCliente);
+
+      this.alertService.closeLoading();
+
+      const clienteCompleto = { 
+        ...payload, 
+        id: nuevoCliente.id 
+      } as Cliente;
+
+      console.log("🟩 Cliente final insertado localmente →", clienteCompleto);
+
+      this.clientesAll.unshift(clienteCompleto);
+      this.applyFilter();
+      this.searchService.setSearchData(this.clientesAll);
+
+      this.nuevo = { nombre: '', email: '', telefono: '' };
+      this.selectedAction = 'listar';
+
+      this.alertService.showClienteCreado(payload.nombre!);
+    },
+
+    error: (e) => {
+      this.alertService.closeLoading();
+
+      console.error("❌ ERROR AL CREAR CLIENTE (Angular):", e);
+      console.error("❌ Backend devolvió:", e.error);
+
+      this.alertService.showGenericError('Error al crear el cliente');
+    }
+  });
+}
+
 
   // =============== ELIMINACIÓN ===============
   async eliminar(id: number): Promise<void> {
@@ -286,26 +307,43 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
   // =============== VALIDACIÓN Y UTILIDADES ===============
   private limpiar(obj: Partial<Cliente>): Partial<Cliente> {
-    return {
+    const result = {
       nombre: (obj.nombre ?? '').trim(),
       email: (obj.email ?? '').trim(),
-      telefono: (obj.telefono ?? '').trim()
+      telefono: (obj.telefono ?? '').trim(),
     };
+
+    console.log("🧹 limpiar(): Resultado final →", result);
+    return result;
   }
 
-  private valida(p: Partial<Cliente>): boolean {
-    if (!p.nombre) { 
-      this.alertService.showRequiredFieldError('nombre');
-      return false; 
-    }
-    if (!p.email) { 
-      this.alertService.showRequiredFieldError('email');
-      return false; 
-    }
-    if (!p.telefono) { 
-      this.alertService.showRequiredFieldError('teléfono');
-      return false; 
-    }
-    return true;
+
+private valida(p: Partial<Cliente>): boolean {
+  console.log("📝 Validando payload →", p);
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email!)) {
+  this.alertService.showError('Ingresá un email válido');
+  return false;
+}
+
+  if (!p.nombre) { 
+    console.warn("❌ Falta nombre");
+    this.alertService.showRequiredFieldError('nombre');
+    return false; 
   }
+  if (!p.email) { 
+    console.warn("❌ Falta email");
+    this.alertService.showRequiredFieldError('email');
+    return false; 
+  }
+  if (!p.telefono) { 
+    console.warn("❌ Falta teléfono");
+    this.alertService.showRequiredFieldError('teléfono');
+    return false; 
+  }
+
+  console.log("✅ Validación correcta");
+  return true;
+}
+
 }

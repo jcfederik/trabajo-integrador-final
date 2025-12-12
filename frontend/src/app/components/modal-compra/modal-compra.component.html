@@ -1,0 +1,96 @@
+<div class="modal-backdrop" *ngIf="mostrar" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="bi bi-cart-plus"></i>
+        Registrar Compra de Repuestos
+      </div>
+      <button class="btn-close" (click)="cerrarModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- BODY -->
+    <div class="modal-body">
+
+      <!-- ============================
+             SELECTOR DE PROVEEDOR
+      ============================= -->
+      <label class="form-label">Proveedor</label>
+
+      <app-search-selector
+        #selectorProveedor
+        type="proveedor"
+        placeholder="Buscar proveedor..."
+        [selectedItem]="selectedProveedor"
+        (search)="buscarProveedores($event)"
+        (selectItem)="seleccionarProveedor($event)"
+        (clearSelection)="limpiarProveedor()"
+        (loadInitialData)="cargarProveedoresIniciales()"
+      ></app-search-selector>
+
+      <!-- Badge del proveedor seleccionado -->
+      <div *ngIf="selectedProveedor" class="alert alert-success mt-2">
+        <strong>{{ selectedProveedor.nombre }}</strong> seleccionado
+      </div>
+
+
+      <!-- ============================
+                SELECTOR REPUESTO
+      ============================= -->
+      <label class="form-label mt-3">Repuesto</label>
+      <select
+        class="form-select"
+        [(ngModel)]="compra.repuesto_id">
+        <option value="" disabled selected>Seleccione un repuesto</option>
+        <option *ngFor="let r of repuestos" [value]="r.id">
+          {{ r.nombre }} — Stock {{ r.stock }}
+        </option>
+      </select>
+
+
+      <!-- ============================
+                  CANTIDAD
+      ============================= -->
+      <label class="form-label mt-3">Cantidad</label>
+      <input 
+        type="number" 
+        class="form-control"
+        min="1"
+        [(ngModel)]="compra.cantidad"
+        placeholder="Cantidad comprada"
+      >
+
+
+      <!-- ============================
+          NÚMERO DE COMPROBANTE
+      ============================= -->
+      <label class="form-label mt-3">Número de Comprobante</label>
+      <input 
+        type="text" 
+        class="form-control"
+        [(ngModel)]="compra.numero_comprobante"
+        placeholder="Ej: FAC-2025-001"
+      >
+
+
+      <!-- ============================
+                  BOTONES
+      ============================= -->
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <button class="btn btn-secondary" (click)="cerrarModal()">
+          <i class="bi bi-x-lg"></i>
+          Cancelar
+        </button>
+
+        <button class="btn btn-success" (click)="registrarCompra()">
+          <i class="bi bi-check-circle"></i>
+          Guardar Compra
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

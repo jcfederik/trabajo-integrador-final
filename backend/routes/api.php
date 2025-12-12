@@ -17,7 +17,8 @@ use App\Http\Controllers\{
     EspecializacionController,
     DetalleCobroController,
     CobroController,
-    HistorialStockController
+    HistorialStockController,
+    
 
 };
 
@@ -76,14 +77,18 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('presupuestos', PresupuestoController::class);
     Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
     
-    Route::apiResource('compras-repuestos', CompraRepuestoController::class);
+    Route::apiResource('compra-repuestos', CompraRepuestoController::class);
+
+
     Route::apiResource('proveedores', ProveedorController::class);
     Route::get('/proveedores/{id}/repuestos', [ProveedorController::class, 'repuestos']);
     Route::post('/proveedores/{id}/repuestos', [ProveedorController::class, 'asignarRepuesto']);
     Route::put('/proveedores/{id}/repuestos/{repuestoId}', [ProveedorController::class, 'actualizarRepuesto']);
 
     Route::apiResource('repuestos', RepuestoController::class);
+    Route::get('/historial-stock', [HistorialStockController::class, 'index']);
     
+
     // ----------------------------------------------------
     // ✅ RUTAS DE COBRO AÑADIDAS
     // ----------------------------------------------------

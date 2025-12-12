@@ -21,14 +21,17 @@ export class App {
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(event => {
-        const url = event.urlAfterRedirects;
+        let url = event.urlAfterRedirects || '';
+        // quitar querystring y hash -> quedamos solo con el pathname
+        const pathname = url.split('?')[0].split('#')[0];
 
         const rutasSinLayout = ['/login'];
 
-        if (rutasSinLayout.includes(url)) {
+        // Si la ruta empieza con /login (ej: /login?returnUrl=...), la consideramos ruta sin layout
+        if (rutasSinLayout.some(r => pathname === r || pathname.startsWith(r + '/'))) {
           this.showNavbar = false;
           this.showSidebar = false;
-        } else if (url === '/dashboard') {
+        } else if (pathname === '/dashboard' || pathname === '/') {
           this.showNavbar = true;
           this.showSidebar = false;
         } else {
@@ -37,6 +40,7 @@ export class App {
         }
       });
   }
+
 
   // 🔧 Necesario para tu app.html
   onSidebarStateChange(collapsed: boolean) {

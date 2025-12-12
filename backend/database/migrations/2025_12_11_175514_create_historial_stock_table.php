@@ -14,7 +14,7 @@ return new class extends Migration {
                   ->constrained('repuesto')
                   ->onDelete('cascade');
 
-            // Entrada, salida, ajuste, compra, asignación reparación
+            // Tipo de movimiento
             $table->string('tipo_mov', 50);
 
             // Cantidad modificada
@@ -24,14 +24,14 @@ return new class extends Migration {
             $table->integer('stock_anterior');
             $table->integer('stock_nuevo');
 
-            // Relación polimórfica (ej: compra_repuesto, reparacion_repuesto, etc.)
+            // Relación polimórfica
             $table->unsignedBigInteger('origen_id')->nullable();
             $table->string('origen_tipo', 100)->nullable();
 
             // Usuario que realizó el movimiento
-            $table->foreignId('user_id')
+            $table->foreignId('usuario_id')          
                   ->nullable()
-                  ->constrained('users')
+                  ->constrained('usuario')          
                   ->nullOnDelete();
 
             $table->timestamps();

@@ -146,8 +146,9 @@ export class NavBar implements OnInit, OnDestroy {
   }
 
   esDashboard(): boolean {
-    return this.router.url === '/dashboard' || this.router.url === '/';
+    return this.router.url.startsWith('/dashboard');
   }
+
 
   // =============== GESTIÓN DE USUARIO ===============
   private loadUserData() {
