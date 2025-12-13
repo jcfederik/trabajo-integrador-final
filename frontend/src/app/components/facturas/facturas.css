@@ -559,6 +559,10 @@
   color: white;
 }
 
+.estado-finalizado {
+  background: var(--bs-success);
+}
+
 .estado-aceptado {
   background: var(--bs-success);
 }

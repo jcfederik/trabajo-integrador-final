@@ -63,31 +63,31 @@ class PresupuestoController extends Controller
             $query = Presupuesto::query();
 
             if (!empty($search)) {
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('id', 'LIKE', "%{$search}%")
-                    ->orWhere('monto_total', 'LIKE', "%{$search}%")
-                    ->orWhere('fecha', 'LIKE', "%{$search}%")
-                    ->orWhereRaw("IF(aceptado=1,'aceptado','pendiente') LIKE ?", ["%{$search}%"]);
+                        ->orWhere('monto_total', 'LIKE', "%{$search}%")
+                        ->orWhere('fecha', 'LIKE', "%{$search}%")
+                        ->orWhereRaw("IF(aceptado=1,'aceptado','pendiente') LIKE ?", ["%{$search}%"]);
 
                     // Reparación
-                    $q->orWhereHas('reparacion', function($q2) use ($search) {
+                    $q->orWhereHas('reparacion', function ($q2) use ($search) {
                         $q2->where('descripcion', 'LIKE', "%{$search}%")
-                        ->orWhere('estado', 'LIKE', "%{$search}%");
+                            ->orWhere('estado', 'LIKE', "%{$search}%");
                     });
 
                     // Equipo
-                    $q->orWhereHas('reparacion.equipo', function($q3) use ($search) {
+                    $q->orWhereHas('reparacion.equipo', function ($q3) use ($search) {
                         $q3->where('descripcion', 'LIKE', "%{$search}%");
                     });
 
                     // Cliente
-                    $q->orWhereHas('reparacion.equipo.cliente', function($q4) use ($search) {
+                    $q->orWhereHas('reparacion.equipo.cliente', function ($q4) use ($search) {
                         $q4->where('nombre', 'LIKE', "%{$search}%")
-                        ->orWhere('telefono', 'LIKE', "%{$search}%");
+                            ->orWhere('telefono', 'LIKE', "%{$search}%");
                     });
 
                     // Técnico
-                    $q->orWhereHas('reparacion.tecnico', function($q5) use ($search) {
+                    $q->orWhereHas('reparacion.tecnico', function ($q5) use ($search) {
                         $q5->where('nombre', 'LIKE', "%{$search}%");
                     });
                 });
@@ -108,7 +108,7 @@ class PresupuestoController extends Controller
             }
 
             $presupuestos = $query->orderBy('id', 'desc')
-                                ->paginate($perPage, ['*'], 'page', $page);
+                ->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json($presupuestos, 200);
         } catch (\Throwable $e) {
@@ -168,19 +168,19 @@ class PresupuestoController extends Controller
             $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
 
             $presupuesto = Presupuesto::create($data);
-            
-            $presupuesto->load(['reparacion' => function($query) {
+
+            $presupuesto->load(['reparacion' => function ($query) {
                 $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
             }]);
-            
+
             return response()->json([
-                'mensaje' => 'Presupuesto creado correctamente', 
+                'mensaje' => 'Presupuesto creado correctamente',
                 'presupuesto' => $presupuesto
             ], 201);
         } catch (\Throwable $e) {
             Log::error('Error creando presupuesto', ['err' => $e->getMessage()]);
             return response()->json([
-                'error' => 'Error al crear el presupuesto', 
+                'error' => 'Error al crear el presupuesto',
                 'detalle' => $e->getMessage()
             ], 500);
         }
@@ -211,10 +211,10 @@ class PresupuestoController extends Controller
     public function show($id)
     {
         try {
-            $presupuesto = Presupuesto::with(['reparacion' => function($query) {
+            $presupuesto = Presupuesto::with(['reparacion' => function ($query) {
                 $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
             }])->find($id);
-            
+
             if (!$presupuesto) {
                 return response()->json(['error' => 'Presupuesto no encontrado'], 404);
             }
@@ -256,72 +256,117 @@ class PresupuestoController extends Controller
     public function buscar(Request $request)
     {
         try {
+            \Log::info('=== INICIO BÚSQUEDA PRESUPUESTOS ===', $request->all());
+
             $termino = $request->get('q');
-            
+            $perPage = $request->get('per_page', 50);
+            $soloAceptados = $request->get('aceptado', false); // Cambia a false por defecto
+
+            \Log::info('Parámetros recibidos:', [
+                'termino' => $termino,
+                'perPage' => $perPage,
+                'soloAceptados' => $soloAceptados
+            ]);
+
             if (!$termino || trim($termino) === '') {
+                \Log::info('Término vacío, retornando vacío');
                 return response()->json([], 200);
             }
 
             $termino = trim($termino);
-            
+
             $query = Presupuesto::query();
-            
-            $query->with(['reparacion' => function($q) {
-                $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'estado', 'fecha');
+
+            \Log::info('Cargando relaciones...');
+
+            // Cargar relaciones
+            $query->with(['reparacion' => function ($q) {
+                $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'estado', 'fecha')
+                    ->with(['equipo' => function ($q) {
+                        $q->select('id', 'descripcion', 'cliente_id')
+                            ->with(['cliente' => function ($q) {
+                                $q->select('id', 'nombre', 'telefono', 'email');
+                            }]);
+                    }]);
             }]);
-            
+
+            // COMENTA temporalmente este filtro para probar
+            // if ($soloAceptados) {
+            //     $query->where('aceptado', true);
+            // }
+
+            // Primero intentar búsqueda por fecha
             $esBusquedaPorFecha = $this->agregarBusquedaPorFecha($query, $termino);
-            
+
+            \Log::info('¿Es búsqueda por fecha?', ['esBusquedaPorFecha' => $esBusquedaPorFecha]);
+
             if (!$esBusquedaPorFecha) {
-                $query->where(function($query) use ($termino) {
+                \Log::info('Búsqueda normal (no fecha)');
+
+                $query->where(function ($q) use ($termino) {
                     $terminoLower = strtolower($termino);
-                    
-                    if (is_numeric($termino)) {
-                        $query->where('id', $termino)
-                            ->orWhere('monto_total', 'like', "%{$termino}%");
-                    }
-                    
-                    $query->orWhere('monto_total', 'like', "%{$termino}%");
-                    
-                    $estadoBusqueda = null;
-                    if (str_contains($terminoLower, 'aceptado') || str_contains($terminoLower, 'aceptada')) {
-                        $estadoBusqueda = true;
+
+                    $q->where('id', 'LIKE', "%{$termino}%");
+
+                    $q->orWhere('monto_total', 'LIKE', "%{$termino}%");
+
+                    if (str_contains($terminoLower, 'aceptado')) {
+                        $q->orWhere('aceptado', true);
                     } elseif (str_contains($terminoLower, 'pendiente')) {
-                        $estadoBusqueda = false;
+                        $q->orWhere('aceptado', false);
                     }
-                    
-                    if ($estadoBusqueda !== null) {
-                        $query->orWhere('aceptado', $estadoBusqueda);
-                    }
-                })
-                ->orWhereHas('reparacion', function($query) use ($termino) {
-                    $query->where('descripcion', 'like', "%{$termino}%")
-                        ->orWhere('estado', 'like', "%{$termino}%");
+
+                    $q->orWhereHas('reparacion', function ($q2) use ($termino) {
+                        $q2->where('descripcion', 'LIKE', "%{$termino}%")
+                            ->orWhere('estado', 'LIKE', "%{$termino}%");
+                    });
+
+                    $q->orWhereHas('reparacion.equipo', function ($q3) use ($termino) {
+                        $q3->where('descripcion', 'LIKE', "%{$termino}%");
+                    });
+
+                    $q->orWhereHas('reparacion.equipo.cliente', function ($q4) use ($termino) {
+                        $q4->where('nombre', 'LIKE', "%{$termino}%");
+                    });
                 });
             }
-            
+
+            \Log::info('SQL generado:', ['sql' => $query->toSql()]);
+
             $presupuestos = $query->orderBy('id', 'desc')
-                ->limit($request->get('per_page', 50))
+                ->limit($perPage)
                 ->get();
-            
+
+            \Log::info('Resultados encontrados:', [
+                'cantidad' => $presupuestos->count(),
+                'ids' => $presupuestos->pluck('id')->toArray()
+            ]);
+
             return response()->json($presupuestos->toArray(), 200);
-            
         } catch (\Exception $e) {
-            Log::error('Error buscando presupuestos', ['err' => $e->getMessage()]);
+            \Log::error('Error buscando presupuestos', [
+                'err' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([], 200);
         }
     }
-
     private function agregarBusquedaPorFecha($query, $termino)
     {
         try {
             $fecha = Carbon::createFromFormat('Y-m-d', $termino);
             $query->whereDate('fecha', $fecha->format('Y-m-d'));
             return true;
-        } catch (\Exception $e) {
-            if (is_numeric($termino)) {
-                $query->whereYear('fecha', $termino);
+        } catch (\Exception $e1) {
+            try {
+                $fecha = Carbon::createFromFormat('d/m/Y', $termino);
+                $query->whereDate('fecha', $fecha->format('Y-m-d'));
                 return true;
+            } catch (\Exception $e2) {
+                if (is_numeric($termino) && strlen($termino) == 4) {
+                    $query->whereYear('fecha', $termino);
+                    return true;
+                }
             }
         }
         return false;
@@ -369,19 +414,19 @@ class PresupuestoController extends Controller
 
         $user = Auth::user();
         $data = $request->all();
-        
+
         // ✅ RN4 y RN5: Solo secretarios/admin pueden aprobar/rechazar
         if (isset($data['aceptado'])) {
             $aceptado = filter_var($data['aceptado'], FILTER_VALIDATE_BOOLEAN);
-            
+
             if ($user->tipo === 'tecnico') {
                 return response()->json([
                     'error' => 'Los técnicos no pueden aprobar o rechazar presupuestos'
                 ], 403);
             }
-            
+
             $data['aceptado'] = $aceptado ? 1 : 0;
-            
+
             // ✅ RN5: Si se rechaza, verificar que no tenga reparación
             if ($data['aceptado'] == 0) {
                 $reparacionExistente = Reparacion::where('presupuesto_id', $presupuesto->id)->first();
@@ -398,22 +443,22 @@ class PresupuestoController extends Controller
             if (isset($data['fecha'])) {
                 $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
             }
-            
+
             $presupuesto->update($data);
-            
+
             // Cargar relaciones actualizadas
-            $presupuesto->load(['reparacion' => function($query) {
+            $presupuesto->load(['reparacion' => function ($query) {
                 $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
             }]);
-            
+
             return response()->json([
-                'mensaje' => 'Presupuesto actualizado correctamente', 
+                'mensaje' => 'Presupuesto actualizado correctamente',
                 'presupuesto' => $presupuesto
             ], 200);
         } catch (\Throwable $e) {
             Log::error('Error actualizando presupuesto', ['err' => $e->getMessage()]);
             return response()->json([
-                'error' => 'Error al actualizar el presupuesto', 
+                'error' => 'Error al actualizar el presupuesto',
                 'detalle' => $e->getMessage()
             ], 500);
         }
@@ -442,7 +487,7 @@ class PresupuestoController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        
+
         // ✅ Solo administradores pueden eliminar
         if ($user->tipo !== 'administrador') {
             return response()->json([
@@ -462,13 +507,13 @@ class PresupuestoController extends Controller
                     'error' => 'No se puede eliminar un presupuesto con reparación asociada'
                 ], 400);
             }
-            
+
             $presupuesto->delete();
             return response()->json(['mensaje' => 'Presupuesto eliminado correctamente'], 200);
         } catch (\Exception $e) {
             Log::error('Error eliminando presupuesto', ['err' => $e->getMessage()]);
             return response()->json([
-                'error' => 'Error al eliminar el presupuesto', 
+                'error' => 'Error al eliminar el presupuesto',
                 'detalle' => $e->getMessage()
             ], 500);
         }
@@ -489,34 +534,34 @@ class PresupuestoController extends Controller
             // Búsqueda
             if ($request->filled('search')) {
                 $search = $request->search;
-                
+
                 $query->where(function ($q) use ($search) {
                     $q->where('id', 'LIKE', "%$search%")
-                      ->orWhere('monto_total', 'LIKE', "%$search%")
-                      ->orWhere('fecha', 'LIKE', "%$search%")
-                      ->orWhere('aceptado', $search === 'aceptado' ? 1 : ($search === 'pendiente' ? 0 : null));
-                    
+                        ->orWhere('monto_total', 'LIKE', "%$search%")
+                        ->orWhere('fecha', 'LIKE', "%$search%")
+                        ->orWhere('aceptado', $search === 'aceptado' ? 1 : ($search === 'pendiente' ? 0 : null));
+
                     $q->orWhereHas('reparacion', function ($q) use ($search) {
                         $q->where('descripcion', 'LIKE', "%$search%")
-                          ->orWhere('estado', 'LIKE', "%$search%");
+                            ->orWhere('estado', 'LIKE', "%$search%");
                     });
-                    
+
                     $q->orWhereHas('reparacion.equipo', function ($q) use ($search) {
                         $q->where('descripcion', 'LIKE', "%$search%")
-                          ->orWhere('marca', 'LIKE', "%$search%")
-                          ->orWhere('modelo', 'LIKE', "%$search%")
-                          ->orWhere('nro_serie', 'LIKE', "%$search%");
+                            ->orWhere('marca', 'LIKE', "%$search%")
+                            ->orWhere('modelo', 'LIKE', "%$search%")
+                            ->orWhere('nro_serie', 'LIKE', "%$search%");
                     });
-                    
+
                     $q->orWhereHas('reparacion.equipo.cliente', function ($q) use ($search) {
                         $q->where('nombre', 'LIKE', "%$search%")
-                          ->orWhere('telefono', 'LIKE', "%$search%")
-                          ->orWhere('email', 'LIKE', "%$search%");
+                            ->orWhere('telefono', 'LIKE', "%$search%")
+                            ->orWhere('email', 'LIKE', "%$search%");
                     });
-                    
+
                     $q->orWhereHas('reparacion.tecnico', function ($q) use ($search) {
                         $q->where('nombre', 'LIKE', "%$search%")
-                          ->orWhere('tipo', 'LIKE', "%$search%");
+                            ->orWhere('tipo', 'LIKE', "%$search%");
                     });
                 });
             }
@@ -527,7 +572,11 @@ class PresupuestoController extends Controller
             // Paginación
             $perPage = min($request->input('per_page', 20), 100);
             $presupuestos = $query->paginate($perPage, [
-                'id', 'reparacion_id', 'fecha', 'monto_total', 'aceptado'
+                'id',
+                'reparacion_id',
+                'fecha',
+                'monto_total',
+                'aceptado'
             ]);
 
             Log::info('Presupuestos encontrados: ' . $presupuestos->count());
@@ -535,7 +584,7 @@ class PresupuestoController extends Controller
             // Transformación
             $presupuestos->getCollection()->transform(function ($presupuesto) {
                 $reparacion = $presupuesto->reparacion;
-                
+
                 if (!$reparacion) {
                     return [
                         'id' => $presupuesto->id,
@@ -557,7 +606,7 @@ class PresupuestoController extends Controller
                     'fecha' => $presupuesto->fecha,
                     'monto_total' => $presupuesto->monto_total,
                     'aceptado' => (bool)$presupuesto->aceptado,
-                    
+
                     'reparacion' => [
                         'id' => $reparacion->id,
                         'descripcion' => $reparacion->descripcion,
@@ -565,11 +614,11 @@ class PresupuestoController extends Controller
                         'usuario_id' => $reparacion->usuario_id,
                         'fecha' => $reparacion->fecha,
                         'estado' => $reparacion->estado,
-                        
+
                         'equipo_nombre' => $equipo->descripcion ?? 'Sin equipo',
                         'cliente_nombre' => $cliente->nombre ?? 'No especificado',
                         'tecnico_nombre' => $tecnico->nombre ?? 'Sin técnico',
-                        
+
                         'equipo' => $equipo ? [
                             'id' => $equipo->id,
                             'descripcion' => $equipo->descripcion,
@@ -584,7 +633,7 @@ class PresupuestoController extends Controller
                                 'email' => $cliente->email
                             ] : null
                         ] : null,
-                        
+
                         'tecnico' => $tecnico ? [
                             'id' => $tecnico->id,
                             'nombre' => $tecnico->nombre,
@@ -595,11 +644,10 @@ class PresupuestoController extends Controller
             });
 
             return response()->json($presupuestos);
-
         } catch (\Exception $e) {
             Log::error('Error en listadoOptimizado: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'error' => 'Error interno del servidor',
                 'message' => $e->getMessage()

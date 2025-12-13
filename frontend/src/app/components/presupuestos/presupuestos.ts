@@ -282,61 +282,65 @@ private resetBusqueda(): void {
     const terminoLimpio = termino || '';
     
     if (!terminoLimpio.trim()) {
-      this.searchTerm = '';
-      this.isServerSearch = false;
-      this.searchService.setSearchTerm('');
+        this.searchTerm = '';
+        this.isServerSearch = false;
+        this.searchService.setSearchTerm('');
 
-      this.items = [...this.itemsAll];
+        this.items = [...this.itemsAll];
 
-      this.reparacionesSugeridas = [];
-      this.mostrandoReparaciones = false;
-      this.buscandoReparaciones = false;
+        this.reparacionesSugeridas = [];
+        this.mostrandoReparaciones = false;
+        this.buscandoReparaciones = false;
 
-      return;
+        return;
     }
 
     this.buscandoReparaciones = true;
     
     this.reparacionSvc.buscarReparaciones(terminoLimpio).subscribe({
-      next: (response: any | { data: any[] }) => {
-        const reparaciones = response.data || response;
-        this.reparacionesSugeridas = Array.isArray(reparaciones) ? reparaciones.slice(0, 10) : [];
-        this.mostrandoReparaciones = true;
-        this.buscandoReparaciones = false;
-        this.actualizarCacheReparaciones(this.reparacionesSugeridas);
-      },
-      error: (error) => {
-        this.buscandoReparaciones = false;
-        this.reparacionesSugeridas = [];
-      }
+        next: (response: any | { data: any[] }) => {
+            const reparaciones = response.data || response;
+            this.reparacionesSugeridas = Array.isArray(reparaciones) ? reparaciones.slice(0, 10) : [];
+            this.mostrandoReparaciones = true;
+            this.buscandoReparaciones = false;
+            this.actualizarCacheReparaciones(this.reparacionesSugeridas);
+        },
+        error: (error) => {
+            console.error('Error buscando reparaciones:', error);
+            this.buscandoReparaciones = false;
+            this.reparacionesSugeridas = [];
+        }
     });
   }
+
 
   private buscarReparacionesEdit(termino: string): void {
     const terminoLimpio = termino || '';
     
     if (!terminoLimpio.trim()) {
-      this.reparacionesSugeridasEdit = [];
-      this.mostrandoReparacionesEdit = false;
-      return;
+        this.reparacionesSugeridasEdit = [];
+        this.mostrandoReparacionesEdit = false;
+        return;
     }
 
     this.buscandoReparacionesEdit = true;
     
     this.reparacionSvc.buscarReparaciones(terminoLimpio).subscribe({
-      next: (response: any | { data: any[] }) => {
-        const reparaciones = response.data || response;
-        this.reparacionesSugeridasEdit = Array.isArray(reparaciones) ? reparaciones.slice(0, 10) : [];
-        this.mostrandoReparacionesEdit = true;
-        this.buscandoReparacionesEdit = false;
-        this.actualizarCacheReparaciones(this.reparacionesSugeridasEdit);
-      },
-      error: (error) => {
-        this.buscandoReparacionesEdit = false;
-        this.reparacionesSugeridasEdit = [];
-      }
+        next: (response: any | { data: any[] }) => {
+            const reparaciones = response.data || response;
+            this.reparacionesSugeridasEdit = Array.isArray(reparaciones) ? reparaciones.slice(0, 10) : [];
+            this.mostrandoReparacionesEdit = true;
+            this.buscandoReparacionesEdit = false;
+            this.actualizarCacheReparaciones(this.reparacionesSugeridasEdit);
+        },
+        error: (error) => {
+            console.error('Error buscando reparaciones (edición):', error);
+            this.buscandoReparacionesEdit = false;
+            this.reparacionesSugeridasEdit = [];
+        }
     });
   }
+
 
   private actualizarCacheReparaciones(reparaciones: Reparacion[]): void {
     reparaciones.forEach(reparacion => {

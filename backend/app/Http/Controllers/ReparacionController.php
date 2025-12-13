@@ -546,40 +546,29 @@ class ReparacionController extends Controller
                 'repuestos'
             ]);
 
-            // Búsqueda
+            // Búsqueda SIMPLIFICADA temporalmente
             if ($request->has('search') && $request->search !== '') {
                 $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('descripcion', 'LIKE', "%$search%")
-                    ->orWhere('estado', 'LIKE', "%$search%")
-                    ->orWhere('fecha', 'LIKE', "%$search%")
-                    ->orWhereHas('equipo', function ($q2) use ($search) {
-                        $q2->where('descripcion', 'LIKE', "%$search%")
-                            ->orWhere('marca', 'LIKE', "%$search%")
-                            ->orWhere('modelo', 'LIKE', "%$search%")
-                            ->orWhere('nro_serie', 'LIKE', "%$search%")
-                            ->orWhereHas('cliente', function ($q3) use ($search) {
-                                $q3->where('nombre', 'LIKE', "%$search%")
-                                    ->orWhere('email', 'LIKE', "%$search%")
-                                    ->orWhere('telefono', 'LIKE', "%$search%");
-                            });
-                    })
-                    ->orWhereHas('tecnico', function ($q2) use ($search) {
-                        $q2->where('nombre', 'LIKE', "%$search%")
-                            ->orWhere('email', 'LIKE', "%$search%");
-                    });
-                });
+                $query->where('descripcion', 'LIKE', "%$search%");
             }
 
-            // Orden por defecto
             $query->orderBy('id', 'desc');
 
-            // Paginación
             $perPage = $request->get('per_page', 10);
             $reparaciones = $query->paginate($perPage);
 
-            // Transformar datos para incluir campos calculados
+            // Transformar datos de forma SEGURA
             $reparaciones->getCollection()->transform(function ($reparacion) {
+                // Manejo seguro de null con operador ternario
+                $equipoNombre = $reparacion->equipo ? $reparacion->equipo->descripcion : 'Sin equipo';
+                
+                $clienteNombre = 'No especificado';
+                if ($reparacion->equipo && $reparacion->equipo->cliente) {
+                    $clienteNombre = $reparacion->equipo->cliente->nombre;
+                }
+                
+                $tecnicoNombre = $reparacion->tecnico ? $reparacion->tecnico->nombre : 'Sin técnico';
+                
                 return [
                     'id' => $reparacion->id,
                     'descripcion' => $reparacion->descripcion,
@@ -587,9 +576,9 @@ class ReparacionController extends Controller
                     'estado' => $reparacion->estado,
                     'equipo_id' => $reparacion->equipo_id,
                     'usuario_id' => $reparacion->usuario_id,
-                    'equipo_nombre' => $reparacion->equipo->descripcion ?? 'Sin equipo',
-                    'cliente_nombre' => $reparacion->equipo->cliente->nombre ?? 'No especificado',
-                    'tecnico_nombre' => $reparacion->tecnico->nombre ?? 'Sin técnico',
+                    'equipo_nombre' => $equipoNombre,
+                    'cliente_nombre' => $clienteNombre,
+                    'tecnico_nombre' => $tecnicoNombre,
                     'equipo' => $reparacion->equipo,
                     'tecnico' => $reparacion->tecnico,
                     'repuestos' => $reparacion->repuestos
@@ -599,13 +588,15 @@ class ReparacionController extends Controller
             return response()->json($reparaciones);
 
         } catch (\Exception $e) {
-            Log::error('Error en completo método: ' . $e->getMessage());
+            \Log::error('Error en completo: ' . $e->getMessage());
+            \Log::error('Trace: ' . $e->getTraceAsString());
+            
             return response()->json([
-                'error' => 'Error al cargar reparaciones: ' . $e->getMessage()
+                'error' => 'Error al cargar reparaciones',
+                'debug' => env('APP_DEBUG') ? $e->getMessage() : null
             ], 500);
         }
     }
-
     /**
      * @OA\Post(
      *     path="/api/reparaciones/{reparacionId}/repuestos",

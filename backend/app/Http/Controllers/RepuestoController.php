@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Repuesto;
+use App\Models\HistorialStock;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -260,6 +262,109 @@ class RepuestoController extends Controller
             return response()->json(['mensaje' => 'Repuesto actualizado correctamente', 'repuesto' => $repuesto], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al actualizar el repuesto', 'detalle' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/repuestos/comprar",
+     *     summary="Comprar repuestos (crea o actualiza stock)",
+     *     tags={"Repuestos"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"nombre", "cantidad", "costo_base"},
+     *             @OA\Property(property="nombre", type="string", example="Filtro de aceite"),
+     *             @OA\Property(property="cantidad", type="integer", example=10),
+     *             @OA\Property(property="costo_base", type="number", format="float", example=1200.50),
+     *             @OA\Property(property="descripcion", type="string", example="Compra proveedor XYZ", nullable=true),
+     *             @OA\Property(property="proveedor", type="string", example="Proveedor ABC", nullable=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201, 
+     *         description="Repuesto comprado/actualizado correctamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="mensaje", type="string", example="Repuesto comprado/actualizado correctamente"),
+     *             @OA\Property(property="repuesto", ref="#/components/schemas/Repuesto"),
+     *             @OA\Property(property="historial", type="object", description="Registro en el historial")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Datos inválidos"),
+     *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=500, description="Error al procesar la compra")
+     * )
+     */
+    public function comprar(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:255',
+            'cantidad' => 'required|integer|min:1',
+            'costo_base' => 'required|numeric|min:0',
+            'descripcion' => 'nullable|string',
+            'proveedor' => 'nullable|string|max:255'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Buscar si el repuesto ya existe
+            $repuesto = Repuesto::where('nombre', 'LIKE', $request->nombre)->first();
+
+            if ($repuesto) {
+                // Si existe, actualizar stock y costo
+                $stockAnterior = $repuesto->stock;
+                $repuesto->stock += $request->cantidad;
+                
+                // Actualizar costo base si es necesario (promedio ponderado)
+                if ($request->costo_base > 0) {
+                    $nuevoCosto = (($repuesto->costo_base * $stockAnterior) + ($request->costo_base * $request->cantidad)) 
+                                / ($stockAnterior + $request->cantidad);
+                    $repuesto->costo_base = $nuevoCosto;
+                }
+                
+                $repuesto->save();
+                $mensaje = 'Stock actualizado correctamente';
+            } else {
+                // Si no existe, crear nuevo repuesto
+                $repuesto = Repuesto::create([
+                    'nombre' => $request->nombre,
+                    'stock' => $request->cantidad,
+                    'costo_base' => $request->costo_base
+                ]);
+                $stockAnterior = 0;
+                $mensaje = 'Repuesto creado correctamente';
+            }
+
+            // Registrar en el historial de stock
+            $historial = HistorialStock::create([
+                'repuesto_id' => $repuesto->id,
+                'tipo_mov' => 'COMPRA',
+                'cantidad' => $request->cantidad,
+                'stock_anterior' => $stockAnterior,
+                'stock_nuevo' => $repuesto->stock,
+                'descripcion' => $request->descripcion ?? "Compra: {$request->cantidad} unidades" . 
+                    ($request->proveedor ? " - Proveedor: {$request->proveedor}" : ""),
+                'referencia_type' => 'App\Models\Compra',
+                'created_at' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'mensaje' => $mensaje,
+                'repuesto' => $repuesto,
+                'historial' => $historial
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error al procesar la compra', 'detalle' => $e->getMessage()], 500);
         }
     }
 
