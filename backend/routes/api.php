@@ -18,8 +18,6 @@ use App\Http\Controllers\{
     DetalleCobroController,
     CobroController,
     HistorialStockController,
-    
-
 };
 
 // RUTAS PÚBLICAS
@@ -35,88 +33,79 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     // Perfil de usuario autenticado
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
-    //Route::post('/profile/especializaciones', [AdminUserController::class, 'asignarEspecializaciones']);
     
-    // Rutas adicionales completas
-    Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
-    Route::get('/presupuestos/listado-optimizado', [PresupuestoController::class, 'listadoOptimizado']);
-
-    // Recursos accesibles por cualquier usuario autenticado
-    Route::get('/usuario/buscar', [ClienteController::class, 'buscar']);
-    Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
-    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
-    Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
-    Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);
-    Route::get('/facturas/{id}/saldo', [FacturaController::class, 'getSaldoPendiente']);   
-    Route::get('/facturas/{id}/cobros', [FacturaController::class, 'getCobrosPorFactura']);  
-    Route::apiResource('clientes', ClienteController::class);
-    Route::get('/usuarios/buscar', [UserController::class, 'buscar']);
-    
-    Route::apiResource('clientes', ClienteController::class);
-    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
-    Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
-    Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);    
-
-    Route::apiResource('equipos', EquipoController::class);
-    Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
-    
-    Route::apiResource('medios-cobro', MedioCobroController::class);
-    Route::apiResource('facturas', FacturaController::class);
-    Route::get('/facturas/{id}/cobros', [FacturaController::class, 'getCobrosPorFactura']);
-    Route::get('/facturas/{id}/saldo', [FacturaController::class, 'getSaldoPendiente']);
-    
-    Route::apiResource('reparaciones', ReparacionController::class);
+    // =============================================
+    // 🔥 RUTAS DE BÚSQUEDA ESPECÍFICAS
+    // =============================================
     Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
     Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
+    Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
+    Route::get('/presupuestos/listado-optimizado', [PresupuestoController::class, 'listadoOptimizado']);
+    Route::get('/clientes/buscar', [ClienteController::class, 'buscar']);
+    Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
+    Route::get('/repuestos/buscar', [RepuestoController::class, 'buscar']);
+    Route::get('/usuarios/buscar', [UserController::class, 'buscar']);
+    Route::get('/usuario/buscar', [ClienteController::class, 'buscar']); // ¿Es necesario? Parece duplicado
+    
+    // =============================================
+    // 📋 RUTAS DE RECURSOS PRINCIPALES
+    // =============================================
+    Route::apiResource('reparaciones', ReparacionController::class);
+    Route::apiResource('clientes', ClienteController::class);
+    Route::apiResource('equipos', EquipoController::class);
+    Route::apiResource('presupuestos', PresupuestoController::class);
+    Route::apiResource('repuestos', RepuestoController::class);
+    Route::apiResource('facturas', FacturaController::class);
+    Route::apiResource('medios-cobro', MedioCobroController::class);
+    Route::apiResource('proveedores', ProveedorController::class);
+    Route::apiResource('compra-repuestos', CompraRepuestoController::class);
+    Route::apiResource('especializaciones', EspecializacionController::class)->only(['index', 'show']);
+    Route::apiResource('cobros', CobroController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('detalle-cobros', DetalleCobroController::class)->only(['index', 'show']);
+    
+    // =============================================
+    // 🔗 RUTAS ADICIONALES CON PARÁMETROS
+    // =============================================
+    // Reparaciones
     Route::post('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'assignRepuesto']);
     Route::delete('/reparaciones/{reparacion}/repuestos/{pivotId}', [ReparacionController::class, 'removeRepuesto']);
     Route::get('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'getRepuestosAsignados']);
     
-    Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
-    Route::apiResource('presupuestos', PresupuestoController::class);
+    // Clientes
+    Route::get('/clientes/{id}/facturas', [ClienteController::class, 'facturasPorCliente']);
+    Route::get('/clientes/{id}/facturas/todas', [ClienteController::class, 'todasFacturasPorCliente']);
     
-    Route::apiResource('compra-repuestos', CompraRepuestoController::class);
-
-
-    Route::apiResource('proveedores', ProveedorController::class);
+    // Facturas
+    Route::get('/facturas/{id}/saldo', [FacturaController::class, 'getSaldoPendiente']);   
+    Route::get('/facturas/{id}/cobros', [FacturaController::class, 'getCobrosPorFactura']);
+    
+    // Proveedores
     Route::get('/proveedores/{id}/repuestos', [ProveedorController::class, 'repuestos']);
     Route::post('/proveedores/{id}/repuestos', [ProveedorController::class, 'asignarRepuesto']);
     Route::put('/proveedores/{id}/repuestos/{repuestoId}', [ProveedorController::class, 'actualizarRepuesto']);
-
-    Route::apiResource('repuestos', RepuestoController::class);
-    Route::get('/repuestos/buscar', [RepuestoController::class, 'buscar']);
+    
+    // Repuestos
     Route::post('/repuestos/comprar', [RepuestoController::class, 'comprar']);
+    
+    // Historial
     Route::get('/historial-stock', [HistorialStockController::class, 'index']);
     
-
-
-
-
-    // ----------------------------------------------------
-    // ✅ RUTAS DE COBRO AÑADIDAS
-    // ----------------------------------------------------
-    Route::apiResource('cobros', CobroController::class)->only(['index', 'store', 'show']);
-    Route::apiResource('detalle-cobros', DetalleCobroController::class)->only(['index', 'show']);
+    // Usuarios
+    Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
     
-    // Las rutas de 'detalle-cobros' ya estaban, pero aquí se consolidan por tema.
-    // ----------------------------------------------------
-
-    // ESPECIALIZACIONES - Lectura para todos
-    Route::apiResource('especializaciones', EspecializacionController::class)->only(['index', 'show']);
-    
-    // ✅ CREACIÓN de especializaciones para técnicos y admin
+    // =============================================
+    // ✨ CREACIÓN (no requiere admin)
+    // =============================================
     Route::post('/especializaciones', [EspecializacionController::class, 'store']);
-    
-    // ✅ AUTO-ASIGNACIÓN para técnicos
     Route::post('/users/{id}/especializaciones', [AdminUserController::class, 'autoAsignarEspecializaciones']);
     
-    // ✅ RUTAS SOLO PARA ADMINISTRADORES
+    // =============================================
+    // 👑 RUTAS SOLO PARA ADMINISTRADORES
+    // =============================================
     Route::middleware(['admin'])->group(function () {
-        // Edición y eliminación de especializaciones solo para admin
         Route::put('/especializaciones/{id}', [EspecializacionController::class, 'update']);
         Route::delete('/especializaciones/{id}', [EspecializacionController::class, 'destroy']);
         
-        // Gestión completa de usuarios
         Route::apiResource('users', AdminUserController::class);
         Route::post('/admin/users/{id}/especializaciones', [AdminUserController::class, 'asignarEspecializacionesUsuario']);
     });

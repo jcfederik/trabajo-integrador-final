@@ -6,7 +6,7 @@ import { Subscription } from 'rxjs';
 import { RepuestoService, Repuesto, PaginatedResponse } from '../../services/repuestos.service';
 import { SearchService } from '../../services/busquedaglobal';
 
-type Accion = 'listar' | 'crear';
+type Accion = 'listar' | 'comprar';
 
 @Component({
   selector: 'app-repuestos',
@@ -38,11 +38,17 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     costo_base: 0
   };
 
-  // Creación
-  nuevo: Partial<Repuesto> = {
+  // Compra (reemplaza creación)
+  nuevo: Partial<Repuesto> & { 
+    cantidad: number; 
+    descripcion?: string; 
+    proveedor?: string 
+  } = {
     nombre: '',
-    stock: 0,
-    costo_base: 0
+    cantidad: 0,
+    costo_base: 0,
+    descripcion: '',
+    proveedor: ''
   };
 
   constructor(
@@ -83,7 +89,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       }
     });
   }
-
 
   // ====== LISTA / PAGINACIÓN ======
   private fetch(page = 1): void {
@@ -132,40 +137,62 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  // ====== CREAR REPUESTO ======
-  crear(): void {
-    const payload = this.limpiarPayload(this.nuevo);
-    if (!this.validarPayload(payload)) return;
+  // ====== COMPRAR REPUESTO ======
+  comprar(): void {
+    const payload = {
+      nombre: this.nuevo.nombre?.toString().trim() || '',
+      cantidad: Number(this.nuevo.cantidad) || 0,
+      costo_base: Number(this.nuevo.costo_base) || 0,
+      descripcion: this.nuevo.descripcion?.toString().trim(),
+      proveedor: this.nuevo.proveedor?.toString().trim()
+    };
 
-    console.log('Enviando payload:', payload);
+    if (!this.validarCompra(payload)) return;
 
-    this.repuestoService.createRepuesto(payload).subscribe({
+    this.repuestoService.comprarRepuesto(payload).subscribe({
       next: (response: any) => {
-        console.log('Respuesta del servidor:', response);
-
-        const nuevoRepuesto = response.repuesto || response.data || response;
 
         this.selectedAction = 'listar';
-        this.nuevo = { nombre: '', stock: 0, costo_base: 0 };
+        this.nuevo = { 
+          nombre: '', 
+          cantidad: 0, 
+          costo_base: 0, 
+          descripcion: '', 
+          proveedor: '' 
+        };
+        
+        // Recargar lista
         this.resetLista();
-        alert('Repuesto creado exitosamente!');
+        
+        // Mostrar mensaje
+        let mensaje = '¡Compra realizada exitosamente!';
+        if (response.historial) {
+          mensaje += `\nStock anterior: ${response.historial.stock_anterior}`;
+          mensaje += `\nStock nuevo: ${response.historial.stock_nuevo}`;
+        }
+        alert(mensaje);
       },
       error: (e) => {
-        console.error('Error completo al crear repuesto:', e);
-
-        let mensajeError = 'Error al crear repuesto';
-
-        if (e.error?.error) {
-          mensajeError = e.error.error;
-        } else if (e.error?.message) {
-          mensajeError = e.error.message;
-        } else if (e.message) {
-          mensajeError = e.message;
-        }
-
-        alert(mensajeError);
+        this.manejarError(e, 'comprar repuesto');
       }
     });
+  }
+
+  // Método de validación para compra
+  private validarCompra(p: any): boolean {
+    if (!p.nombre || p.nombre.trim() === '') {
+      alert('Completá el nombre del repuesto.');
+      return false;
+    }
+    if (p.cantidad === null || p.cantidad === undefined || p.cantidad <= 0) {
+      alert('La cantidad debe ser mayor a 0.');
+      return false;
+    }
+    if (p.costo_base === null || p.costo_base === undefined || p.costo_base < 0) {
+      alert('El costo base no puede ser negativo.');
+      return false;
+    }
+    return true;
   }
 
   eliminar(id: number): void {
@@ -204,11 +231,8 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     const payload = this.limpiarPayload(this.editBuffer);
     if (!this.validarPayload(payload)) return;
 
-    console.log('Actualizando repuesto:', id, payload);
-
     this.repuestoService.updateRepuesto(id, payload).subscribe({
       next: (response: any) => {
-        console.log('Respuesta de actualización:', response);
 
         const repuestoActualizado = response.repuesto || response.data || response;
 
@@ -335,5 +359,4 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
     this.fetch(1);
   }
-
 }

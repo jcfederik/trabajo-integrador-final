@@ -141,16 +141,22 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   onBuscarReparaciones(termino: string): void {
     const terminoLimpio = (termino || '').trim();
     
+    console.log('🔍 Buscando con término:', terminoLimpio);
+    
     if (!terminoLimpio) {
-      this.resetBusqueda();
+      // Si el término está vacío, limpiar resultados
+      this.reparacionesFiltradas = [...this.reparacionesAll];
+      this.isServerSearch = false;
       return;
     }
 
     this.searchTerm = terminoLimpio;
 
     if (terminoLimpio.length <= 2) {
+      // Búsqueda local para términos cortos
       this.applyFilterLocal();
     } else {
+      // Búsqueda en servidor para términos largos
       this.busquedaReparacion.next(terminoLimpio);
     }
   }
@@ -160,25 +166,33 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.serverSearchPage = 1;
     this.serverSearchLastPage = false;
 
-    this.repService.listCompleto(1, this.perPage, termino).subscribe({
-      next: (response: PaginatedResponse<Reparacion>) => {
-        this.reparacionesAll = response.data;
-        this.reparacionesFiltradas = [...this.reparacionesAll];
+    console.log('📡 Buscando en servidor:', termino);
+
+    this.repService.buscarReparaciones(termino).subscribe({
+      next: (reparaciones: Reparacion[]) => {
+        console.log('✅ Resultados del servidor:', reparaciones.length);
         
-        const itemsForSearch = this.reparacionesAll.map(reparacion => ({
-          ...reparacion,
-          tecnico_nombre: this.getTecnicoNombre(reparacion),
-          equipo_nombre: this.getEquipoNombre(reparacion),
-          reparacion_nombre: reparacion.descripcion || 'Sin descripción',
-          cliente_nombre: this.getClienteNombre(reparacion)
-        }));
-        this.searchService.setSearchData(itemsForSearch);
+        // Si no hay resultados, usar búsqueda local como fallback
+        if (!reparaciones || reparaciones.length === 0) {
+          console.log('⚠️ Sin resultados del servidor, usando búsqueda local');
+          this.applyFilterLocal();
+          return;
+        }
+        
+        this.reparacionesAll = reparaciones;
+        this.reparacionesFiltradas = [...reparaciones];
+        
+        // Preparar datos para búsqueda global
+        this.prepararDatosParaBusquedaGlobal();
       },
       error: (error) => {
+        console.error('❌ Error en búsqueda servidor:', error);
+        console.log('🔄 Usando búsqueda local como fallback');
         this.applyFilterLocal();
       }
     });
   }
+
 
   private applyFilterLocal(): void {
     const term = this.searchTerm.toLowerCase();

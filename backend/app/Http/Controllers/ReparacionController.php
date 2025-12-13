@@ -131,34 +131,72 @@ class ReparacionController extends Controller
      */
     public function buscar(Request $request)
     {
+        \Log::info('🔍 ===== INICIO buscar() =====');
+        \Log::info('Parámetros recibidos:', $request->all());
+        
         $termino = $request->get('q');
         $perPage = $request->get('per_page', 100);
 
+        \Log::info('Término de búsqueda:', ['q' => $termino]);
+
         if (!$termino) {
-            return response()->json([], 200);
+            \Log::info('❌ Término vacío, devolviendo array vacío');
+            return response()->json(['data' => []], 200);
         }
 
         try {
+            \Log::info('📝 Construyendo consulta...');
+            
+            // Primero, prueba una consulta SIMPLE
             $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
-                ->where(function($query) use ($termino) {
-                    $query->where('descripcion', 'LIKE', "%{$termino}%")
-                          ->orWhere('estado', 'LIKE', "%{$termino}%")
-                          ->orWhereHas('equipo', function($q) use ($termino) {
-                              $q->where('descripcion', 'LIKE', "%{$termino}%")
-                                ->orWhere('marca', 'LIKE', "%{$termino}%")
-                                ->orWhere('modelo', 'LIKE', "%{$termino}%")
-                                ->orWhere('nro_serie', 'LIKE', "%{$termino}%");
-                          })
-                          ->orWhereHas('tecnico', function($q) use ($termino) {
-                              $q->where('nombre', 'LIKE', "%{$termino}%")
-                                ->orWhere('email', 'LIKE', "%{$termino}%");
-                          });
-                })
+                ->where('descripcion', 'LIKE', "%{$termino}%")
                 ->paginate($perPage);
 
-            return response()->json($reparaciones, 200);
+            \Log::info('🔍 Consulta SQL ejecutada: ' . Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                ->where('descripcion', 'LIKE', "%{$termino}%")
+                ->toSql());
+            
+            \Log::info('📊 Resultados encontrados: ' . $reparaciones->count());
+            
+            if ($reparaciones->count() === 0) {
+                \Log::info('⚠️ No se encontraron resultados con descripción, probando búsqueda más amplia...');
+                
+                // Búsqueda más amplia
+                $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                    ->where(function($query) use ($termino) {
+                        $query->where('descripcion', 'LIKE', "%{$termino}%")
+                            ->orWhere('estado', 'LIKE', "%{$termino}%")
+                            ->orWhere('id', 'LIKE', "%{$termino}%");
+                    })
+                    ->paginate($perPage);
+                    
+                \Log::info('🔍 Segunda consulta SQL: ' . Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                    ->where(function($query) use ($termino) {
+                        $query->where('descripcion', 'LIKE', "%{$termino}%")
+                            ->orWhere('estado', 'LIKE', "%{$termino}%")
+                            ->orWhere('id', 'LIKE', "%{$termino}%");
+                    })
+                    ->toSql());
+                
+                \Log::info('📊 Resultados segunda búsqueda: ' . $reparaciones->count());
+            }
+
+            \Log::info('✅ Preparando respuesta con ' . $reparaciones->count() . ' resultados');
+            
+            return response()->json([
+                'data' => $reparaciones->items(),
+                'current_page' => $reparaciones->currentPage(),
+                'last_page' => $reparaciones->lastPage(),
+                'per_page' => $reparaciones->perPage(),
+                'total' => $reparaciones->total(),
+                'from' => $reparaciones->firstItem(),
+                'to' => $reparaciones->lastItem()
+            ], 200);
+            
         } catch (\Exception $e) {
-            return response()->json([], 200);
+            \Log::error('💥 ERROR en buscar(): ' . $e->getMessage());
+            \Log::error('Trace: ' . $e->getTraceAsString());
+            return response()->json(['data' => []], 200);
         }
     }
 

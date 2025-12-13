@@ -91,28 +91,47 @@ export class SearchSelectorComponent implements OnInit {
 
   onSearch(term: string) {
     this.searchTerm = term;
+    
+    // Si el término está vacío o tiene menos de 2 caracteres
+    if (!term || term.trim().length < 2) {
+      this.suggestions = [];
+      this.showSuggestions = false;
+      this.hasSearched = false;
+      return;
+    }
+    
     if (term.length >= 2) {
       this.search.emit(term);
       this.hasSearched = true;
-      // Ocultar mensajes cuando se realiza una búsqueda
       this._showNoResultsMessage = false;
       this._showNoRepuestosMessage = false;
-    } else {
-      this.suggestions = [];
-      this.showSuggestions = false;
-      // Si hay menos de 2 caracteres pero el usuario hizo focus y quiere ver datos, cargar iniciales
-      if (term.length === 0 && this.preloadOnFocus) {
-        this.loadInitialData.emit();
-      }
     }
   }
+
+  onFocus() {
+    this.focus.emit();
+    
+    if (this.preloadOnFocus && !this.hasSearched && !this.selectedItem && !this.searchTerm) {
+      this.loadInitialData.emit();
+    }
+    
+    if (this.suggestions.length > 0 && this.searchTerm && this.searchTerm.length >= 2) {
+      this.showSuggestions = true;
+    }
+  }
+
+  onBlur() {
+    setTimeout(() => {
+      this.showSuggestions = false;
+    }, 200);
+  }
+
 
   onSelect(item: SearchResult) {
     this.selectItem.emit(item);
     this.searchTerm = this.getDisplayText(item);
     this.showSuggestions = false;
-    this.suggestions = []; // Limpiar sugerencias después de seleccionar
-    // Limpiar mensajes al seleccionar
+    this.suggestions = [];
     this.clearMessages();
   }
 
@@ -128,27 +147,6 @@ export class SearchSelectorComponent implements OnInit {
     if (this.searchInput) {
       this.searchInput.nativeElement.focus();
     }
-  }
-
-  onFocus() {
-    this.focus.emit();
-    
-    // Cargar datos iniciales al hacer focus si está habilitado
-    if (this.preloadOnFocus && !this.hasSearched && !this.selectedItem) {
-      this.loadInitialData.emit();
-    }
-    
-    // Mostrar sugerencias si ya hay algunas
-    if (this.suggestions.length > 0) {
-      this.showSuggestions = true;
-    }
-  }
-
-  onBlur() {
-    // Pequeño delay para permitir el click en las sugerencias
-    setTimeout(() => {
-      this.showSuggestions = false;
-    }, 200);
   }
 
   getInputWidth(): number {
