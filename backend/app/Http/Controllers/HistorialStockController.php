@@ -119,22 +119,18 @@ class HistorialStockController extends Controller
             $query->where('repuesto_id', $request->repuesto_id);
         }
 
-        // Filtrar por tipo (COMPRA, ASIGNACION_REPUESTO, AJUSTE, etc.)
         if ($request->has('tipo_mov') && $request->tipo_mov !== null) {
             $query->where('tipo_mov', $request->tipo_mov);
         }
 
-        // Filtrar por fecha desde
         if ($request->has('desde') && $request->desde !== null) {
             $query->whereDate('created_at', '>=', $request->desde);
         }
 
-        // Filtrar por fecha hasta
         if ($request->has('hasta') && $request->hasta !== null) {
             $query->whereDate('created_at', '<=', $request->hasta);
         }
 
-        // Orden por fecha DESC
         $historial = $query->orderBy('created_at', 'desc')->get();
 
         return response()->json($historial, 200);

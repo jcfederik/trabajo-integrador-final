@@ -46,12 +46,10 @@ export interface Reparacion {
     email?: string;
   };
 
-  // Campos calculados por el backend
   equipo_nombre?: string;
   cliente_nombre?: string;
   tecnico_nombre?: string;
 
-  // Para buscador – opcional
   displayText?: string;
 }
 
@@ -139,47 +137,71 @@ export class ReparacionService {
   // ▓▓▓   BUSCADOR (autocomplete) - CORREGIDO   ▓▓▓
   // ============================================================
   buscarReparaciones(termino: string): Observable<Reparacion[]> {
-    if (!termino.trim()) return of([]);
+    if (!termino || termino.trim() === '') {
+      return of([]);
+    }
+
+    const terminoLimpio = termino.trim();
 
     const params = new HttpParams()
-      .set('q', termino.trim()) 
+      .set('q', terminoLimpio)
       .set('per_page', '20');
 
-    return this.http.get<PaginatedResponse<Reparacion>>(`${this.base}/buscar`, { params }).pipe(
-      map(resp => {
-        const data = resp.data || [];
-        return data.map(rep => this.procesarParaBuscador(rep));
+    return this.http.get<any>(`${this.base}/buscar`, { params }).pipe(
+      map(response => {
+        
+        let reparaciones: Reparacion[] = [];
+        
+        if (response && response.data && Array.isArray(response.data)) {
+          reparaciones = response.data;
+        } else if (Array.isArray(response)) {
+          reparaciones = response;
+        } else if (response && Array.isArray(response.items)) {
+          reparaciones = response.items;
+        }
+                
+        return reparaciones.map(rep => this.procesarParaBuscador(rep));
       }),
       catchError((error) => {
-        console.error('Error en /buscar, intentando fallback:', error);
-        return this.buscarReparacionesFallback(termino);
+        
+        if (error.status === 404) {
+          return this.buscarReparacionesFallback(terminoLimpio);
+        }
+        
+        return this.buscarReparacionesFallback(terminoLimpio);
       })
     );
   }
 
-
   private buscarReparacionesFallback(termino: string): Observable<Reparacion[]> {
-    const t = termino.toLowerCase();
+    
     const params = new HttpParams()
-      .set('search', t)  // Usar 'search' para /completo
+      .set('search', termino)
       .set('per_page', '100');
-
+    
     return this.http.get<PaginatedResponse<Reparacion>>(`${this.base}/completo`, { params }).pipe(
-      map(resp => {
-        const filtradas = resp.data.filter(rep =>
-          (rep.descripcion || '').toLowerCase().includes(t) ||
-          (rep.estado || '').toLowerCase().includes(t) ||
-          (rep.equipo?.descripcion || rep.equipo_nombre || '').toLowerCase().includes(t) ||
-          (rep.tecnico?.nombre || rep.tecnico_nombre || '').toLowerCase().includes(t) ||
-          (rep.equipo?.cliente?.nombre || rep.cliente_nombre || '').toLowerCase().includes(t) ||
-          rep.id.toString().includes(t)
+      map(response => {
+        const data = response.data || [];
+        
+        const terminoLower = termino.toLowerCase();
+        const filtradas = data.filter(rep =>
+          (rep.descripcion || '').toLowerCase().includes(terminoLower) ||
+          (rep.estado || '').toLowerCase().includes(terminoLower) ||
+          (rep.equipo?.descripcion || rep.equipo_nombre || '').toLowerCase().includes(terminoLower) ||
+          (rep.tecnico?.nombre || rep.tecnico_nombre || '').toLowerCase().includes(terminoLower) ||
+          (rep.equipo?.cliente?.nombre || rep.cliente_nombre || '').toLowerCase().includes(terminoLower) ||
+          rep.id.toString().includes(termino)
         );
-
+        
         return filtradas.map(rep => this.procesarParaBuscador(rep));
       }),
-      catchError(() => of([]))
+      catchError(() => {
+        console.error('❌ Error también en fallback');
+        return of([]);
+      })
     );
   }
+
 
   // ============================================================
   // ▓▓▓   FORMATEO PARA AUTOCOMPLETE (displayText)   ▓▓▓
@@ -217,7 +239,6 @@ export class ReparacionService {
     return this.http.delete(`${this.base}/${reparacionId}/repuestos/${pivotId}`);
   }
 
-  // Obtener repuestos asignados a una reparación
   getRepuestosAsignados(reparacionId: number): Observable<any> {
     return this.http.get(`${this.base}/${reparacionId}/repuestos`);
   }
