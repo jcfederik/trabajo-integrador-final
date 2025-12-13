@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 
@@ -85,12 +85,9 @@ export class RepuestoService {
   }
 
   // ====== SEARCH OPERATIONS ======
-buscarRepuestos(termino: string): Observable<Repuesto[]> {
+  buscarRepuestos(termino: string): Observable<any> {
     if (!termino || termino.trim() === '') {
-      return new Observable<Repuesto[]>(observer => {
-        observer.next([]);
-        observer.complete();
-      });
+      return of([]);
     }
     
     const params = new HttpParams()
@@ -101,27 +98,20 @@ buscarRepuestos(termino: string): Observable<Repuesto[]> {
     
     return this.http.get<any>(`${this.apiUrl}/buscar`, { 
       params, 
-      headers,
-      withCredentials: true
+      headers
     }).pipe(
       map(response => {
         console.log('Respuesta completa del backend:', response);
-        
-        if (Array.isArray(response)) {
-          return response;
-        } else if (response && response.data) {
-          return response.data;
-        } else if (response && Array.isArray(response.items)) {
-          return response.items;
-        }
-        return [];
+        return response;
       }),
       catchError(error => {
-        console.error('Error completo buscando repuestos:', error);
-        console.error('Status:', error.status);
-        console.error('Error message:', error.message);
-        console.error('Error body:', error.error);
-        return [];
+        console.error('Error buscando repuestos:', error);
+        return of({
+          data: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0
+        });
       })
     );
   }

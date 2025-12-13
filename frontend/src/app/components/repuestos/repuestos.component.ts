@@ -4,14 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 
 import { RepuestoService, Repuesto, PaginatedResponse } from '../../services/repuestos.service';
+import { ProveedoresService, Proveedor } from '../../services/proveedores.service';
 import { SearchService } from '../../services/busquedaglobal';
+import { SearchSelectorComponent, SearchResult } from '../../components/search-selector/search-selector.component';
 
 type Accion = 'listar' | 'comprar';
 
 @Component({
   selector: 'app-repuestos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SearchSelectorComponent],
   templateUrl: './repuestos.component.html',
   styleUrls: ['./repuestos.component.css']
 })
@@ -38,21 +40,31 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     costo_base: 0
   };
 
-  // Compra (reemplaza creación)
-  nuevo: Partial<Repuesto> & { 
-    cantidad: number; 
-    descripcion?: string; 
-    proveedor?: string 
-  } = {
+  // ====== CAMPOS PARA COMPRA ======
+  modoCompra: 'nuevo' | 'existente' = 'nuevo';
+
+  // Para repuesto existente
+  repuestoExistenteSeleccionado: SearchResult | null = null;
+  repuestosSugeridos: SearchResult[] = [];
+  buscandoRepuestos = false;
+
+  // Para proveedor
+  proveedorSeleccionado: SearchResult | null = null;
+  proveedoresSugeridos: SearchResult[] = [];
+  buscandoProveedores = false;
+
+  // Datos de compra
+  nuevo = {
     nombre: '',
-    cantidad: 0,
+    cantidad: 1,
     costo_base: 0,
     descripcion: '',
-    proveedor: ''
+    proveedor: '' // Agrega aquí
   };
 
   constructor(
     private repuestoService: RepuestoService,
+    private proveedoresService: ProveedoresService,
     public searchService: SearchService
   ) { }
 
@@ -60,7 +72,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
-    window.addEventListener('scroll', this.onScroll)
+    window.addEventListener('scroll', this.onScroll);
   }
 
   ngOnDestroy(): void {
@@ -139,37 +151,71 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   // ====== COMPRAR REPUESTO ======
   comprar(): void {
-    const payload = {
-      nombre: this.nuevo.nombre?.toString().trim() || '',
+    let nombreRepuesto = '';
+    let repuestoId: number | undefined;
+    
+    if (this.modoCompra === 'existente' && this.repuestoExistenteSeleccionado) {
+      nombreRepuesto = this.repuestoExistenteSeleccionado.nombre || '';
+      repuestoId = this.repuestoExistenteSeleccionado.id;
+    } else {
+      nombreRepuesto = this.nuevo.nombre || '';
+    }
+
+    if (!nombreRepuesto.trim()) {
+      alert('Completá el nombre del repuesto.');
+      return;
+    }
+    
+    if (!this.nuevo.cantidad || this.nuevo.cantidad <= 0) {
+      alert('La cantidad debe ser mayor a 0.');
+      return;
+    }
+    
+    if (this.nuevo.costo_base === undefined || this.nuevo.costo_base < 0) {
+      alert('El costo base no puede ser negativo.');
+      return;
+    }
+
+    const payload: any = {
+      nombre: nombreRepuesto.trim(),
       cantidad: Number(this.nuevo.cantidad) || 0,
       costo_base: Number(this.nuevo.costo_base) || 0,
-      descripcion: this.nuevo.descripcion?.toString().trim(),
-      proveedor: this.nuevo.proveedor?.toString().trim()
+      descripcion: (this.nuevo.descripcion || '').trim()
     };
 
-    if (!this.validarCompra(payload)) return;
+    if (this.proveedorSeleccionado) {
+      payload.proveedor = this.proveedorSeleccionado.nombre || this.proveedorSeleccionado.razon_social || '';
+      payload.proveedor_id = this.proveedorSeleccionado.id;
+    } else if (this.nuevo.proveedor && this.nuevo.proveedor.trim()) {
+      payload.proveedor = this.nuevo.proveedor.trim();
+    }
+
+    if (repuestoId) {
+      payload.repuesto_id = repuestoId;
+    }
+
+    console.log('Enviando compra:', payload);
 
     this.repuestoService.comprarRepuesto(payload).subscribe({
       next: (response: any) => {
+        console.log('Respuesta de compra:', response);
 
-        this.selectedAction = 'listar';
-        this.nuevo = { 
-          nombre: '', 
-          cantidad: 0, 
-          costo_base: 0, 
-          descripcion: '', 
-          proveedor: '' 
-        };
+        this.resetFormularioCompra();
         
-        // Recargar lista
         this.resetLista();
         
-        // Mostrar mensaje
         let mensaje = '¡Compra realizada exitosamente!';
+        
+        if (response.repuesto) {
+          mensaje += `\nRepuesto: ${response.repuesto.nombre}`;
+          mensaje += `\nStock actual: ${response.repuesto.stock} unidades`;
+        }
+        
         if (response.historial) {
           mensaje += `\nStock anterior: ${response.historial.stock_anterior}`;
           mensaje += `\nStock nuevo: ${response.historial.stock_nuevo}`;
         }
+        
         alert(mensaje);
       },
       error: (e) => {
@@ -178,23 +224,157 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Método de validación para compra
-  private validarCompra(p: any): boolean {
-    if (!p.nombre || p.nombre.trim() === '') {
-      alert('Completá el nombre del repuesto.');
-      return false;
+  // ====== BÚSQUEDA DE PROVEEDORES (PARA SEARCH-SELECTOR) ======
+  buscarProveedores(termino: string): void {
+    if (!termino || termino.length < 2) {
+      this.proveedoresSugeridos = [];
+      return;
     }
-    if (p.cantidad === null || p.cantidad === undefined || p.cantidad <= 0) {
-      alert('La cantidad debe ser mayor a 0.');
-      return false;
-    }
-    if (p.costo_base === null || p.costo_base === undefined || p.costo_base < 0) {
-      alert('El costo base no puede ser negativo.');
-      return false;
-    }
-    return true;
+
+    this.buscandoProveedores = true;
+    
+    this.proveedoresService.buscarProveedoresRapido(termino).subscribe({
+      next: (proveedores) => {
+        // Convertir Proveedor[] a SearchResult[]
+        this.proveedoresSugeridos = proveedores.map(prov => this.proveedorToSearchResult(prov));
+        this.buscandoProveedores = false;
+      },
+      error: (error) => {
+        console.error('Error buscando proveedores:', error);
+        this.buscandoProveedores = false;
+        this.proveedoresSugeridos = [];
+      }
+    });
   }
 
+  // ====== BÚSQUEDA DE REPUESTOS EXISTENTES (PARA SEARCH-SELECTOR) ======
+  buscarRepuestosExistentes(termino: string): void {
+    if (!termino || termino.length < 2) {
+      this.repuestosSugeridos = [];
+      return;
+    }
+
+    this.buscandoRepuestos = true;
+    
+    this.repuestoService.buscarRepuestos(termino).subscribe({
+      next: (response: any) => {
+        console.log('Respuesta completa del backend:', response);
+        
+        const repuestos = response?.data || [];
+        
+        console.log('Repuestos extraídos:', repuestos);
+        
+        this.repuestosSugeridos = repuestos.map((rep: any) => 
+          this.repuestoToSearchResult(rep)
+        );
+        
+        console.log('SearchResults convertidos:', this.repuestosSugeridos);
+        
+        this.buscandoRepuestos = false;
+      },
+      error: (error) => {
+        console.error('Error buscando repuestos:', error);
+        this.buscandoRepuestos = false;
+        this.repuestosSugeridos = [];
+      }
+    });
+  }
+
+
+  // ====== CONVERSIÓN DE DATOS A SEARCHRESULT ======
+  
+  private proveedorToSearchResult(proveedor: Proveedor): SearchResult {
+    return {
+      id: proveedor.id!,
+      nombre: proveedor.nombre || proveedor.razon_social,
+      razon_social: proveedor.razon_social,
+      cuit: proveedor.cuit,
+      telefono: proveedor.telefono,
+      email: proveedor.email,
+      direccion: proveedor.direccion,
+      tipo: 'proveedor'
+    };
+  }
+
+  private repuestoToSearchResult(repuesto: any): SearchResult {
+    if (!repuesto) {
+      return {
+        id: 0,
+        nombre: 'Sin nombre',
+        stock: 0,
+        costo_base: 0,
+        costo_actual: 0,
+        tipo: 'repuesto'
+      };
+    }
+    
+    return {
+      id: repuesto.id || 0,
+      nombre: repuesto.nombre || 'Sin nombre',
+      stock: repuesto.stock || 0,
+      costo_base: repuesto.costo_base || 0,
+      costo_actual: repuesto.costo_base || 0,
+      tipo: 'repuesto'
+    };
+  }
+
+  // ====== MANEJO DE SELECCIONES DEL SEARCH-SELECTOR ======
+  
+  seleccionarProveedor(proveedor: SearchResult): void {
+    this.proveedorSeleccionado = proveedor;
+  }
+
+  limpiarProveedor(): void {
+    this.proveedorSeleccionado = null;
+  }
+
+  seleccionarRepuestoExistente(repuesto: SearchResult): void {
+    this.repuestoExistenteSeleccionado = repuesto;
+    // Pre-cargar el costo base actual como sugerencia
+    this.nuevo.costo_base = repuesto.costo_actual || repuesto.costo_base || 0;
+  }
+
+  limpiarRepuestoExistente(): void {
+    this.repuestoExistenteSeleccionado = null;
+    this.nuevo.costo_base = 0;
+  }
+
+  // ====== CAMBIAR MODO DE COMPRA ======
+  cambiarModoCompra(modo: 'nuevo' | 'existente'): void {
+    this.modoCompra = modo;
+    
+    if (modo === 'nuevo') {
+      this.limpiarRepuestoExistente();
+      this.nuevo.nombre = '';
+    } else {
+      // En modo existente, si no hay repuesto seleccionado, limpiar nombre
+      if (!this.repuestoExistenteSeleccionado) {
+        this.nuevo.nombre = '';
+      }
+    }
+  }
+
+  // ====== RESETEAR FORMULARIO DE COMPRA ======
+  private resetFormularioCompra(): void {
+    this.selectedAction = 'listar';
+    this.modoCompra = 'nuevo';
+    this.repuestoExistenteSeleccionado = null;
+    this.proveedorSeleccionado = null;
+    
+    // Resetear todo el objeto nuevo
+    this.nuevo = {
+      nombre: '',
+      cantidad: 1,
+      costo_base: 0,
+      descripcion: '',
+      proveedor: ''
+    };
+    
+    this.repuestosSugeridos = [];
+    this.proveedoresSugeridos = [];
+  }
+
+  // ====== ELIMINAR REPUESTO ======
   eliminar(id: number): void {
     if (!confirm('¿Eliminar este repuesto?')) return;
 
@@ -231,8 +411,11 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     const payload = this.limpiarPayload(this.editBuffer);
     if (!this.validarPayload(payload)) return;
 
+    console.log('Actualizando repuesto:', id, payload);
+
     this.repuestoService.updateRepuesto(id, payload).subscribe({
       next: (response: any) => {
+        console.log('Respuesta de actualización:', response);
 
         const repuestoActualizado = response.repuesto || response.data || response;
 
@@ -296,22 +479,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  private actualizarRepuestoLocal(id: number, datosActualizados: Partial<Repuesto>): void {
-    const actualizarArray = (arr: Repuesto[]) => {
-      const idx = arr.findIndex(x => x.id === id);
-      if (idx >= 0) {
-        arr[idx] = {
-          ...arr[idx],
-          ...datosActualizados
-        } as Repuesto;
-      }
-    };
-
-    actualizarArray(this.repuestosAll);
-    actualizarArray(this.repuestos);
-    this.searchService.setSearchData(this.repuestosAll);
-  }
-
   private manejarError(error: any, operacion: string): void {
     console.error(`Error completo al ${operacion}:`, error);
 
@@ -338,6 +505,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       return 'text-success';
     }
   }
+  
   formatearPrecio(precio: number): string {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -347,6 +515,11 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   seleccionarAccion(a: Accion) {
     this.selectedAction = a;
+    if (a === 'comprar') {
+      // Resetear formulario al cambiar a comprar
+      this.resetFormularioCompra();
+      this.selectedAction = 'comprar';
+    }
   }
 
   limpiarBusqueda() {
@@ -358,5 +531,49 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.repuestos = [];
 
     this.fetch(1);
+  }
+
+  // ====== MÉTODOS PARA TEMPLATE ======
+  
+  // Obtener información del repuesto seleccionado
+  getInfoRepuestoSeleccionado(): string {
+    if (!this.repuestoExistenteSeleccionado) return '';
+    
+    const repuesto = this.repuestoExistenteSeleccionado;
+    const stock = repuesto.stock !== undefined ? `Stock: ${repuesto.stock}` : '';
+    const costo = repuesto.costo_actual ? `Costo: ${this.formatearPrecio(repuesto.costo_actual)}` : 
+                repuesto.costo_base ? `Costo: ${this.formatearPrecio(repuesto.costo_base)}` : '';
+    
+    return [stock, costo].filter(Boolean).join(' | ');
+  }
+
+  // Obtener información del proveedor seleccionado
+  getInfoProveedorSeleccionado(): string {
+    if (!this.proveedorSeleccionado) return '';
+    
+    const proveedor = this.proveedorSeleccionado;
+    const cuit = proveedor.cuit ? `CUIT: ${proveedor.cuit}` : '';
+    const telefono = proveedor.telefono ? `Tel: ${proveedor.telefono}` : '';
+    const email = proveedor.email ? `Email: ${proveedor.email}` : '';
+    
+    return [cuit, telefono, email].filter(Boolean).join(' | ');
+  }
+
+  // Verificar si el formulario de compra es válido
+  esFormularioCompraValido(): boolean {
+    // Verificar nombre del repuesto según modo
+    let nombreValido = false;
+    
+    if (this.modoCompra === 'existente') {
+      nombreValido = !!this.repuestoExistenteSeleccionado;
+    } else {
+      nombreValido = !!(this.nuevo.nombre && this.nuevo.nombre.trim() !== '');
+    }
+    
+    // Verificar cantidad y costo
+    const cantidadValida = !!(this.nuevo.cantidad && this.nuevo.cantidad > 0);
+    const costoValido = !!(this.nuevo.costo_base !== undefined && this.nuevo.costo_base >= 0);
+    
+    return nombreValido && cantidadValida && costoValido;
   }
 }

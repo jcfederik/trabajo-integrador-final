@@ -14,10 +14,13 @@ export interface SearchResult {
   modelo?: string;
   nro_serie?: string;
   cliente_id?: number;
-  // Nuevas propiedades para repuestos
   stock?: number;
   costo_base?: number;
+  costo_actual?: number;
   cantidad?: number;
+  razon_social?: string;
+  cuit?: string;
+  direccion?: string;
 }
 
 @Component({
@@ -30,7 +33,7 @@ export interface SearchResult {
 export class SearchSelectorComponent implements OnInit {
   @Input() placeholder: string = 'Buscar...';
   @Input() disabled: boolean = false;
-  @Input() type: 'cliente' | 'equipo' | 'tecnico' | 'repuesto' = 'cliente'; // AGREGADO 'repuesto'
+  @Input() type: 'cliente' | 'equipo' | 'tecnico' | 'repuesto' | 'proveedor' = 'cliente'; // AGREGADO 'proveedor'
   @Input() selectedItem: SearchResult | null = null;
   @Input() preloadOnFocus: boolean = true;
   
@@ -47,31 +50,26 @@ export class SearchSelectorComponent implements OnInit {
   suggestions: SearchResult[] = [];
   hasSearched: boolean = false;
 
-  // Propiedades para mensajes contextuales
   _showNoClientMessage: boolean = false;
   _showNoResultsMessage: boolean = false;
   _showNoEquiposMessage: boolean = false;
   _showNoRepuestosMessage: boolean = false;
 
   ngOnInit() {
-    // Configurar placeholder dinámico con instrucción
     if (!this.placeholder.includes('para buscar') && !this.placeholder.includes('Buscar')) {
       this.placeholder = `${this.placeholder} (escribe al menos 2 caracteres)`;
     }
   }
 
-  // Método para actualizar sugerencias desde el componente padre
   updateSuggestions(results: SearchResult[]) {
     this.suggestions = results;
     this.showSuggestions = results.length > 0;
     this.hasSearched = true;
     
-    // Resetear mensajes
     this._showNoResultsMessage = false;
     this._showNoRepuestosMessage = false;
   }
 
-  // Método para mostrar mensajes específicos
   showMessage(type: 'noClient' | 'noResults' | 'noEquipos' | 'noRepuestos', show: boolean): void {
     switch (type) {
       case 'noClient':
@@ -92,7 +90,6 @@ export class SearchSelectorComponent implements OnInit {
   onSearch(term: string) {
     this.searchTerm = term;
     
-    // Si el término está vacío o tiene menos de 2 caracteres
     if (!term || term.trim().length < 2) {
       this.suggestions = [];
       this.showSuggestions = false;
@@ -125,7 +122,6 @@ export class SearchSelectorComponent implements OnInit {
       this.showSuggestions = false;
     }, 200);
   }
-
 
   onSelect(item: SearchResult) {
     this.selectItem.emit(item);
@@ -163,6 +159,8 @@ export class SearchSelectorComponent implements OnInit {
         return item.nombre || '';
       case 'repuesto':
         return `${item.nombre || ''} ${item.stock !== undefined ? `(Stock: ${item.stock})` : ''}`.trim();
+      case 'proveedor':
+        return item.nombre || item.razon_social || '';
       default:
         return item.nombre || item.descripcion || '';
     }
@@ -178,6 +176,8 @@ export class SearchSelectorComponent implements OnInit {
         return 'Técnicos disponibles';
       case 'repuesto':
         return 'Repuestos disponibles';
+      case 'proveedor':
+        return 'Proveedores encontrados';
       default:
         return 'Resultados';
     }
@@ -193,6 +193,8 @@ export class SearchSelectorComponent implements OnInit {
         return 'bi-person-gear';
       case 'repuesto':
         return 'bi-tools';
+      case 'proveedor':
+        return 'bi-building';
       default:
         return 'bi-search';
     }
@@ -210,12 +212,15 @@ export class SearchSelectorComponent implements OnInit {
         const costo = item.costo_base ? `Costo: $${item.costo_base}` : '';
         const stock = item.stock !== undefined ? `Stock: ${item.stock}` : '';
         return [costo, stock].filter(Boolean).join(' | ');
+      case 'proveedor':
+        const cuit = item.cuit ? `CUIT: ${item.cuit}` : '';
+        const telefono = item.telefono ? `Tel: ${item.telefono}` : '';
+        return [cuit, telefono].filter(Boolean).join(' | ');
       default:
         return '';
     }
   }
 
-  // Método para obtener el mensaje actual
   getCurrentMessage(): string {
     if (this._showNoClientMessage) {
       return 'Primero selecciona un cliente';
@@ -232,13 +237,11 @@ export class SearchSelectorComponent implements OnInit {
     return '';
   }
 
-  // Método para verificar si hay algún mensaje activo
   hasMessage(): boolean {
     return this._showNoClientMessage || this._showNoResultsMessage || 
            this._showNoEquiposMessage || this._showNoRepuestosMessage;
   }
 
-  // Método para limpiar todos los mensajes
   private clearMessages(): void {
     this._showNoClientMessage = false;
     this._showNoResultsMessage = false;
@@ -246,7 +249,6 @@ export class SearchSelectorComponent implements OnInit {
     this._showNoRepuestosMessage = false;
   }
 
-  // Método para limpiar completamente el componente
   clearAll() {
     this.searchTerm = '';
     this.selectedItem = null;
