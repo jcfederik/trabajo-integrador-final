@@ -262,9 +262,20 @@ class PresupuestoController extends Controller
     public function buscar(Request $request)
     {
         try {
+            \Log::info('=== INICIO BÚSQUEDA PRESUPUESTOS ===', $request->all());
+            
             $termino = $request->get('q');
+            $perPage = $request->get('per_page', 50);
+            $soloAceptados = $request->get('aceptado', false); // Cambia a false por defecto
+            
+            \Log::info('Parámetros recibidos:', [
+                'termino' => $termino,
+                'perPage' => $perPage,
+                'soloAceptados' => $soloAceptados
+            ]);
             
             if (!$termino || trim($termino) === '') {
+                \Log::info('Término vacío, retornando vacío');
                 return response()->json([], 200);
             }
 
@@ -272,68 +283,101 @@ class PresupuestoController extends Controller
             
             $query = Presupuesto::query();
             
-            // Cargar relaciones básicas para búsqueda
+            \Log::info('Cargando relaciones...');
+            
+            // Cargar relaciones
             $query->with(['reparacion' => function($q) {
-                $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'estado', 'fecha');
+                $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'estado', 'fecha')
+                ->with(['equipo' => function($q) {
+                    $q->select('id', 'descripcion', 'cliente_id')
+                        ->with(['cliente' => function($q) {
+                            $q->select('id', 'nombre', 'telefono', 'email');
+                        }]);
+                }]);
             }]);
             
+            // COMENTA temporalmente este filtro para probar
+            // if ($soloAceptados) {
+            //     $query->where('aceptado', true);
+            // }
+            
+            // Primero intentar búsqueda por fecha
             $esBusquedaPorFecha = $this->agregarBusquedaPorFecha($query, $termino);
             
+            \Log::info('¿Es búsqueda por fecha?', ['esBusquedaPorFecha' => $esBusquedaPorFecha]);
+            
             if (!$esBusquedaPorFecha) {
-                $query->where(function($query) use ($termino) {
+                \Log::info('Búsqueda normal (no fecha)');
+                
+                $query->where(function($q) use ($termino) {
                     $terminoLower = strtolower($termino);
                     
-                    if (is_numeric($termino)) {
-                        $query->where('id', $termino)
-                            ->orWhere('monto_total', 'like', "%{$termino}%");
-                    }
+                    $q->where('id', 'LIKE', "%{$termino}%");
                     
-                    $query->orWhere('monto_total', 'like', "%{$termino}%");
+                    $q->orWhere('monto_total', 'LIKE', "%{$termino}%");
                     
-                    $estadoBusqueda = null;
-                    if (str_contains($terminoLower, 'aceptado') || str_contains($terminoLower, 'aceptada')) {
-                        $estadoBusqueda = true;
+                    if (str_contains($terminoLower, 'aceptado')) {
+                        $q->orWhere('aceptado', true);
                     } elseif (str_contains($terminoLower, 'pendiente')) {
-                        $estadoBusqueda = false;
+                        $q->orWhere('aceptado', false);
                     }
                     
-                    if ($estadoBusqueda !== null) {
-                        $query->orWhere('aceptado', $estadoBusqueda);
-                    }
-                })
-                ->orWhereHas('reparacion', function($query) use ($termino) {
-                    $query->where('descripcion', 'like', "%{$termino}%")
-                        ->orWhere('estado', 'like', "%{$termino}%");
+                    $q->orWhereHas('reparacion', function($q2) use ($termino) {
+                        $q2->where('descripcion', 'LIKE', "%{$termino}%")
+                        ->orWhere('estado', 'LIKE', "%{$termino}%");
+                    });
+                    
+                    $q->orWhereHas('reparacion.equipo', function($q3) use ($termino) {
+                        $q3->where('descripcion', 'LIKE', "%{$termino}%");
+                    });
+                    
+                    $q->orWhereHas('reparacion.equipo.cliente', function($q4) use ($termino) {
+                        $q4->where('nombre', 'LIKE', "%{$termino}%");
+                    });
                 });
             }
             
+            \Log::info('SQL generado:', ['sql' => $query->toSql()]);
+            
             $presupuestos = $query->orderBy('id', 'desc')
-                ->limit($request->get('per_page', 50))
+                ->limit($perPage)
                 ->get();
+            
+            \Log::info('Resultados encontrados:', [
+                'cantidad' => $presupuestos->count(),
+                'ids' => $presupuestos->pluck('id')->toArray()
+            ]);
             
             return response()->json($presupuestos->toArray(), 200);
             
         } catch (\Exception $e) {
-            \Log::error('Error buscando presupuestos', ['err' => $e->getMessage()]);
+            \Log::error('Error buscando presupuestos', [
+                'err' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([], 200);
         }
-    }
-
-    private function agregarBusquedaPorFecha($query, $termino)
+    }    
+private function agregarBusquedaPorFecha($query, $termino)
     {
         try {
             $fecha = Carbon::createFromFormat('Y-m-d', $termino);
             $query->whereDate('fecha', $fecha->format('Y-m-d'));
             return true;
-        } catch (\Exception $e) {
-            if (is_numeric($termino)) {
-                $query->whereYear('fecha', $termino);
+        } catch (\Exception $e1) {
+            try {
+                $fecha = Carbon::createFromFormat('d/m/Y', $termino);
+                $query->whereDate('fecha', $fecha->format('Y-m-d'));
                 return true;
+            } catch (\Exception $e2) {
+                if (is_numeric($termino) && strlen($termino) == 4) {
+                    $query->whereYear('fecha', $termino);
+                    return true;
+                }
             }
         }
         return false;
     }
-
 
     /**
      * @OA\Put(

@@ -7,7 +7,7 @@ export interface Reparacion {
   id: number;
   descripcion: string;
   fecha: string;
-  fecha_estimada?: string | null;  // ← NUEVO
+  fecha_estimada?: string | null;
   estado: string;
   equipo_id: number;
   usuario_id: number;
@@ -28,7 +28,7 @@ export interface Reparacion {
     };
   };
 
-    repuestos?: {
+  repuestos?: {
     id: number;
     nombre: string;
     stock: number;
@@ -39,7 +39,6 @@ export interface Reparacion {
       costo_unitario: number;
     };
   }[];
-
 
   tecnico?: {
     id: number;
@@ -56,6 +55,11 @@ export interface Reparacion {
   displayText?: string;
 }
 
+export interface CreateReparacionResponse {
+  mensaje: string;
+  reparacion: Reparacion;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   current_page: number;
@@ -70,7 +74,7 @@ export interface PaginatedResponse<T> {
 @Injectable({ providedIn: 'root' })
 export class ReparacionService {
   private base = 'http://127.0.0.1:8000/api/reparaciones';
-  private baseCompleto = 'http://127.0.0.1:8000/api/reparaciones/completo';
+  
   constructor(private http: HttpClient) {}
 
   // ============================================================
@@ -86,6 +90,21 @@ export class ReparacionService {
     }
 
     return this.http.get<PaginatedResponse<Reparacion>>(this.base, { params });
+  }
+
+  // ============================================================
+  // ▓▓▓   LISTADO COMPLETO (con equipo, cliente y técnico)   ▓▓▓
+  // ============================================================
+  listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedResponse<Reparacion>> {
+    let params = new HttpParams()
+      .set('page', page)
+      .set('per_page', perPage);
+
+    if (search.trim()) {
+      params = params.set('search', search.trim());
+    }
+
+    return this.http.get<PaginatedResponse<Reparacion>>(`${this.base}/completo`, { params });
   }
 
   // ============================================================
@@ -117,49 +136,35 @@ export class ReparacionService {
   }
 
   // ============================================================
-  // ▓▓▓   LISTADO COMPLETO (con equipo, cliente y técnico)   ▓▓▓
-  // ============================================================
-listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedResponse<Reparacion>> {
-    let params = new HttpParams()
-      .set('page', page)
-      .set('per_page', perPage);
-
-    if (search.trim()) {
-      params = params.set('search', search.trim());
-    }
-
-    // 👇 ESTE ERA EL PROBLEMA
-    return this.http.get<PaginatedResponse<Reparacion>>(this.baseCompleto, { params });
-  }
-
-
-  // ============================================================
-  // ▓▓▓   BUSCADOR (autocomplete)   ▓▓▓
+  // ▓▓▓   BUSCADOR (autocomplete) - CORREGIDO   ▓▓▓
   // ============================================================
   buscarReparaciones(termino: string): Observable<Reparacion[]> {
     if (!termino.trim()) return of([]);
 
     const params = new HttpParams()
-      .set('search', termino.trim())
+      .set('q', termino.trim()) 
       .set('per_page', '20');
 
-    // 🔥 USAR LISTADO COMPLETO, NO /reparaciones
-    return this.http.get<PaginatedResponse<Reparacion>>(this.baseCompleto, { params }).pipe(
+    return this.http.get<PaginatedResponse<Reparacion>>(`${this.base}/buscar`, { params }).pipe(
       map(resp => {
         const data = resp.data || [];
         return data.map(rep => this.procesarParaBuscador(rep));
       }),
-      catchError(() => of([]))
+      catchError((error) => {
+        console.error('Error en /buscar, intentando fallback:', error);
+        return this.buscarReparacionesFallback(termino);
+      })
     );
   }
 
 
   private buscarReparacionesFallback(termino: string): Observable<Reparacion[]> {
     const t = termino.toLowerCase();
+    const params = new HttpParams()
+      .set('search', t)  // Usar 'search' para /completo
+      .set('per_page', '100');
 
-    const params = new HttpParams().set('per_page', '100');
-
-    return this.http.get<PaginatedResponse<Reparacion>>(this.baseCompleto, { params }).pipe(
+    return this.http.get<PaginatedResponse<Reparacion>>(`${this.base}/completo`, { params }).pipe(
       map(resp => {
         const filtradas = resp.data.filter(rep =>
           (rep.descripcion || '').toLowerCase().includes(t) ||
@@ -176,7 +181,6 @@ listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedR
     );
   }
 
-
   // ============================================================
   // ▓▓▓   FORMATEO PARA AUTOCOMPLETE (displayText)   ▓▓▓
   // ============================================================
@@ -186,8 +190,8 @@ listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedR
     const clienteNombre = rep.equipo?.cliente?.nombre || 'No especificado';
     const fecha = rep.fecha ? new Date(rep.fecha).toLocaleDateString() : 'Sin fecha';
     const fechaEst = rep.fecha_estimada 
-    ? new Date(rep.fecha_estimada).toLocaleDateString() 
-    : 'Sin estimada';
+      ? new Date(rep.fecha_estimada).toLocaleDateString() 
+      : 'Sin estimada';
 
     return {
       ...rep,
@@ -197,11 +201,11 @@ listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedR
       displayText: `#${rep.id} - ${rep.descripcion} | ${equipoNombre} | ${tecnicoNombre} | ${fecha} | Est.: ${fechaEst}`
     };
   }
+
   // ============================================================
   // ▓▓▓   GESTIÓN DE REPUESTOS EN REPARACIONES   ▓▓▓
   // ============================================================
 
-  // Asignar repuesto a reparación
   assignRepuesto(reparacionId: number, repuestoId: number, cantidad: number = 1): Observable<any> {
     return this.http.post(`${this.base}/${reparacionId}/repuestos`, {
       repuesto_id: repuestoId,
@@ -209,7 +213,6 @@ listCompleto(page = 1, perPage = 10, search: string = ''): Observable<PaginatedR
     });
   }
 
-  // Remover repuesto de reparación
   removeRepuesto(reparacionId: number, pivotId: number): Observable<any> {
     return this.http.delete(`${this.base}/${reparacionId}/repuestos/${pivotId}`);
   }

@@ -72,8 +72,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::delete('/reparaciones/{reparacion}/repuestos/{pivotId}', [ReparacionController::class, 'removeRepuesto']);
     Route::get('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'getRepuestosAsignados']);
     
-    Route::apiResource('presupuestos', PresupuestoController::class);
     Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
+    Route::apiResource('presupuestos', PresupuestoController::class);
     
     Route::apiResource('compra-repuestos', CompraRepuestoController::class);
 
@@ -84,6 +84,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::put('/proveedores/{id}/repuestos/{repuestoId}', [ProveedorController::class, 'actualizarRepuesto']);
 
     Route::apiResource('repuestos', RepuestoController::class);
+    Route::get('/repuestos/buscar', [RepuestoController::class, 'buscar']);
+    Route::post('/repuestos/comprar', [RepuestoController::class, 'comprar']);
     Route::get('/historial-stock', [HistorialStockController::class, 'index']);
     
 
