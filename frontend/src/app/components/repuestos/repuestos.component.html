@@ -96,7 +96,6 @@
   <div *ngIf="selectedAction==='comprar'">
     <h4 class="text-center mb-3">Comprar Repuesto</h4>
     
-    <!-- Selector de modo: Nuevo o Existente (agregar esto si quieres) -->
     <div class="row mb-4">
       <div class="col-12">
         <div class="btn-group w-100" role="group">
@@ -106,7 +105,7 @@
             [class.active]="modoCompra === 'nuevo'"
             (click)="cambiarModoCompra('nuevo')"
           >
-            <i class="bi bi-plus-circle"></i> Repuesto Nuevo
+            <i class="bi bi-plus-circle"></i> Comprar Repuesto Nuevo
           </button>
           <button 
             type="button" 
@@ -114,7 +113,7 @@
             [class.active]="modoCompra === 'existente'"
             (click)="cambiarModoCompra('existente')"
           >
-            <i class="bi bi-arrow-clockwise"></i> Repuesto Existente
+            <i class="bi bi-arrow-clockwise"></i> Comprar Repuesto Existente
           </button>
         </div>
       </div>
@@ -126,7 +125,6 @@
         <div class="col-12">
           <label class="form-label">
             Nombre del Repuesto <span class="text-danger">*</span>
-            <span *ngIf="modoCompra === 'existente'" class="text-muted small ms-2">(Selecciona de la lista)</span>
           </label>
           
           <div *ngIf="modoCompra === 'nuevo'">
@@ -136,25 +134,25 @@
               [(ngModel)]="nuevo.nombre" 
               name="nombre" 
               placeholder="Ej: Filtro de aceite, Bujía, Pastilla de freno"
+              autocomplete="off"
               required
             />
             <div class="form-text">Ingresa el nombre del nuevo repuesto</div>
           </div>
           
-          <div *ngIf="modoCompra === 'existente'">
+          <div *ngIf="modoCompra === 'existente'" class="search-selector-wrapper">
             <app-search-selector
+              #RepuestoSelector
+              [ngClass]="{'has-viewchild': true}"
               [type]="'repuesto'"
               [placeholder]="'Buscar repuesto existente...'"
               (search)="buscarRepuestosExistentes($event)"
               (selectItem)="seleccionarRepuestoExistente($event)"
               (clearSelection)="limpiarRepuestoExistente()"
               [selectedItem]="repuestoExistenteSeleccionado"
+              [preloadOnFocus]="false"
             >
             </app-search-selector>
-            
-            <div *ngIf="repuestosSugeridos.length > 0" class="mt-2 small text-muted">
-              {{ repuestosSugeridos.length }} repuestos encontrados
-            </div>
             
             <div *ngIf="repuestoExistenteSeleccionado" class="mt-2 p-2 border rounded bg-light">
               <div class="small">
@@ -199,56 +197,44 @@
               required
             />
           </div>
-          <div class="form-text" *ngIf="repuestoExistenteSeleccionado">
-            El costo se promediará con el existente: {{ repuestoExistenteSeleccionado.costo_actual || 0 | currency }}
-          </div>
           <div class="form-text" *ngIf="!repuestoExistenteSeleccionado">
             Precio de compra por unidad
           </div>
         </div>
 
-        <!-- === SECCIÓN DE PROVEEDOR ACTUALIZADA === -->
+        <!-- === SECCIÓN DE PROVEEDOR === -->
         <div class="col-12">
-          <label class="form-label">Proveedor (Opcional)</label>
+          <label class="form-label">Proveedor</label>
           
-          <!-- Search-selector para proveedores existentes -->
-          <app-search-selector
-            [type]="'proveedor'"
-            [placeholder]="'Buscar proveedor existente...'"
-            (search)="buscarProveedores($event)"
-            (selectItem)="seleccionarProveedor($event)"
-            (clearSelection)="limpiarProveedor()"
-            [selectedItem]="proveedorSeleccionado"
-            [preloadOnFocus]="true"
-          ></app-search-selector>
-          
-          <!-- Info del proveedor seleccionado -->
-          <div *ngIf="proveedorSeleccionado" class="mt-2 p-2 border rounded bg-light">
-            <div class="small">
-              <strong>Proveedor seleccionado:</strong> {{ proveedorSeleccionado.nombre }}
-              <span *ngIf="proveedorSeleccionado.cuit" class="ms-3">
-                <strong>CUIT:</strong> {{ proveedorSeleccionado.cuit }}
-              </span>
-              <span *ngIf="proveedorSeleccionado.telefono" class="ms-3">
-                <strong>Tel:</strong> {{ proveedorSeleccionado.telefono }}
-              </span>
+          <div class="search-selector-wrapper-proveedor">
+            <app-search-selector
+              #ProveedorSelector
+              [ngClass]="{'has-viewchild': true}"
+              [type]="'proveedor'"
+              [placeholder]="'Buscar proveedor existente...'"
+              (search)="buscarProveedores($event)"
+              (selectItem)="seleccionarProveedor($event)"
+              (clearSelection)="limpiarProveedor()"
+              [selectedItem]="proveedorSeleccionado"
+              [preloadOnFocus]="true"
+              required
+            ></app-search-selector>
+
+            <!-- Info del proveedor seleccionado -->
+            <div *ngIf="proveedorSeleccionado" class="mt-2 p-2 border rounded bg-light">
+              <div class="small">
+                <strong>Proveedor seleccionado:</strong> {{ proveedorSeleccionado.nombre }}
+                <span *ngIf="proveedorSeleccionado.cuit" class="ms-3">
+                  <strong>CUIT:</strong> {{ proveedorSeleccionado.cuit }}
+                </span>
+                <span *ngIf="proveedorSeleccionado.telefono" class="ms-3">
+                  <strong>Tel:</strong> {{ proveedorSeleccionado.telefono }}
+                </span>
+              </div>
             </div>
           </div>
-          
-          <!-- Input para proveedor manual (solo si no hay proveedor seleccionado) -->
-          <div *ngIf="!proveedorSeleccionado" class="mt-2">
-            <label class="form-label small">O escribe un proveedor nuevo:</label>
-            <input 
-              type="text" 
-              class="form-control form-control-sm" 
-              [(ngModel)]="nuevo.proveedor" 
-              name="proveedor" 
-              placeholder="Nombre del proveedor o empresa"
-            />
-            <div class="form-text">Puedes escribir un proveedor o seleccionar uno existente arriba</div>
-          </div>
-        </div>
-
+        </div>        
+      
         <!-- Descripción -->
         <div class="col-12">
           <label class="form-label">Descripción (Opcional)</label>
@@ -262,57 +248,24 @@
           <div class="form-text">Detalles adicionales sobre la compra</div>
         </div>
 
-        <!-- Información según modo -->
-        <div class="col-12">
-          <div *ngIf="modoCompra === 'nuevo'" class="alert alert-info">
-            <div class="d-flex align-items-start">
-              <i class="bi bi-info-circle me-2 mt-1"></i>
-              <div>
-                <strong>Repuesto nuevo:</strong>
-                <ul class="mb-0 mt-2 small">
-                  <li>Se creará un nuevo repuesto en el sistema</li>
-                  <li>Stock inicial: la cantidad que ingreses</li>
-                  <li>Costo base: el precio unitario que ingreses</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div *ngIf="modoCompra === 'existente' && repuestoExistenteSeleccionado" class="alert alert-success">
-            <div class="d-flex align-items-start">
-              <i class="bi bi-check-circle me-2 mt-1"></i>
-              <div>
-                <strong>Repuesto existente seleccionado:</strong>
-                <ul class="mb-0 mt-2 small">
-                  <li><strong>Nombre:</strong> {{ repuestoExistenteSeleccionado.nombre }}</li>
-                  <li><strong>Stock actual:</strong> {{ repuestoExistenteSeleccionado.stock || 0 }} unidades</li>
-                  <li><strong>Costo actual:</strong> {{ repuestoExistenteSeleccionado.costo_actual || 0 | currency }}</li>
-                  <li>La cantidad comprada se sumará al stock existente</li>
-                  <li>El costo se promediará con el costo actual</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+        <!-- Botones de acción -->
+        <div class="d-flex gap-2 mt-4">
+          <button 
+            class="btn btn-success flex-grow-1" 
+            type="submit" 
+            [disabled]="!esFormularioCompraValido()"
+          >
+            <i class="bi bi-cart-check me-2"></i> 
+            {{ modoCompra === 'nuevo' ? 'Registrar Compra' : 'Actualizar Stock' }}
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-outline-secondary" 
+            (click)="seleccionarAccion('listar')"
+          >
+            Cancelar
+          </button>
         </div>
-      </div>
-
-      <!-- Botones de acción -->
-      <div class="d-flex gap-2 mt-4">
-        <button 
-          class="btn btn-success flex-grow-1" 
-          type="submit" 
-          [disabled]="!esFormularioCompraValido()"
-        >
-          <i class="bi bi-cart-check me-2"></i> 
-          {{ modoCompra === 'nuevo' ? 'Registrar Compra' : 'Actualizar Stock' }}
-        </button>
-        <button 
-          type="button" 
-          class="btn btn-outline-secondary" 
-          (click)="seleccionarAccion('listar')"
-        >
-          Cancelar
-        </button>
       </div>
     </form>
   </div>
