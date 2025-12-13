@@ -151,7 +151,7 @@
                       <div class="cliente-display-box" *ngIf="clienteEditSeleccionado">
                         <div class="selected-item-display">
                           <i class="bi bi-person-check text-success"></i>
-                          <span class="ms-2">{{ clienteEditSeleccionado.nombre }}</span>
+                          <span class="ms-2">{{ getNombreDisplayCliente(clienteEditSeleccionado) }}</span>
                         </div>
                         <small class="text-muted d-block mt-1">Cliente actual</small>
                       </div>
@@ -513,11 +513,10 @@
                     type="repuesto"
                     placeholder="Buscar repuesto por nombre..."
                     [selectedItem]="null"
-                    [preloadOnFocus]="true"
+                    [preloadOnFocus]="false"
                     (search)="buscarRepuestosCrear($event)"
                     (selectItem)="seleccionarRepuestoCrear($event)"
                     (clearSelection)="limpiarRepuestoCrear()"
-                    (focus)="cargarRepuestosInicialesCrear()"
                     (loadInitialData)="cargarRepuestosInicialesCrear()"
                   ></app-search-selector>
                 </div>
@@ -558,21 +557,56 @@
           </div>
         </div>
 
-        <!-- Resumen de selección -->
+        <!-- Resumen de selección - CORREGIDO -->
         <div class="col-12" *ngIf="clienteSeleccionado || equipoSeleccionado || tecnicoSeleccionado || repuestosSeleccionadosCrear.length > 0">
           <div class="alert alert-info">
             <h6 class="alert-heading mb-2">
               <i class="bi bi-clipboard-check me-2"></i>Resumen de la reparación
             </h6>
             <div class="row small">
+              <!-- Cliente con manejo seguro -->
               <div class="col-md-4" *ngIf="clienteSeleccionado">
-                <strong>Cliente:</strong> {{ clienteSeleccionado.nombre }}
+                <strong>Cliente:</strong> 
+                <span *ngIf="clienteSeleccionado.nombre; else clienteSinNombrePropio">
+                  {{ clienteSeleccionado.nombre }}
+                </span>
+                <ng-template #clienteSinNombrePropio>
+                  <span *ngIf="clienteSeleccionado.name">{{ clienteSeleccionado.name }}</span>
+                  <span *ngIf="!clienteSeleccionado.name && clienteSeleccionado.email">{{ clienteSeleccionado.email }}</span>
+                  <span *ngIf="!clienteSeleccionado.nombre && !clienteSeleccionado.name && !clienteSeleccionado.email">
+                    Cliente #{{ clienteSeleccionado.id || 'No identificado' }}
+                  </span>
+                </ng-template>
               </div>
+              
+              <!-- Equipo con manejo seguro -->
               <div class="col-md-4" *ngIf="equipoSeleccionado">
-                <strong>Equipo:</strong> {{ equipoSeleccionado.descripcion }}
+                <strong>Equipo:</strong> 
+                <span *ngIf="equipoSeleccionado.descripcion; else equipoSinDescripcionPropia">
+                  {{ equipoSeleccionado.descripcion }}
+                </span>
+                <ng-template #equipoSinDescripcionPropia>
+                  <span *ngIf="equipoSeleccionado.nombre">{{ equipoSeleccionado.nombre }}</span>
+                  <span *ngIf="equipoSeleccionado.modelo">{{ equipoSeleccionado.modelo }}</span>
+                  <span *ngIf="!equipoSeleccionado.descripcion && !equipoSeleccionado.nombre && !equipoSeleccionado.modelo">
+                    Equipo #{{ equipoSeleccionado.id || 'No identificado' }}
+                  </span>
+                </ng-template>
               </div>
+              
+              <!-- Técnico con manejo seguro -->
               <div class="col-md-4" *ngIf="tecnicoSeleccionado">
-                <strong>Técnico:</strong> {{ tecnicoSeleccionado.nombre }}
+                <strong>Técnico:</strong> 
+                <span *ngIf="tecnicoSeleccionado.nombre; else tecnicoSinNombrePropio">
+                  {{ tecnicoSeleccionado.nombre }}
+                </span>
+                <ng-template #tecnicoSinNombrePropio>
+                  <span *ngIf="tecnicoSeleccionado.name">{{ tecnicoSeleccionado.name }}</span>
+                  <span *ngIf="tecnicoSeleccionado.email">{{ tecnicoSeleccionado.email }}</span>
+                  <span *ngIf="!tecnicoSeleccionado.nombre && !tecnicoSeleccionado.name && !tecnicoSeleccionado.email">
+                    Técnico #{{ tecnicoSeleccionado.id || 'No identificado' }}
+                  </span>
+                </ng-template>
               </div>
             </div>
             
@@ -580,7 +614,7 @@
             <div *ngIf="repuestosSeleccionadosCrear.length > 0" class="mt-2">
               <strong>Repuestos:</strong>
               <div *ngFor="let repuesto of repuestosSeleccionadosCrear" class="ms-2">
-                • {{ repuesto.nombre }} ({{ repuesto.cantidad }} unidades)
+                • {{ repuesto.nombre || 'Repuesto sin nombre' }} ({{ repuesto.cantidad || 0 }} unidades)
               </div>
             </div>
           </div>

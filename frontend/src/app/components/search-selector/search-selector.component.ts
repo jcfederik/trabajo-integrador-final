@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 export interface SearchResult {
   id: number;
   nombre?: string;
+  name?: string;
   descripcion?: string;
   email?: string;
   telefono?: string;

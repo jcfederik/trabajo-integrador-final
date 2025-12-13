@@ -5,6 +5,7 @@ import { ReparacionService, Reparacion, PaginatedResponse } from '../../services
 import { SearchService } from '../../services/busquedaglobal';
 import { EquipoService } from '../../services/equipos';
 import { ClienteService } from '../../services/cliente.service';
+import { Repuesto } from '../../services/repuestos.service';
 import { UsuarioService } from '../../services/usuario.service';
 import { RepuestoService } from '../../services/repuestos.service';
 import { Subscription, Subject } from 'rxjs';
@@ -384,16 +385,20 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.alertService.showLoading('Creando reparación...');
 
     try {
-      const reparacionCreada = await this.repService.create(this.nuevo).toPromise();
+      const response = await this.repService.create(this.nuevo).toPromise() as any;
       
-      if (!reparacionCreada) {
+      if (!response) {
         throw new Error('No se recibió respuesta del servidor al crear la reparación');
       }
 
-      const nuevaReparacion = reparacionCreada;
-
-      if (!nuevaReparacion) {
-        throw new Error('No se recibió la reparación creada');
+      let nuevaReparacion: Reparacion;
+      
+      if (response.reparacion) {
+        nuevaReparacion = response.reparacion;
+      } else if (response.id) {
+        nuevaReparacion = response;
+      } else {
+        throw new Error('Formato de respuesta inesperado del servidor');
       }
 
       if (this.repuestosSeleccionadosCrear.length > 0) {
@@ -404,26 +409,45 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
       this.alertService.closeLoading();
       
-      this.reparacionesAll.unshift(nuevaReparacion);
-      this.applyFilterLocal();
+      const reparacionCompleta = await this.repService.show(nuevaReparacion.id).toPromise();
+      
+      if (reparacionCompleta) {
+        this.reparacionesAll.unshift(reparacionCompleta);
+        this.applyFilterLocal();
+        this.prepararDatosParaBusquedaGlobal();
+      }
 
       this.nuevo = {
         fecha: new Date().toISOString().slice(0, 10),
-        estado: 'pendiente'
+        fecha_estimada: null,
+        estado: 'pendiente',
+        descripcion: ''
       };
-      this.limpiarCliente();
-      this.limpiarEquipo();
-      this.limpiarTecnico();
+      
+      this.clienteSeleccionado = null;
+      this.equipoSeleccionado = null;
+      this.tecnicoSeleccionado = null;
       this.repuestosSeleccionadosCrear = [];
       this.repuestoSeleccionadoCrear = null;
       this.cantidadRepuestoCrear = 1;
+      
+      if (this.clienteSelector) this.clienteSelector.clearAll();
+      if (this.equipoSelector) this.equipoSelector.clearAll();
+      if (this.tecnicoSelector) this.tecnicoSelector.clearAll();
+      if (this.repuestoCrearSelector) this.repuestoCrearSelector.clearAll();
       
       this.selectedAction = 'listar';
       this.alertService.showReparacionCreada();
 
     } catch (e: any) {
       this.alertService.closeLoading();
-      this.alertService.showGenericError(e?.error?.error ?? 'Error al crear la reparación');
+      console.error('Error al crear reparación:', e);
+      this.alertService.showGenericError(
+        e?.error?.error || 
+        e?.error?.detalle || 
+        e?.message || 
+        'Error al crear la reparación'
+      );
     }
   }
 
@@ -717,10 +741,17 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   }
 
   seleccionarCliente(cliente: SearchResult) {
+    console.log('🔍 Cliente seleccionado:', cliente);
+    console.log('📋 Tipo:', typeof cliente);
+    console.log('🗂️ Propiedades:', Object.keys(cliente || {}));
+    console.log('👤 Nombre:', cliente?.nombre);
+    console.log('🆔 ID:', cliente?.id);
+    
     this.clienteSeleccionado = cliente;
     this.limpiarEquipo();
     this.cargarTodosLosEquiposDelCliente();
   }
+
 
   limpiarCliente() {
     this.clienteSeleccionado = null;
@@ -1109,33 +1140,62 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   // ====== REPUESTOS EN CREACIÓN ======
   cargarRepuestosInicialesCrear(): void {
-    this.repuestoService.getRepuestos(1, 10).subscribe({
-      next: (response: any) => {
-        const repuestos = response.data || response;
-        const repuestosMostrar = Array.isArray(repuestos) ? repuestos.slice(0, 5) : [];
-        this.repuestoCrearSelector.updateSuggestions(repuestosMostrar);
-      },
-      error: (e) => {
-        this.repuestoCrearSelector.updateSuggestions([]);
-      }
-    });
+    if (this.repuestoCrearSelector && !this.repuestoCrearSelector.hasSearched) {
+      this.repuestoService.getRepuestos(1, 5).subscribe({
+        next: (response: any) => {
+          const repuestos = response.data || response;
+          const repuestosMostrar = Array.isArray(repuestos) ? repuestos : [];
+          
+          if (!this.repuestoCrearSelector.searchTerm || this.repuestoCrearSelector.searchTerm.length < 2) {
+            this.repuestoCrearSelector.updateSuggestions(repuestosMostrar);
+          }
+        },
+        error: (e) => {
+          this.repuestoCrearSelector.updateSuggestions([]);
+        }
+      });
+    }
   }
 
   buscarRepuestosCrear(termino: string): void {
-    if (termino.length < 2) {
+    const terminoLimpio = (termino || '').trim();
+        
+    if (!terminoLimpio || terminoLimpio.length < 2) {
       this.repuestoCrearSelector.updateSuggestions([]);
       return;
     }
 
-    this.repuestoService.buscarRepuestos(termino).subscribe({
-      next: (repuestos: any[]) => {
-        this.repuestoCrearSelector.updateSuggestions(repuestos);
+    this.repuestoService.getRepuestos(1, 100, terminoLimpio).subscribe({
+      next: (response: any) => {        
+        let repuestosArray = [];
+        
+        if (response && response.data) {
+          repuestosArray = response.data;
+        } else if (Array.isArray(response)) {
+          repuestosArray = response;
+        }
+        
+        
+        if (repuestosArray.length > 0) {
+          this.repuestoCrearSelector.updateSuggestions(repuestosArray);
+        } else {
+          this.repuestoCrearSelector.updateSuggestions([]);
+        }
       },
       error: (e) => {
-        this.repuestoCrearSelector.updateSuggestions([]);
+        this.repuestoService.buscarRepuestos(terminoLimpio).subscribe({
+          next: (repuestos: any[]) => {
+            this.repuestoCrearSelector.updateSuggestions(repuestos);
+          },
+          error: (e2) => {
+            this.repuestoCrearSelector.updateSuggestions([]);
+          }
+        });
       }
     });
   }
+
+
 
   seleccionarRepuestoCrear(repuesto: any): void {
     this.repuestoSeleccionadoCrear = repuesto;
@@ -1201,5 +1261,74 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       const costo = repuesto.pivot?.costo_unitario || repuesto.costo_base || 0;
       return total + (cantidad * costo);
     }, 0);
+  }
+  getNombreDisplayCliente(cliente: any): string {
+    if (!cliente) return 'No seleccionado';
+    
+    if (cliente.nombre) {
+      return cliente.nombre;
+    } else if (cliente.name) {
+      return cliente.name;
+    } else if (cliente.email) {
+      return cliente.email;
+    } else {
+      return `Cliente #${cliente.id}`;
+    }
+  }
+
+  getNombreDisplayEquipo(equipo: any): string {
+    if (!equipo) return 'No seleccionado';
+    
+    if (equipo.descripcion) {
+      return equipo.descripcion;
+    } else if (equipo.nombre) {
+      return equipo.nombre;
+    } else if (equipo.modelo) {
+      return equipo.modelo;
+    } else {
+      return `Equipo #${equipo.id}`;
+    }
+  }
+
+  getNombreDisplayTecnico(tecnico: any): string {
+    if (!tecnico) return 'No seleccionado';
+    
+    if (tecnico.nombre) {
+      return tecnico.nombre;
+    } else if (tecnico.name) {
+      return tecnico.name;
+    } else if (tecnico.email) {
+      return tecnico.email;
+    } else {
+      return `Técnico #${tecnico.id}`;
+    }
+  }
+
+  // También agrega estos métodos para el resumen (ya que los necesitas en el template)
+  getNombreCliente(): string {
+    return this.getNombreDisplayCliente(this.clienteSeleccionado);
+  }
+
+  getNombreEquipo(): string {
+    return this.getNombreDisplayEquipo(this.equipoSeleccionado);
+  }
+
+  getNombreTecnico(): string {
+    return this.getNombreDisplayTecnico(this.tecnicoSeleccionado);
+  }
+
+  // Método para obtener nombre de cliente en edición
+  getNombreClienteEdit(): string {
+    return this.getNombreDisplayCliente(this.clienteEditSeleccionado);
+  }
+
+  // Método para obtener nombre de equipo en edición  
+  getNombreEquipoEdit(): string {
+    return this.getNombreDisplayEquipo(this.equipoEditSeleccionado);
+  }
+
+  // Método para obtener nombre de técnico en edición
+  getNombreTecnicoEdit(): string {
+    return this.getNombreDisplayTecnico(this.tecnicoEditSeleccionado);
   }
 }
