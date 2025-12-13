@@ -235,7 +235,7 @@ class AuthController extends Controller
     /**
      * Método privado para obtener permisos por tipo de usuario
      */
-    private function getPermissionsByTipo($tipo)
+    public static function getPermissionsByTipo($tipo)
     {
         $permissionsMap = [
             'administrador' => [
@@ -253,36 +253,24 @@ class AuthController extends Controller
                 'dashboard.view',
                 'admin.full'
             ],
-            'usuario' => [
-                'clients.view',
-                'clients.create',
-                'clients.edit',
-                'equipos.view', 
-                'equipos.create',
-                'reparaciones.view',
-                'reparaciones.create',
-                'facturas.view',
+            'usuario' => [ // Secretarios/Administrativos
+                'clients.manage',
+                'equipos.manage',
+                'presupuestos.manage',
+                'reparaciones.manage',
                 'facturas.create',
-                'facturas.edit',
-                'cobros.view',
                 'cobros.create',
-                'presupuestos.view',
-                'presupuestos.create',
                 'dashboard.view',
                 'user.basic'
             ],
-            'tecnico' => [
+            'tecnico' => [ // Técnicos reparadores - RESTRINGIDOS
                 'reparaciones.view',
-                'reparaciones.update',
-                'reparaciones.create',
+                'reparaciones.update.estado',
                 'presupuestos.create',
                 'presupuestos.view',
                 'equipos.view',
-                'equipos.create', 
                 'repuestos.view',
                 'especializaciones.view',
-                'especializaciones.manage',
-                'especializaciones.create',
                 'especializaciones.self_assign',
                 'dashboard.view',
                 'tecnico.basic'
