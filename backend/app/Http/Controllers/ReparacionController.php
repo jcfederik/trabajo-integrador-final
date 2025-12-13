@@ -131,37 +131,26 @@ class ReparacionController extends Controller
      */
     public function buscar(Request $request)
     {
-        \Log::info('🔍 ===== INICIO buscar() =====');
-        \Log::info('Parámetros recibidos:', $request->all());
-        
         $termino = $request->get('q');
         $perPage = $request->get('per_page', 100);
 
-        \Log::info('Término de búsqueda:', ['q' => $termino]);
-
         if (!$termino) {
-            \Log::info('❌ Término vacío, devolviendo array vacío');
             return response()->json(['data' => []], 200);
         }
 
         try {
-            \Log::info('📝 Construyendo consulta...');
             
             // Primero, prueba una consulta SIMPLE
             $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                 ->where('descripcion', 'LIKE', "%{$termino}%")
                 ->paginate($perPage);
 
-            \Log::info('🔍 Consulta SQL ejecutada: ' . Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                 ->where('descripcion', 'LIKE', "%{$termino}%")
-                ->toSql());
-            
-            \Log::info('📊 Resultados encontrados: ' . $reparaciones->count());
-            
+                ->toSql();
+                        
             if ($reparaciones->count() === 0) {
-                \Log::info('⚠️ No se encontraron resultados con descripción, probando búsqueda más amplia...');
                 
-                // Búsqueda más amplia
                 $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                     ->where(function($query) use ($termino) {
                         $query->where('descripcion', 'LIKE', "%{$termino}%")
@@ -170,18 +159,14 @@ class ReparacionController extends Controller
                     })
                     ->paginate($perPage);
                     
-                \Log::info('🔍 Segunda consulta SQL: ' . Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                    Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                     ->where(function($query) use ($termino) {
                         $query->where('descripcion', 'LIKE', "%{$termino}%")
                             ->orWhere('estado', 'LIKE', "%{$termino}%")
                             ->orWhere('id', 'LIKE', "%{$termino}%");
                     })
-                    ->toSql());
-                
-                \Log::info('📊 Resultados segunda búsqueda: ' . $reparaciones->count());
-            }
-
-            \Log::info('✅ Preparando respuesta con ' . $reparaciones->count() . ' resultados');
+                    ->toSql();
+                }
             
             return response()->json([
                 'data' => $reparaciones->items(),
@@ -194,8 +179,6 @@ class ReparacionController extends Controller
             ], 200);
             
         } catch (\Exception $e) {
-            \Log::error('💥 ERROR en buscar(): ' . $e->getMessage());
-            \Log::error('Trace: ' . $e->getTraceAsString());
             return response()->json(['data' => []], 200);
         }
     }
@@ -518,9 +501,7 @@ class ReparacionController extends Controller
             return response()->json($reparaciones);
 
         } catch (\Exception $e) {
-            \Log::error('Error en completo: ' . $e->getMessage());
-            \Log::error('Trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'error' => 'Error al cargar reparaciones',
                 'debug' => env('APP_DEBUG') ? $e->getMessage() : null
@@ -563,8 +544,6 @@ class ReparacionController extends Controller
      */
     public function assignRepuesto(Request $request, $reparacionId)
     {
-        Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
-
         $request->validate([
             'repuesto_id' => 'required|exists:repuesto,id',
             'cantidad' => 'required|integer|min:1'
@@ -675,7 +654,7 @@ class ReparacionController extends Controller
      */
     public function removeRepuesto($reparacionId, $pivotId)
     {
-        Log::info('RemoveRepuesto llamado', ['reparacion_id' => $reparacionId, 'pivot_id' => $pivotId]);
+        Log::info('RemoveRepuesto llamado', context: ['reparacion_id' => $reparacionId, 'pivot_id' => $pivotId]);
 
         try {
             DB::beginTransaction();

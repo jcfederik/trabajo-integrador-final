@@ -116,11 +116,6 @@ class PresupuestoController extends Controller
 
             return response()->json($presupuestos, 200);
         } catch (\Throwable $e) {
-            \Log::error('Error listando presupuestos', [
-                'err' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'params' => $request->all()
-            ]);
             return response()->json([
                 'error' => 'Error al obtener los presupuestos',
                 'detalle' => $e->getMessage()
@@ -266,26 +261,16 @@ class PresupuestoController extends Controller
             
             $termino = $request->get('q');
             $perPage = $request->get('per_page', 50);
-            $soloAceptados = $request->get('aceptado', false); // Cambia a false por defecto
-            
-            \Log::info('Parámetros recibidos:', [
-                'termino' => $termino,
-                'perPage' => $perPage,
-                'soloAceptados' => $soloAceptados
-            ]);
+            $soloAceptados = $request->get('aceptado', false);
             
             if (!$termino || trim($termino) === '') {
-                \Log::info('Término vacío, retornando vacío');
                 return response()->json([], 200);
             }
 
             $termino = trim($termino);
             
             $query = Presupuesto::query();
-            
-            \Log::info('Cargando relaciones...');
-            
-            // Cargar relaciones
+                        
             $query->with(['reparacion' => function($q) {
                 $q->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'estado', 'fecha')
                 ->with(['equipo' => function($q) {
@@ -303,11 +288,8 @@ class PresupuestoController extends Controller
             
             // Primero intentar búsqueda por fecha
             $esBusquedaPorFecha = $this->agregarBusquedaPorFecha($query, $termino);
-            
-            \Log::info('¿Es búsqueda por fecha?', ['esBusquedaPorFecha' => $esBusquedaPorFecha]);
-            
+                        
             if (!$esBusquedaPorFecha) {
-                \Log::info('Búsqueda normal (no fecha)');
                 
                 $query->where(function($q) use ($termino) {
                     $terminoLower = strtolower($termino);
@@ -336,25 +318,14 @@ class PresupuestoController extends Controller
                     });
                 });
             }
-            
-            \Log::info('SQL generado:', ['sql' => $query->toSql()]);
-            
+                        
             $presupuestos = $query->orderBy('id', 'desc')
                 ->limit($perPage)
                 ->get();
             
-            \Log::info('Resultados encontrados:', [
-                'cantidad' => $presupuestos->count(),
-                'ids' => $presupuestos->pluck('id')->toArray()
-            ]);
-            
             return response()->json($presupuestos->toArray(), 200);
             
         } catch (\Exception $e) {
-            \Log::error('Error buscando presupuestos', [
-                'err' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([], 200);
         }
     }    
@@ -426,7 +397,6 @@ private function agregarBusquedaPorFecha($query, $termino)
             
             $presupuesto->update($data);
             
-            // Cargar relaciones actualizadas
             $presupuesto->load(['reparacion' => function($query) {
                 $query->select('id', 'descripcion', 'equipo_id', 'usuario_id', 'fecha', 'estado');
             }]);
@@ -436,7 +406,6 @@ private function agregarBusquedaPorFecha($query, $termino)
                 'presupuesto' => $presupuesto
             ], 200);
         } catch (\Throwable $e) {
-            \Log::error('Error actualizando presupuesto', ['err' => $e->getMessage()]);
             return response()->json([
                 'error' => 'Error al actualizar el presupuesto', 
                 'detalle' => $e->getMessage()
@@ -474,7 +443,6 @@ private function agregarBusquedaPorFecha($query, $termino)
             $presupuesto->delete();
             return response()->json(['mensaje' => 'Presupuesto eliminado correctamente'], 200);
         } catch (\Exception $e) {
-            \Log::error('Error eliminando presupuesto', ['err' => $e->getMessage()]);
             return response()->json([
                 'error' => 'Error al eliminar el presupuesto', 
                 'detalle' => $e->getMessage()
@@ -485,34 +453,28 @@ private function agregarBusquedaPorFecha($query, $termino)
 public function listadoOptimizado(Request $request)
 {
     try {
-        \Log::info('Iniciando listadoOptimizado');
 
-        // Cargar con eager loading corregido
         $query = Presupuesto::with([
             'reparacion:id,descripcion,equipo_id,usuario_id,fecha,estado',
             'reparacion.equipo:id,descripcion,cliente_id,marca,modelo,nro_serie',
             'reparacion.equipo.cliente:id,nombre,telefono,email',
-            'reparacion.tecnico:id,nombre' // Relación corregida
+            'reparacion.tecnico:id,nombre' 
         ]);
 
-        // Búsqueda
         if ($request->filled('search')) {
             $search = $request->search;
             
             $query->where(function ($q) use ($search) {
-                // Búsqueda en campos de presupuesto
                 $q->where('id', 'LIKE', "%$search%")
                   ->orWhere('monto_total', 'LIKE', "%$search%")
                   ->orWhere('fecha', 'LIKE', "%$search%")
                   ->orWhere('aceptado', $search === 'aceptado' ? 1 : ($search === 'pendiente' ? 0 : null));
                 
-                // Búsqueda en reparación relacionada
                 $q->orWhereHas('reparacion', function ($q) use ($search) {
                     $q->where('descripcion', 'LIKE', "%$search%")
                       ->orWhere('estado', 'LIKE', "%$search%");
                 });
                 
-                // Búsqueda en equipo relacionado
                 $q->orWhereHas('reparacion.equipo', function ($q) use ($search) {
                     $q->where('descripcion', 'LIKE', "%$search%")
                       ->orWhere('marca', 'LIKE', "%$search%")
@@ -520,14 +482,12 @@ public function listadoOptimizado(Request $request)
                       ->orWhere('nro_serie', 'LIKE', "%$search%");
                 });
                 
-                // Búsqueda en cliente relacionado
                 $q->orWhereHas('reparacion.equipo.cliente', function ($q) use ($search) {
                     $q->where('nombre', 'LIKE', "%$search%")
                       ->orWhere('telefono', 'LIKE', "%$search%")
                       ->orWhere('email', 'LIKE', "%$search%");
                 });
                 
-                // Búsqueda en técnico relacionado
                 $q->orWhereHas('reparacion.tecnico', function ($q) use ($search) {
                     $q->where('nombre', 'LIKE', "%$search%")
                       ->orWhere('tipo', 'LIKE', "%$search%");
@@ -535,18 +495,13 @@ public function listadoOptimizado(Request $request)
             });
         }
 
-        // Ordenamiento
         $query->orderBy('id', 'desc');
 
-        // Paginación
         $perPage = min($request->input('per_page', 20), 100);
         $presupuestos = $query->paginate($perPage, [
             'id', 'reparacion_id', 'fecha', 'monto_total', 'aceptado'
         ]);
 
-        \Log::info('Presupuestos encontrados: ' . $presupuestos->count());
-
-        // Transformación
         $presupuestos->getCollection()->transform(function ($presupuesto) {
             $reparacion = $presupuesto->reparacion;
             
@@ -611,9 +566,6 @@ public function listadoOptimizado(Request $request)
         return response()->json($presupuestos);
 
     } catch (\Exception $e) {
-        \Log::error('Error en listadoOptimizado: ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
-        
         return response()->json([
             'error' => 'Error interno del servidor',
             'message' => $e->getMessage()

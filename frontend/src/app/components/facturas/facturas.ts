@@ -22,7 +22,7 @@ type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
   fecha: string;
   monto_total: number | string | null;
   presupuestoBusqueda: string;
-  presupuestoSeleccionado?: PresupuestoConReparacion; // Presupuesto con información de reparación
+  presupuestoSeleccionado?: PresupuestoConReparacion;
 };
 
 interface PresupuestoConReparacion extends Presupuesto {
@@ -362,7 +362,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
         
         const reparacionCache = this.reparacionesCache.get(presupuesto.reparacion_id);
         if (reparacionCache) {
-            return reparacionCache.estado?.toLowerCase() === 'finalizado';
+            return reparacionCache.estado?.toLowerCase() === 'finalizada';
         }
         
         return true;
@@ -430,7 +430,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     if (presupuesto.reparacion) {
         const reparacionEstado = presupuesto.reparacion.estado?.toLowerCase();
         
-        if (reparacionEstado !== 'finalizado' && reparacionEstado !== 'finalizado') {
+        if (reparacionEstado !== 'finalizada' && reparacionEstado !== 'finalizada') {
             this.alertService.showGenericError(
                 `La reparación asociada a este presupuesto está en estado "${presupuesto.reparacion.estado}". 
                 Solo se pueden facturar reparaciones finalizadas.`
@@ -574,12 +574,12 @@ export class FacturasComponent implements OnInit, OnDestroy {
     
     if (this.nuevo.presupuestoSeleccionado.reparacion) {
         const estadoReparacion = this.nuevo.presupuestoSeleccionado.reparacion.estado?.toLowerCase();
-        estadoReparacionValido = estadoReparacion === 'finalizado';
+        estadoReparacionValido = estadoReparacion === 'finalizada';
     } else {
         try {
             const reparacion = await this.reparacionService.show(this.nuevo.presupuestoSeleccionado.reparacion_id).toPromise();
             const estadoReparacion = reparacion?.estado?.toLowerCase();
-            estadoReparacionValido = estadoReparacion === 'finalizado';
+            estadoReparacionValido = estadoReparacion === 'finalizada';
             
             if (reparacion) {
                 this.reparacionesCache.set(this.nuevo.presupuestoSeleccionado.reparacion_id, reparacion);
@@ -702,7 +702,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     
     if (this.editBuffer.presupuestoSeleccionado.reparacion) {
       const estadoReparacion = this.editBuffer.presupuestoSeleccionado.reparacion.estado?.toLowerCase();
-      if (estadoReparacion !== 'finalizado') {
+      if (estadoReparacion !== 'finalizada') {
         this.alertService.showGenericError(
           `La reparación asociada a este presupuesto está en estado "${this.editBuffer.presupuestoSeleccionado.reparacion.estado}". 
           Solo se pueden facturar reparaciones finalizadas.`
