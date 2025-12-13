@@ -33,7 +33,7 @@ export interface SearchResult {
 export class SearchSelectorComponent implements OnInit {
   @Input() placeholder: string = 'Buscar...';
   @Input() disabled: boolean = false;
-  @Input() type: 'cliente' | 'equipo' | 'tecnico' | 'repuesto' | 'proveedor' = 'cliente'; // AGREGADO 'proveedor'
+  @Input() type: 'cliente' | 'equipo' | 'tecnico' | 'repuesto' | 'proveedor' = 'cliente';
   @Input() selectedItem: SearchResult | null = null;
   @Input() preloadOnFocus: boolean = true;
   
@@ -151,6 +151,9 @@ export class SearchSelectorComponent implements OnInit {
 
   getDisplayText(item: SearchResult): string {
     switch (this.type) {
+      case 'proveedor':
+        return item.razon_social || item.nombre || '';
+
       case 'cliente':
         return item.nombre || '';
       case 'equipo':

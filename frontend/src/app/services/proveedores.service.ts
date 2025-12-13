@@ -30,6 +30,7 @@ export interface PaginatedResponse<T> {
   providedIn: 'root'
 })
 export class ProveedoresService {
+
   private apiUrl = 'http://localhost:8000/api/proveedores';
 
   constructor(private http: HttpClient) {}
@@ -40,7 +41,7 @@ export class ProveedoresService {
       .set('page', page.toString())
       .set('per_page', perPage.toString());
 
-    if (search && search.trim() !== '') {
+    if (search.trim() !== '') {
       params = params.set('search', search.trim());
     }
 
@@ -49,11 +50,18 @@ export class ProveedoresService {
     );
   }
 
+  /**
+   * Obtener proveedor por ID
+   */
   getProveedor(id: number): Observable<Proveedor> {
     return this.http.get<Proveedor>(`${this.apiUrl}/${id}`).pipe(
       map(proveedor => this.formatearProveedorParaDisplay(proveedor))
     );
   }
+
+  /**
+   * crear proveedor
+  */
 
   createProveedor(proveedor: Partial<Proveedor>): Observable<Proveedor> {
     const headers = this.getAuthHeaders();
@@ -62,6 +70,9 @@ export class ProveedoresService {
     );
   }
 
+  /**
+   * Editar proveedor
+  */
   updateProveedor(id: number, proveedor: Partial<Proveedor>): Observable<Proveedor> {
     const headers = this.getAuthHeaders();
     return this.http.put<Proveedor>(`${this.apiUrl}/${id}`, proveedor, { headers }).pipe(
@@ -69,6 +80,9 @@ export class ProveedoresService {
     );
   }
 
+  /**
+   * Eliminar proveedor
+   */
   deleteProveedor(id: number): Observable<any> {
     const headers = this.getAuthHeaders();
     return this.http.delete(`${this.apiUrl}/${id}`, { headers });
@@ -279,5 +293,13 @@ export class ProveedoresService {
              email.includes(terminoLower) ||
              telefono.includes(terminoLower);
     });
+  }
+
+  /**
+   * Obtener todos los proveedores (sin paginación)
+   * Útil para modales de compra de repuestos
+   */
+  getAll(): Observable<Proveedor[]> {
+    return this.http.get<Proveedor[]>(`${this.apiUrl}/all`);
   }
 }

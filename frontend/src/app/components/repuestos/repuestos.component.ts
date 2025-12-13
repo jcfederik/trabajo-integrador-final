@@ -33,6 +33,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   repuestosAll: Repuesto[] = [];
   repuestos: Repuesto[] = [];
+  mostrarModalCompra = false;
 
   page = 1;
   perPage = 15;
@@ -575,7 +576,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   // ====== MÉTODOS PARA TEMPLATE ======
   
-  // Obtener información del repuesto seleccionado
   getInfoRepuestoSeleccionado(): string {
     if (!this.repuestoExistenteSeleccionado) return '';
     
@@ -587,7 +587,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     return [stock, costo].filter(Boolean).join(' | ');
   }
 
-  // Obtener información del proveedor seleccionado
   getInfoProveedorSeleccionado(): string {
     if (!this.proveedorSeleccionado) return '';
     
@@ -599,9 +598,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     return [cuit, telefono, email].filter(Boolean).join(' | ');
   }
 
-  // Verificar si el formulario de compra es válido
   esFormularioCompraValido(): boolean {
-    // Verificar nombre del repuesto según modo
     let nombreValido = false;
     
     if (this.modoCompra === 'existente') {
@@ -610,7 +607,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       nombreValido = !!(this.nuevo.nombre && this.nuevo.nombre.trim() !== '');
     }
     
-    // Verificar cantidad y costo
     const cantidadValida = !!(this.nuevo.cantidad && this.nuevo.cantidad > 0);
     const costoValido = !!(this.nuevo.costo_base !== undefined && this.nuevo.costo_base >= 0);
     
