@@ -251,6 +251,8 @@ class AuthController extends Controller
                 'especializaciones.manage',
                 'reports.view',
                 'dashboard.view',
+                'historial-stock.view',   
+                'historial-stock.manage', 
                 'admin.full'
             ],
             'usuario' => [ // Secretarios/Administrativos
