@@ -125,7 +125,7 @@
                           <i class="bi bi-x"></i>
                         </button>
 
-                        <!-- DROPDOWN DE SUGERENCIAS - VERSIÓN SIMPLIFICADA -->
+                        <!-- DROPDOWN DE SUGERENCIAS -->
                         <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
                             class="menu-sugerencias">
                           <div class="cabecera-sugerencias">
@@ -133,13 +133,12 @@
                             Presupuestos encontrados
                             <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
                           </div>
-                          <div *ngFor="let presupuesto of presupuestosSugeridos" 
+                          <div *ngFor="let presupuesto of presupuestosSugeridos; trackBy: trackByPresupuestoId" 
                               class="item-sugerencia presupuesto-item"
-                              (mousedown)="seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()">
+                              [class.ya-facturado]="presupuesto.yaFacturado"
+                              (mousedown)="!presupuesto.yaFacturado && seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()">
                             
-                            <!-- Información básica simplificada -->
                             <div class="presupuesto-info-simple">
-                              <!-- Primera línea: Presupuesto #ID | Fecha | Monto -->
                               <div class="info-line primary-line">
                                 <strong>Presupuesto #{{ presupuesto.id }}</strong>
                                 <span class="info-separator">|</span>
@@ -148,16 +147,24 @@
                                 <span class="info-separator">|</span>
                                 <i class="bi bi-currency-dollar small-icon"></i>
                                 <span>{{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</span>
+                                
+                                <span *ngIf="presupuesto.yaFacturado" class="badge ya-facturado-badge ms-2">
+                                  <i class="bi bi-file-earmark-check"></i> Ya facturado
+                                </span>
                               </div>
                               
-                              <!-- Segunda línea: Reparación -->
+                              <div *ngIf="presupuesto.yaFacturado && presupuesto.facturaExistente" 
+                                   class="info-line warning-line">
+                                <i class="bi bi-exclamation-triangle small-icon"></i>
+                                <span>Factura: {{ presupuesto.facturaExistente?.numero }}{{ presupuesto.facturaExistente?.letra ? ' (' + presupuesto.facturaExistente?.letra + ')' : '' }}</span>
+                              </div>
+                              
                               <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
                                 <i class=" bi bi-tools small-icon"></i>
                                 <span class="info-label">Reparación:</span>
                                 <span class="info-value">{{ presupuesto.reparacion?.descripcion }}</span>
                               </div>
                               
-                              <!-- Tercera línea: Estado reparación -->
                               <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.estado">
                                 <i class="bi bi-tag small-icon"></i>
                                 <span class="info-label">Estado reparación:</span>
@@ -167,7 +174,6 @@
                                 </span>
                               </div>
                               
-                              <!-- Indicador de presupuesto aceptado -->
                               <div class="info-line secondary-line">
                                 <span class="presupuesto-estado-indicador" 
                                       [class.aceptado]="presupuesto.aceptado"
@@ -178,7 +184,6 @@
                               </div>
                             </div>
 
-                            <!-- Indicador de selección -->
                             <i class="bi bi-chevron-right icono-seleccion"></i>
                           </div>
                         </div>
@@ -204,7 +209,7 @@
                         </div>
                       </div>
                       
-                      <!-- Badge de selección simplificado -->
+                      <!-- Badge de selección -->
                       <div *ngIf="editBuffer.presupuestoSeleccionado" class="badge-seleccion">
                         <i class="bi bi-check-circle"></i>
                         Presupuesto seleccionado: #{{ editBuffer.presupuestoSeleccionado.id }}
@@ -214,6 +219,15 @@
                         <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(editBuffer.presupuestoSeleccionado?.id) !== 'Desconocido'">
                           | Estado reparación: {{ getEstadoReparacion(editBuffer.presupuestoSeleccionado?.id) }}
                         </small>
+                      </div>
+                      
+                      <!-- Advertencia si ya está facturado -->
+                      <div *ngIf="editBuffer.presupuestoSeleccionado && editBuffer.presupuestoSeleccionado.yaFacturado" 
+                           class="alert alert-warning mt-2 mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Este presupuesto ya tiene una factura:</strong>
+                        {{ editBuffer.presupuestoSeleccionado?.facturaExistente?.numero || 'Ya facturado' }}
+                        {{ editBuffer.presupuestoSeleccionado?.facturaExistente?.letra ? ' (' + editBuffer.presupuestoSeleccionado?.facturaExistente?.letra + ')' : '' }}
                       </div>
                     </div>
 
@@ -257,7 +271,6 @@
                 </button>
               </ng-container>
 
-              <!-- BOTÓN PARA MODAL DE PAGOS CON VERIFICACIÓN DE ID -->
               <button class="boton-accion boton-cobros" 
                       (click)="abrirModalCobros(f)" 
                       title="Gestionar pagos"
@@ -265,7 +278,6 @@
                 <i class="bi bi-wallet2"></i>
               </button>
 
-              <!-- Mostrar advertencia si no tiene ID válido -->
               <div *ngIf="!f.id || f.id <= 0" class="badge bg-warning ms-1" title="Factura sin ID válido">
                 <i class="bi bi-exclamation-triangle"></i>
               </div>
@@ -306,6 +318,7 @@
       <ul class="mb-0 mt-2">
         <li>El presupuesto debe estar <strong>aprobado</strong></li>
         <li>La reparación asociada debe estar <strong>finalizada</strong></li>
+        <li>El presupuesto no debe tener factura previa</li>
       </ul>
     </div>
 
@@ -336,7 +349,7 @@
               <i class="bi bi-x"></i>
             </button>
 
-            <!-- DROPDOWN DE SUGERENCIAS - VERSIÓN SIMPLIFICADA -->
+            <!-- DROPDOWN DE SUGERENCIAS -->
             <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
                  class="menu-sugerencias">
               <div class="cabecera-sugerencias">
@@ -344,13 +357,12 @@
                 Presupuestos encontrados
                 <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
               </div>
-              <div *ngFor="let presupuesto of presupuestosSugeridos" 
+              <div *ngFor="let presupuesto of presupuestosSugeridos; trackBy: trackByPresupuestoId" 
                    class="item-sugerencia presupuesto-item"
-                   (mousedown)="seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()">
+                   [class.ya-facturado]="presupuesto.yaFacturado"
+                   (mousedown)="!presupuesto.yaFacturado && seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()">
                 
-                <!-- Información básica simplificada -->
                 <div class="presupuesto-info-simple">
-                  <!-- Primera línea: Presupuesto #ID | Fecha | Monto -->
                   <div class="info-line primary-line">
                     <strong>Presupuesto #{{ presupuesto.id }}</strong>
                     <span class="info-separator">|</span>
@@ -359,16 +371,24 @@
                     <span class="info-separator">|</span>
                     <i class="bi bi-currency-dollar small-icon"></i>
                     <span>{{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</span>
+                    
+                    <span *ngIf="presupuesto.yaFacturado" class="badge ya-facturado-badge ms-2">
+                      <i class="bi bi-file-earmark-check"></i> Ya facturado
+                    </span>
                   </div>
                   
-                  <!-- Segunda línea: Reparación -->
+                  <div *ngIf="presupuesto.yaFacturado && presupuesto.facturaExistente" 
+                       class="info-line warning-line">
+                    <i class="bi bi-exclamation-triangle small-icon"></i>
+                    <span>Factura: {{ presupuesto.facturaExistente?.numero }}{{ presupuesto.facturaExistente?.letra ? ' (' + presupuesto.facturaExistente?.letra + ')' : '' }}</span>
+                  </div>
+                  
                   <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
                     <i class="bi bi-tools small-icon"></i>
                     <span class="info-label">Reparación:</span>
                     <span class="info-value">{{ presupuesto.reparacion?.descripcion }}</span>
                   </div>
                   
-                  <!-- Tercera línea: Estado reparación -->
                   <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.estado">
                     <i class="bi bi-tag small-icon"></i>
                     <span class="info-label">Estado reparación:</span>
@@ -378,7 +398,6 @@
                     </span>
                   </div>
                   
-                  <!-- Indicador de presupuesto aceptado -->
                   <div class="info-line secondary-line">
                     <span class="presupuesto-estado-indicador" 
                           [class.aceptado]="presupuesto.aceptado"
@@ -389,7 +408,6 @@
                   </div>
                 </div>
 
-                <!-- Indicador de selección -->
                 <i class="bi bi-chevron-right icono-seleccion"></i>
               </div>
             </div>
@@ -415,7 +433,7 @@
             </div>
           </div>
           
-          <!-- Badge de selección simplificado -->
+          <!-- Badge de selección -->
           <div *ngIf="nuevo.presupuestoSeleccionado" class="badge-seleccion">
             <i class="bi bi-check-circle"></i>
             Presupuesto seleccionado: #{{ nuevo.presupuestoSeleccionado.id }}
@@ -473,6 +491,15 @@
                     {{ nuevo.presupuestoSeleccionado.aceptado ? 'Aceptado' : 'Pendiente' }}
                   </span>
                 </div>
+                
+                <div *ngIf="nuevo.presupuestoSeleccionado?.yaFacturado" class="item-informacion">
+                  <strong>Factura existente:</strong> 
+                  <span class="text-danger">
+                    {{ nuevo.presupuestoSeleccionado?.facturaExistente?.numero || 'Ya facturado' }}
+                    {{ nuevo.presupuestoSeleccionado?.facturaExistente?.letra ? ' (' + nuevo.presupuestoSeleccionado?.facturaExistente?.letra + ')' : '' }}
+                  </span>
+                </div>
+                
                 <div class="item-informacion">
                   <strong>ID Reparación:</strong> {{ nuevo.presupuestoSeleccionado.reparacion_id }}
                 </div>
@@ -501,7 +528,7 @@
       </div>
 
       <!-- Mensaje de validación -->
-      <div *ngIf="nuevo.presupuestoSeleccionado && (!nuevo.presupuestoSeleccionado.aceptado || getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada')" 
+      <div *ngIf="nuevo.presupuestoSeleccionado && (!nuevo.presupuestoSeleccionado.aceptado || getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada' || nuevo.presupuestoSeleccionado.yaFacturado)" 
            class="alert alert-warning mb-3">
         <i class="bi bi-exclamation-triangle me-2"></i>
         <strong>No se puede facturar:</strong>
@@ -510,19 +537,30 @@
           <li *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada'">
             La reparación está en estado: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
           </li>
+          <li *ngIf="nuevo.presupuestoSeleccionado?.yaFacturado">
+            Este presupuesto ya tiene una factura asociada
+            <span *ngIf="nuevo.presupuestoSeleccionado?.facturaExistente">
+              : {{ nuevo.presupuestoSeleccionado?.facturaExistente?.numero }}{{ nuevo.presupuestoSeleccionado?.facturaExistente?.letra ? ' (' + nuevo.presupuestoSeleccionado?.facturaExistente?.letra + ')' : '' }}
+            </span>
+          </li>
         </ul>
       </div>
 
       <button class="boton-enviar" type="submit" 
           [disabled]="!nuevo.presupuesto_id || 
            !nuevo.presupuestoSeleccionado?.aceptado || 
-           getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'finalizada'">        
+           getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'finalizada' ||
+           nuevo.presupuestoSeleccionado?.yaFacturado">        
           <i class="bi bi-check2-circle icono-boton"></i> 
         <ng-container *ngIf="nuevo.presupuestoSeleccionado">
-          <span *ngIf="nuevo.presupuestoSeleccionado.aceptado && getEstadoReparacion(nuevo.presupuestoSeleccionado.id) === 'finalizada'">
+          <span *ngIf="nuevo.presupuestoSeleccionado.aceptado && 
+                       getEstadoReparacion(nuevo.presupuestoSeleccionado.id) === 'finalizada' &&
+                       !nuevo.presupuestoSeleccionado.yaFacturado">
             Guardar Factura
           </span>
-          <span *ngIf="!nuevo.presupuestoSeleccionado.aceptado || getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada'">
+          <span *ngIf="!nuevo.presupuestoSeleccionado.aceptado || 
+                       getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada' ||
+                       nuevo.presupuestoSeleccionado.yaFacturado">
             No cumple requisitos para facturar
           </span>
         </ng-container>

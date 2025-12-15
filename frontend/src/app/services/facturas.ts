@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 export interface Factura {
   id: number;
@@ -40,6 +41,16 @@ export class FacturaService {
   private base = 'http://127.0.0.1:8000/api/facturas';
 
   constructor(private http: HttpClient) {}
+  
+  // ====== MÉTODO AUXILIAR PARA OBTENER HEADERS ======
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    });
+  }
 
   // ====== CRUD OPERATIONS ======
   list(page = 1, perPage = 10): Observable<Paginated<Factura>> {
@@ -78,5 +89,17 @@ export class FacturaService {
    */
   getCobrosPorFactura(id: number): Observable<Cobro[]> {
     return this.http.get<Cobro[]>(`${this.base}/${id}/cobros`);
+  }
+  
+  verificarPresupuestosFacturados(presupuestosIds: number[]): Observable<any[]> {
+    const params = new HttpParams()
+      .set('presupuestos_ids', presupuestosIds.join(','));
+
+    return this.http.get<any[]>(`${this.base}/verificar-facturados`, {
+      params,
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(() => of([]))
+    );
   }
 }
