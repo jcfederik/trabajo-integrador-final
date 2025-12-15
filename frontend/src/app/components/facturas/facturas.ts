@@ -15,6 +15,8 @@ import { AlertService } from '../../services/alert.service';
 import { CobrosModalComponent } from '../cobros-modal/cobros-modal.component';
 import { PresupuestoPickerComponent } from '../presupuesto-picker/presupuesto-picker';
 
+import { forkJoin } from 'rxjs';
+
 type Accion = 'listar' | 'crear';
 
 type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
@@ -27,13 +29,14 @@ type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
 
 interface PresupuestoConReparacion extends Presupuesto {
   reparacion?: Reparacion;
-  yaFacturado?: boolean; 
+  yaFacturado: boolean;    
   facturaExistente?: {   
     id: number;
     numero: string;
     letra: string;
   };
 }
+
 
 interface PresupuestoConFactura extends Presupuesto {
   yaFacturado: boolean;
@@ -237,8 +240,11 @@ export class FacturasComponent implements OnInit, OnDestroy {
       switchMap((presupuesto: Presupuesto) => {
         const presupuestoConReparacion: PresupuestoConReparacion = {
           ...presupuesto,
-          reparacion: presupuesto.reparacion
+          reparacion: presupuesto.reparacion,
+          yaFacturado: false,          
+          facturaExistente: undefined  
         };
+
         this.presupuestosCache.set(presupuestoId, presupuestoConReparacion);
         
         if (presupuesto.reparacion) {
@@ -354,58 +360,88 @@ export class FacturasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const ahora = Date.now();
-    const cacheEntry = this.busquedaPresupuestoCache.get(terminoLimpio);
-    const cacheTime = this.busquedaPresupuestoTiempo.get(terminoLimpio);
-    
-    if (cacheEntry && cacheTime && (ahora - cacheTime < 30000)) {
-      this.presupuestosSugeridos = cacheEntry;
+
+
+  private buscarPresupuestos(termino: string): void {
+  const terminoLimpio = termino.trim();
+
+  if (!terminoLimpio) {
+    this.presupuestosSugeridos = [];
+    this.mostrandoPresupuestos = false;
+    return;
+  }
+
+  const ahora = Date.now();
+  const cacheEntry = this.busquedaPresupuestoCache.get(terminoLimpio);
+  const cacheTime = this.busquedaPresupuestoTiempo.get(terminoLimpio);
+
+  if (cacheEntry && cacheTime && (ahora - cacheTime < 30000)) {
+    this.presupuestosSugeridos = cacheEntry;
+    this.mostrandoPresupuestos = true;
+    this.buscandoPresupuestos = false;
+    return;
+  }
+
+  this.buscandoPresupuestos = true;
+
+  this.presupuestoService.buscarPresupuestos(terminoLimpio).pipe(
+
+    // 1️⃣ Filtrar solo presupuestos válidos
+    switchMap((presupuestos: Presupuesto[]) => {
+      const facturables = this.filtrarPresupuestosFacturables(presupuestos);
+      return this.verificarPresupuestosConFactura(facturables);
+    }),
+
+    // 2️⃣ Asegurar reparación en TODOS
+    switchMap((presupuestos: PresupuestoConFactura[]) => {
+      if (!presupuestos.length) {
+        return of([]);
+      }
+
+      const observables = presupuestos.map(p =>
+        this.asegurarReparacion(p as PresupuestoConReparacion)
+      );
+
+      return forkJoin(observables);
+    }),
+
+    // 3️⃣ Formatear para dropdown
+    map((presupuestosConReparacion: PresupuestoConReparacion[]) => {
+      const formateados = this.formatearPresupuestosParaDropdown(presupuestosConReparacion);
+
+      this.busquedaPresupuestoCache.set(terminoLimpio, formateados);
+      this.busquedaPresupuestoTiempo.set(terminoLimpio, ahora);
+
+      return formateados;
+    }),
+
+    catchError(() => of([]))
+
+  ).subscribe({
+    next: (presupuestosCompletos: PresupuestoConReparacion[]) => {
+
+      this.presupuestosSugeridos = presupuestosCompletos
+        .sort((a, b) => {
+          if (!a.yaFacturado && b.yaFacturado) return -1;
+          if (a.yaFacturado && !b.yaFacturado) return 1;
+          if (a.aceptado && !b.aceptado) return -1;
+          if (!a.aceptado && b.aceptado) return 1;
+          return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+        })
+        .slice(0, 10);
+
       this.mostrandoPresupuestos = true;
       this.buscandoPresupuestos = false;
-      return;
-    }
+    },
 
-    this.buscandoPresupuestos = true;
-    
-    this.presupuestoService.buscarPresupuestos(terminoLimpio).pipe(
-      switchMap((presupuestos: Presupuesto[]) => {
-        const presupuestosFacturables = this.filtrarPresupuestosFacturables(presupuestos);
-        
-        return this.verificarPresupuestosConFactura(presupuestosFacturables);
-      }),
-      map((presupuestosConEstado: PresupuestoConFactura[]) => {
-        const presupuestosFormateados = this.formatearPresupuestosParaDropdown(presupuestosConEstado);
-        
-        this.busquedaPresupuestoCache.set(terminoLimpio, presupuestosFormateados);
-        this.busquedaPresupuestoTiempo.set(terminoLimpio, ahora);
-        
-        return presupuestosFormateados;
-      }),
-      catchError(() => {
-        return of([]);
-      })
-    ).subscribe({
-      next: (presupuestosCompletos: PresupuestoConReparacion[]) => {
-        this.presupuestosSugeridos = presupuestosCompletos
-          .sort((a, b) => {
-            if (!a.yaFacturado && b.yaFacturado) return -1;
-            if (a.yaFacturado && !b.yaFacturado) return 1;
-            if (a.aceptado && !b.aceptado) return -1;
-            if (!a.aceptado && b.aceptado) return 1;
-            return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
-          })
-          .slice(0, 10);
-        
-        this.mostrandoPresupuestos = true;
-        this.buscandoPresupuestos = false;
-      },
-      error: () => {
-        this.buscandoPresupuestos = false;
-        this.presupuestosSugeridos = [];
-        this.mostrandoPresupuestos = true;
-      }
-    });
-  }
+    error: () => {
+      this.buscandoPresupuestos = false;
+      this.presupuestosSugeridos = [];
+      this.mostrandoPresupuestos = true;
+    }
+  });
+}
+
 
   // VERIFICAR PRESUPUESTOS CON FACTURA
   private verificarPresupuestosConFactura(presupuestos: Presupuesto[]): Observable<PresupuestoConFactura[]> {

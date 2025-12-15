@@ -14,24 +14,24 @@
     </div>
 
     <!-- Formulario de creación -->
-    <div class="crear-especializacion-card"
+    <div class="crear-especializacion-card mx-auto"
       *ngIf="mostrarFormulario && (authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))">
-      <div class="crear-especializacion-header">
+      <div class="crear-especializacion-header justify-content-center">
         <i class="bi bi-tags"></i>
-        <h3 class="crear-especializacion-title">Crear Nueva Especialización</h3>
+        <h3 class="crear-especializacion-title ">Crear Nueva Especialización</h3>
       </div>
       <div class="card-body">
         <form (ngSubmit)="crearEspecializacion()">
           <div class="row">
-            <div class="col-md-8">
-              <div class="form-group-enhanced">
-                <label class="form-label-enhanced">Nombre de la Especialización</label>
+            <div class="col-md-6 text-center mx-auto mt-3">
+              <div class="form-group-enhanced ">
+                <label class="form-label-enhanced ">Nombre de la Especialización</label>
                 <input type="text" class="form-control-enhanced" [(ngModel)]="nuevaEspecializacion.nombre" name="nombre"
-                  placeholder="Ej: Reparación de Notebooks, Mantenimiento de PCs..." required>
+                  placeholder="Ej: Reparación de motoguadañas, tractores, etc..." required>
               </div>
             </div>
           </div>
-          <div class="d-flex gap-2 mt-4">
+          <div class="d-flex justify-content-center gap-3 mt-4 mb-4">
             <button type="submit" class="action-pill success active">
               <i class="bi bi-check-circle"></i>
               Crear Especialización
