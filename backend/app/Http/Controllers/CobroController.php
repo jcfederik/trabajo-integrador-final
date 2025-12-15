@@ -8,7 +8,6 @@ use App\Models\DetalleCobro;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
 
 /**
  * @OA\Tag(
@@ -78,7 +77,6 @@ class CobroController extends Controller
 
             return response()->json($cobros, 200);
         } catch (\Throwable $e) {
-            \Log::error('Error listando cobros', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al obtener los cobros'], 500);
         }
     }
@@ -139,7 +137,6 @@ class CobroController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validación de datos de entrada
         $validator = Validator::make($request->all(), [
             'factura_id'     => 'required|exists:factura,id',
             'monto_pagado'   => 'required|numeric|min:0.01',
@@ -156,11 +153,9 @@ class CobroController extends Controller
         $montoPagado = $data['monto_pagado'];
         $fechaCobro = $data['fecha'] ?? now();
 
-        // 2. Transacción de base de datos
         try {
             DB::beginTransaction();
 
-            // 2.1 Verificar el saldo de la Factura
             $factura = Factura::findOrFail($facturaId);
             $saldoPendiente = $factura->getSaldoPendienteAttribute();
 
@@ -172,14 +167,12 @@ class CobroController extends Controller
                 ], 400);
             }
 
-            // 2.2 Crear el registro principal del Cobro
             $cobro = Cobro::create([
                 'factura_id' => $facturaId,
                 'monto'      => $montoPagado,
                 'fecha'      => $fechaCobro,
             ]);
 
-            // 2.3 Crear el Detalle del Cobro
             $detalleCobro = DetalleCobro::create([
                 'cobro_id'       => $cobro->id,
                 'medio_cobro_id' => $data['medio_cobro_id'],
@@ -189,7 +182,6 @@ class CobroController extends Controller
 
             DB::commit();
 
-            // 3. Respuesta exitosa
             $factura->refresh();
 
             return response()->json([
@@ -199,7 +191,6 @@ class CobroController extends Controller
             ], 201);
         } catch (\Throwable $e) {
             DB::rollBack();
-            \Log::error('Error al registrar cobro', ['err' => $e->getMessage()]);
             return response()->json([
                 'error' => 'Error interno al registrar el cobro.',
                 'detalle' => $e->getMessage()

@@ -19,7 +19,6 @@ class CheckPermission
                 return response()->json(['error' => 'Usuario no autenticado'], 401);
             }
             
-            // ✅ Verificar permiso usando AuthController
             $permissions = AuthController::getPermissionsByTipo($user->tipo);
             
             if (!in_array($permission, $permissions)) {

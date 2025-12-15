@@ -20,10 +20,10 @@ use App\Http\Controllers\{
     HistorialStockController,
 };
 
-// RUTAS PÚBLICAS
+// Rutas públicas
 Route::post('/login', [AuthController::class, 'login']);
 
-// RUTAS PROTEGIDAS CON JWT
+// Rutas protegidas con JWT
 Route::middleware(['jwt.auth'])->group(function () {
 
     // Rutas de autenticación
@@ -34,9 +34,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     // Perfil de usuario autenticado
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
     
-    // =============================================
-    // 🔥 RUTAS DE BÚSQUEDA ESPECÍFICAS
-    // =============================================
+    // Rutas de búsqueda especificas
+
     Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
     Route::get('/reparaciones/completo', [ReparacionController::class, 'completo']);
     Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
@@ -45,11 +44,10 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::get('/equipos/buscar', [EquipoController::class, 'buscar']);
     Route::get('/repuestos/buscar', [RepuestoController::class, 'buscar']);
     Route::get('/usuarios/buscar', [UserController::class, 'buscar']);
-    Route::get('/usuario/buscar', [ClienteController::class, 'buscar']); // ¿Es necesario? Parece duplicado
+    Route::get('/usuario/buscar', [ClienteController::class, 'buscar']); 
     
-    // =============================================
-    // 📋 RUTAS DE RECURSOS PRINCIPALES
-    // =============================================
+    // Rutas de recursos principales
+
     Route::apiResource('reparaciones', ReparacionController::class);
     Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('equipos', EquipoController::class);
@@ -63,9 +61,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::apiResource('cobros', CobroController::class)->only(['index', 'store', 'show']);
     Route::apiResource('detalle-cobros', DetalleCobroController::class)->only(['index', 'show']);
     
-    // =============================================
-    // 🔗 RUTAS ADICIONALES CON PARÁMETROS
-    // =============================================
+    // Rutas adicionales con parámetros
+
     // Reparaciones
     Route::post('/reparaciones/{reparacion}/repuestos', [ReparacionController::class, 'assignRepuesto']);
     Route::delete('/reparaciones/{reparacion}/repuestos/{pivotId}', [ReparacionController::class, 'removeRepuesto']);
@@ -94,15 +91,11 @@ Route::middleware(['jwt.auth'])->group(function () {
     // Usuarios
     Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
     
-    // =============================================
-    // ✨ CREACIÓN (no requiere admin)
-    // =============================================
+    // Creación (no requiere admin)
     Route::post('/especializaciones', [EspecializacionController::class, 'store']);
     Route::post('/users/{id}/especializaciones', [AdminUserController::class, 'autoAsignarEspecializaciones']);
     
-    // =============================================
-    // 👑 RUTAS SOLO PARA ADMINISTRADORES
-    // =============================================
+    // Rutas solo para administradores
     Route::middleware(['admin'])->group(function () {
         Route::put('/especializaciones/{id}', [EspecializacionController::class, 'update']);
         Route::delete('/especializaciones/{id}', [EspecializacionController::class, 'destroy']);
