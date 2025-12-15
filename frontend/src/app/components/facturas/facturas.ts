@@ -683,89 +683,105 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
   async crear(): Promise<void> {
     if (!this.nuevo.presupuestoSeleccionado) {
-        this.alertService.showGenericError('Debe seleccionar un presupuesto.');
-        return;
+      this.alertService.showGenericError('Debe seleccionar un presupuesto.');
+      return;
     }
 
-    if (this.nuevo.presupuestoSeleccionado.yaFacturado) {
-      const facturaExistente = this.nuevo.presupuestoSeleccionado.facturaExistente;
-      if (facturaExistente) {
+    try {
+      const resultado = await this.facService.verificarPresupuestosFacturados([
+        this.nuevo.presupuestoSeleccionado.id
+      ]).toPromise();
+
+      if (resultado && resultado.length > 0) {
+        const facturaExistente = resultado[0];
         this.alertService.showGenericError(
           `Este presupuesto ya tiene una factura: ${facturaExistente.numero}${facturaExistente.letra ? ' (' + facturaExistente.letra + ')' : ''}`
         );
-      } else {
-        this.alertService.showGenericError('Este presupuesto ya tiene una factura asociada.');
+        return;
       }
+    } catch (error) {
+      console.error('Error al verificar presupuesto facturado:', error);
+    }
+
+    if (!this.nuevo.presupuestoSeleccionado.aceptado) {
+      this.alertService.showGenericError('Solo se pueden facturar presupuestos aprobados.');
       return;
     }
-    
-    if (!this.nuevo.presupuestoSeleccionado.aceptado) {
-        this.alertService.showGenericError('Solo se pueden facturar presupuestos aprobados.');
-        return;
-    }
-    
+
     let estadoReparacionValido = false;
-    
+
     if (this.nuevo.presupuestoSeleccionado.reparacion) {
-        const estadoReparacion = this.nuevo.presupuestoSeleccionado.reparacion.estado?.toLowerCase();
-        estadoReparacionValido = estadoReparacion === 'finalizada';
+      const estadoReparacion = this.nuevo.presupuestoSeleccionado.reparacion.estado?.toLowerCase();
+      estadoReparacionValido = estadoReparacion === 'finalizada';
     } else {
-        try {
-            const reparacion = await this.reparacionService.show(this.nuevo.presupuestoSeleccionado.reparacion_id).toPromise();
-            const estadoReparacion = reparacion?.estado?.toLowerCase();
-            estadoReparacionValido = estadoReparacion === 'finalizada';
-            
-            if (reparacion) {
-                this.reparacionesCache.set(this.nuevo.presupuestoSeleccionado.reparacion_id, reparacion);
-                this.nuevo.presupuestoSeleccionado.reparacion = reparacion;
-            }
-        } catch (error) {
-            console.error('Error al cargar reparación:', error);
+      try {
+        const reparacion = await this.reparacionService.show(this.nuevo.presupuestoSeleccionado.reparacion_id).toPromise();
+        const estadoReparacion = reparacion?.estado?.toLowerCase();
+        estadoReparacionValido = estadoReparacion === 'finalizada';
+
+        if (reparacion) {
+          this.reparacionesCache.set(this.nuevo.presupuestoSeleccionado.reparacion_id, reparacion);
+          this.nuevo.presupuestoSeleccionado.reparacion = reparacion;
         }
+      } catch (error) {
+        console.error('Error al cargar reparación:', error);
+      }
     }
-    
+
     if (!estadoReparacionValido) {
-        this.alertService.showGenericError(
-            `La reparación asociada a este presupuesto no está finalizada. 
-            Estado actual: ${this.nuevo.presupuestoSeleccionado.reparacion?.estado || 'desconocido'}`
-        );
-        return;
+      this.alertService.showGenericError(
+        `La reparación asociada a este presupuesto no está finalizada. 
+        Estado actual: ${this.nuevo.presupuestoSeleccionado.reparacion?.estado || 'desconocido'}`
+      );
+      return;
     }
-    
+
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
+
     payload.fecha = this.toISODate(payload.fecha as string);
 
     this.alertService.showLoading('Creando factura...');
 
     this.facService.create(payload).subscribe({
-        next: (nuevaFactura: any) => {
-            this.alertService.closeLoading();
-            const facturaCompleta = { ...payload, id: nuevaFactura.id, fecha: payload.fecha! } as Factura;
-            this.facturasAll.unshift(facturaCompleta);
-            this.applyFilter();
-            
-            this.searchService.setSearchData(this.facturasAll);
-            
-            this.nuevo = { 
-                presupuesto_id: undefined as any, 
-                numero: '', 
-                letra: 'A', 
-                fecha: new Date().toISOString().slice(0,10), 
-                monto_total: null, 
-                detalle: '',
-                presupuestoBusqueda: ''
-            };
-            this.selectedAction = 'listar';
-            this.alertService.showFacturaCreada();
-        },
-        error: (e) => { 
-            this.alertService.closeLoading();
-            this.alertService.showGenericError('Error al crear la factura'); 
+      next: (nuevaFactura: any) => {
+        this.alertService.closeLoading();
+        const facturaCompleta = { ...payload, id: nuevaFactura.id, fecha: payload.fecha! } as Factura;
+        
+        this.facturasAll.unshift(facturaCompleta);
+        this.applyFilter();
+
+        this.searchService.setSearchData(this.facturasAll);
+
+        this.nuevo = {
+          presupuesto_id: undefined as any,
+          numero: '',
+          letra: 'A',
+          fecha: new Date().toISOString().slice(0, 10),
+          monto_total: null,
+          detalle: '',
+          presupuestoBusqueda: ''
+        };
+        
+        this.selectedAction = 'listar';
+        
+        this.alertService.showFacturaCreada();
+      },
+      error: (e) => {
+        this.alertService.closeLoading();
+        
+        if (e.status === 400 && e.error?.detalles) {
+          const errores = e.error.detalles;
+          const mensajeError = Object.values(errores).flat().join(', ');
+          this.alertService.showGenericError(`Error de validación: ${mensajeError}`);
+        } else if (e.status === 400 && e.error?.error) {
+          this.alertService.showGenericError(e.error.error);
+        } else {
+          this.alertService.showGenericError('Error al crear la factura');
         }
+      }
     });
   }
-
   async eliminar(id: number): Promise<void> {
     if (!id || id <= 0) {
       this.alertService.showGenericError('ID de factura no válido');
@@ -849,21 +865,29 @@ export class FacturasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.editBuffer.presupuestoSeleccionado.yaFacturado) {
-      const facturaExistente = this.editBuffer.presupuestoSeleccionado.facturaExistente;
-      if (facturaExistente && facturaExistente.id !== id) {
-        this.alertService.showGenericError(
-          `Este presupuesto ya tiene una factura: ${facturaExistente.numero}${facturaExistente.letra ? ' (' + facturaExistente.letra + ')' : ''}`
-        );
-        return;
+    try {
+      const resultado = await this.facService.verificarPresupuestosFacturados([
+        this.editBuffer.presupuestoSeleccionado.id
+      ]).toPromise();
+
+      if (resultado && resultado.length > 0) {
+        const facturaExistente = resultado[0];
+        if (facturaExistente.id !== id) {
+          this.alertService.showGenericError(
+            `Este presupuesto ya tiene una factura: ${facturaExistente.numero}${facturaExistente.letra ? ' (' + facturaExistente.letra + ')' : ''}`
+          );
+          return;
+        }
       }
+    } catch (error) {
+      console.error('Error al verificar presupuesto facturado:', error);
     }
-    
+
     if (!this.editBuffer.presupuestoSeleccionado.aceptado) {
       this.alertService.showGenericError('Solo se pueden facturar presupuestos aprobados.');
       return;
     }
-    
+
     if (this.editBuffer.presupuestoSeleccionado.reparacion) {
       const estadoReparacion = this.editBuffer.presupuestoSeleccionado.reparacion.estado?.toLowerCase();
       if (estadoReparacion !== 'finalizada') {
@@ -874,9 +898,10 @@ export class FacturasComponent implements OnInit, OnDestroy {
         return;
       }
     }
-    
+
     const payload = this.limpiar(this.editBuffer);
     if (!this.valida(payload)) return;
+    
     payload.fecha = this.toISODate(payload.fecha as string);
 
     this.alertService.showLoading('Actualizando factura...');
@@ -884,25 +909,37 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.facService.update(id, payload).subscribe({
       next: () => {
         this.alertService.closeLoading();
+        
         const updateLocal = (arr: Factura[]) => {
           const idx = arr.findIndex(f => f.id === id);
-          arr[idx] = { 
+          arr[idx] = {
             ...arr[idx],
-            ...payload, 
+            ...payload,
             fecha: payload.fecha!
-          } as Factura;        
+          } as Factura;
         };
-        
+
         updateLocal(this.facturasAll);
         updateLocal(this.facturas);
-        
+
         this.searchService.setSearchData(this.facturasAll);
+        
         this.cancelEdit();
+        
         this.alertService.showFacturaActualizada();
       },
-      error: () => { 
+      error: (e) => {
         this.alertService.closeLoading();
-        this.alertService.showGenericError('Error al actualizar la factura'); 
+        
+        if (e.status === 400 && e.error?.detalles) {
+          const errores = e.error.detalles;
+          const mensajeError = Object.values(errores).flat().join(', ');
+          this.alertService.showGenericError(`Error de validación: ${mensajeError}`);
+        } else if (e.status === 400 && e.error?.error) {
+          this.alertService.showGenericError(e.error.error);
+        } else {
+          this.alertService.showGenericError('Error al actualizar la factura');
+        }
       }
     });
   }
