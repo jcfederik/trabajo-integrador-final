@@ -41,23 +41,57 @@
               <div class="row g-2">
                 <div class="col-12 col-md-6">
                   <label class="form-label small">Razón Social</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.razon_social" />
+                  <input 
+                    class="form-control" 
+                    [(ngModel)]="editBuffer.razon_social" 
+                    autocomplete="off"
+                  />
                 </div>
                 <div class="col-12 col-md-6">
                   <label class="form-label small">CUIT</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.cuit" />
+                  <input 
+                    class="form-control" 
+                    [(ngModel)]="editBuffer.cuit" 
+                    (keypress)="soloNumeros($event)"
+                    (input)="limitarLongitud('cuit', $event)"
+                    maxlength="11"
+                    autocomplete="off"
+                  />
+                  <div class="form-text">Solo números (máx. 11 dígitos)</div>
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label small">Teléfono</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.telefono" />
+                  <input 
+                    class="form-control" 
+                    [(ngModel)]="editBuffer.telefono" 
+                    (keypress)="soloNumeros($event)"
+                    (input)="limitarLongitud('telefono', $event)"
+                    maxlength="11"
+                    autocomplete="off"
+                  />
+                  <div class="form-text">Solo números (máx. 11 dígitos)</div>
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label small">Email</label>
-                  <input type="email" class="form-control" [(ngModel)]="editBuffer.email" />
+                  <input 
+                    type="email" 
+                    class="form-control" 
+                    [class.is-invalid]="emailEditInvalido && editBuffer.email"
+                    [(ngModel)]="editBuffer.email" 
+                    (blur)="validarEmailEdicion()"
+                    autocomplete="off"
+                  />
+                  <div *ngIf="emailEditInvalido && editBuffer.email" class="invalid-feedback">
+                    Formato de correo inválido. Use: ejemplo@dominio.extension
+                  </div>
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label small">Dirección</label>
-                  <input class="form-control" [(ngModel)]="editBuffer.direccion" />
+                  <input 
+                    class="form-control" 
+                    [(ngModel)]="editBuffer.direccion" 
+                    autocomplete="off"
+                  />
                 </div>
               </div>
             </ng-template>
@@ -103,7 +137,7 @@
   <!-- CREAR -->
   <div *ngIf="selectedAction==='crear'">
     <h4 class="text-center mb-3">Registrar Proveedor</h4>
-    <form (ngSubmit)="crear()" class="mx-auto form-max-width">
+    <form (ngSubmit)="crear()" class="mx-auto form-max-width" autocomplete="off">
       <div class="row g-3">
         
         <!-- Razón Social -->
@@ -116,6 +150,7 @@
             name="razon_social" 
             placeholder="Ej: Distribuidora S.A."
             required
+            autocomplete="off"
           />
         </div>
 
@@ -127,9 +162,14 @@
             class="form-control" 
             [(ngModel)]="nuevo.cuit" 
             name="cuit" 
-            placeholder="Ej: 30-12345678-9"
+            placeholder="Ej: 30123456789"
+            (keypress)="soloNumeros($event)"
+            (input)="limitarLongitud('cuit', $event)"
+            maxlength="11"
             required
+            autocomplete="off"
           />
+          <div class="form-text">Ingrese solo números (máximo 11 dígitos)</div>
         </div>
 
         <!-- Teléfono -->
@@ -140,8 +180,13 @@
             class="form-control" 
             [(ngModel)]="nuevo.telefono" 
             name="telefono" 
-            placeholder="Ej: +54 11 1234-5678"
+            placeholder="Ej: 541112345678"
+            (keypress)="soloNumeros($event)"
+            (input)="limitarLongitud('telefono', $event)"
+            maxlength="11"
+            autocomplete="off"
           />
+          <div class="form-text">Ingrese solo números (máximo 11 dígitos)</div>
         </div>
 
         <!-- Email -->
@@ -150,10 +195,16 @@
           <input 
             type="email" 
             class="form-control" 
+            [class.is-invalid]="emailInvalido && nuevo.email"
             [(ngModel)]="nuevo.email" 
             name="email" 
             placeholder="Ej: contacto@proveedor.com"
+            (blur)="validarEmailCreacion()"
+            autocomplete="off"
           />
+          <div *ngIf="emailInvalido && nuevo.email" class="invalid-feedback">
+            Formato de correo inválido. Use: ejemplo@dominio.extension
+          </div>
         </div>
 
         <!-- Dirección -->
@@ -165,6 +216,7 @@
             name="direccion" 
             rows="2"
             placeholder="Dirección completa del proveedor"
+            autocomplete="off"
           ></textarea>
         </div>
 
@@ -180,7 +232,7 @@
       <button 
         class="btn btn-success w-100 mt-3" 
         type="submit" 
-        [disabled]="!nuevo.razon_social || !nuevo.cuit"
+        [disabled]="!nuevo.razon_social || !nuevo.cuit || (emailInvalido && nuevo.email)"
       >
         <i class="bi bi-check-lg"></i> Guardar Proveedor
       </button>

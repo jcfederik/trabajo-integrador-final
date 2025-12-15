@@ -88,8 +88,9 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::post('/repuestos/comprar', [RepuestoController::class, 'comprar']);
     
     // Historial
-    Route::get('/historial-stock', [HistorialStockController::class, 'index']);
-    
+    Route::middleware(['permission:historial-stock.view'])->get('/historial-stock', 
+        [HistorialStockController::class, 'index']
+    );    
     // Usuarios
     Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
     

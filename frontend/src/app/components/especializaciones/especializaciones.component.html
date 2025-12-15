@@ -14,7 +14,8 @@
     </div>
 
     <!-- Formulario de creación -->
-    <div class="crear-especializacion-card" *ngIf="mostrarFormulario && (authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))">
+    <div class="crear-especializacion-card"
+      *ngIf="mostrarFormulario && (authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))">
       <div class="crear-especializacion-header">
         <i class="bi bi-tags"></i>
         <h3 class="crear-especializacion-title">Crear Nueva Especialización</h3>
@@ -25,9 +26,8 @@
             <div class="col-md-8">
               <div class="form-group-enhanced">
                 <label class="form-label-enhanced">Nombre de la Especialización</label>
-                <input type="text" class="form-control-enhanced" 
-                       [(ngModel)]="nuevaEspecializacion.nombre" name="nombre" 
-                       placeholder="Ej: Reparación de Notebooks, Mantenimiento de PCs..." required>
+                <input type="text" class="form-control-enhanced" [(ngModel)]="nuevaEspecializacion.nombre" name="nombre"
+                  placeholder="Ej: Reparación de Notebooks, Mantenimiento de PCs..." required>
               </div>
             </div>
           </div>
@@ -54,7 +54,7 @@
           <span class="badge bg-primary ms-2">{{ especializaciones.length }}</span>
         </h3>
       </div>
-      
+
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead class="table-light">
@@ -62,14 +62,16 @@
               <th width="80">ID</th>
               <th>Especialización</th>
               <th width="120">Técnicos</th>
-              <th width="200" class="text-center" *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">Acciones</th>
+              <th width="200" class="text-center"
+                *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">
+                Acciones</th>
             </tr>
           </thead>
           <tbody>
             <ng-container *ngFor="let esp of especializaciones">
               <!-- Modo visualización normal -->
-              <tr *ngIf="editandoEspecializacion?.id !== esp.id && asignandoTecnicos?.id !== esp.id" 
-                  class="especializacion-row">
+              <tr *ngIf="editandoEspecializacion?.id !== esp.id && asignandoTecnicos?.id !== esp.id"
+                class="especializacion-row">
                 <td class="fw-bold text-muted">#{{ esp.id }}</td>
                 <td>
                   <div class="d-flex align-items-center">
@@ -94,7 +96,8 @@
                     <i class="bi bi-person-plus"></i>
                   </button>
                 </td>
-                <td class="text-center" *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">
+                <td class="text-center"
+                  *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create') || authService.canAssignEspecializaciones()">
                   <div class="btn-action-group">
                     <!-- EDITAR SOLO ADMIN -->
                     <button *ngIf="authService.canManageEspecializaciones()"
@@ -129,9 +132,8 @@
                 <td colspan="2">
                   <div class="row g-3 align-items-center">
                     <div class="col-md-8">
-                      <input type="text" class="form-control form-control-sm" 
-                             [(ngModel)]="especializacionEditada.nombre" 
-                             placeholder="Nombre de la especialización">
+                      <input type="text" class="form-control form-control-sm"
+                        [(ngModel)]="especializacionEditada.nombre" placeholder="Nombre de la especialización">
                     </div>
                     <div class="col-md-4">
                       <div class="btn-action-group">
@@ -149,18 +151,18 @@
               </tr>
 
               <!-- Modo asignación de técnicos -->
-              <tr *ngIf="asignandoTecnicos && asignandoTecnicos.id === esp.id && authService.canAssignEspecializaciones()">
+              <tr
+                *ngIf="asignandoTecnicos && asignandoTecnicos.id === esp.id && authService.canAssignEspecializaciones()">
                 <td class="fw-bold text-muted">#{{ asignandoTecnicos.id }}</td>
                 <td colspan="3">
                   <div class="asignacion-container">
                     <h6 class="mb-3">Asignar técnicos a: <strong>{{ asignandoTecnicos.nombre }}</strong></h6>
-                    
+
                     <div class="tecnicos-grid">
                       <div *ngFor="let tecnico of tecnicos" class="tecnico-checkbox">
                         <label class="checkbox-label">
-                          <input type="checkbox" 
-                                 [checked]="estaSeleccionado(tecnico.id)"
-                                 (change)="toggleTecnico(tecnico.id)">
+                          <input type="checkbox" [checked]="estaSeleccionado(tecnico.id)"
+                            (change)="toggleTecnico(tecnico.id)">
                           <span class="checkmark"></span>
                           <i class="bi bi-person-gear me-2"></i>
                           {{ tecnico.nombre }}
@@ -192,15 +194,17 @@
         </div>
         <h3 class="empty-title">No hay especializaciones registradas</h3>
         <p class="empty-description">Comienza creando la primera especialización técnica</p>
-        
-        <button *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')" 
-                class="action-pill" 
-                (click)="mostrarFormulario = true">
+
+        <button
+          *ngIf="authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create')"
+          class="action-pill" (click)="mostrarFormulario = true">
           <i class="bi bi-plus-circle"></i>
           Crear Primera Especialización
         </button>
-        
-        <div *ngIf="!(authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))" class="alert alert-info mt-3">
+
+        <div
+          *ngIf="!(authService.canManageEspecializaciones() || authService.hasPermission('especializaciones.create'))"
+          class="alert alert-info mt-3">
           <i class="bi bi-info-circle"></i>
           No tienes permisos para crear especializaciones. Contacta al administrador.
         </div>

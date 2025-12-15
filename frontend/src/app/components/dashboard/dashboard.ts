@@ -52,7 +52,7 @@ export class DashboardComponent implements OnInit {
       icon: 'bi-clock-history', 
       description: 'Movimientos de inventario', 
       route: '/historial-stock',
-      permissions: ['repuestos.manage', 'repuestos.view'],
+      permissions: ['historialstock.manage', 'historialstock.view'],
       color: 'secondary'
     },
     { 

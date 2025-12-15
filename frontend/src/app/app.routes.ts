@@ -75,11 +75,13 @@ export const routes: Routes = [
     canMatch: [permissionGuard],
     data: { permission: 'especializaciones.manage' }
   },
-  {
-    path: 'historial-stock',
-    component: HistorialStockComponent,
-    title: 'Historial de Stock'
-  },
+{
+  path: 'historial-stock',
+  component: HistorialStockComponent,
+  canMatch: [permissionGuard],
+  data: { permission: 'historialstock.manage' }, // O 'historialstock.view'
+  title: 'Historial de Stock'
+},
 
   // Redirect raíz
   { path: '', pathMatch: 'full', redirectTo: 'login' },
