@@ -82,14 +82,15 @@
                   Monto: {{ (f.monto_total || 0) | number:'1.2-2' }}
                 </div>
                 <div class="factura-detalle">
-                  <span class="detalle-label">Presupuesto:</span> #{{ f.presupuesto_id }}
+                  <span class="detalle-result">Presupuesto:</span> <span class="detalle-value">#{{ f.presupuesto_id }}</span>
                 </div>
                 <div class="factura-detalle">
-                  <span class="detalle-label">Reparación:</span> {{ getDescripcionReparacion(f.presupuesto_id) }}
-                </div>
-                <div class="factura-detalle" *ngIf="getEstadoReparacion(f.presupuesto_id) !== 'Desconocido'">
-                  <span class="detalle-label">Estado reparación:</span> 
-                  <span class="badge-estado" [class]="getEstadoReparacion(f.presupuesto_id) === 'finalizada' ? 'estado-finalizada' : 'estado-pendiente'">
+                  <span class="detalle-result">Reparación:</span>
+                  <span class="detalle-value"> {{ getDescripcionReparacion(f.presupuesto_id) }}</span>
+                </div>                
+                <div class="factura-result" *ngIf="getEstadoReparacion(f.presupuesto_id) !== 'Desconocido'">
+                  <span class="detalle-result">Estado reparación:</span> 
+                  <span class="badge-estado" [class]="getEstadoReparacionBadgeClass(getEstadoReparacion(f.presupuesto_id))">
                     {{ getEstadoReparacion(f.presupuesto_id) }}
                   </span>
                 </div>
@@ -124,32 +125,61 @@
                           <i class="bi bi-x"></i>
                         </button>
 
-                        <!-- Dropdown de sugerencias -->
+                        <!-- DROPDOWN DE SUGERENCIAS - VERSIÓN SIMPLIFICADA -->
                         <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
                             class="menu-sugerencias">
                           <div class="cabecera-sugerencias">
                             <i class="bi bi-search"></i>
-                            Presupuestos aprobados para facturar
+                            Presupuestos encontrados
                             <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
                           </div>
                           <div *ngFor="let presupuesto of presupuestosSugeridos" 
-                              class="item-sugerencia"
+                              class="item-sugerencia presupuesto-item"
                               (mousedown)="seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()">
-                            <div class="contenido-sugerencia">
-                              <strong>Presupuesto #{{ presupuesto.id }} - {{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</strong>
-                              <div class="detalles-sugerencia">
-                                Reparación: {{ getDescripcionReparacion(presupuesto.id) }} | 
-                                Estado: <span [class]="'badge-estado ' + (presupuesto.aceptado ? 'estado-aceptado' : 'estado-pendiente')">
+                            
+                            <!-- Información básica simplificada -->
+                            <div class="presupuesto-info-simple">
+                              <!-- Primera línea: Presupuesto #ID | Fecha | Monto -->
+                              <div class="info-line primary-line">
+                                <strong>Presupuesto #{{ presupuesto.id }}</strong>
+                                <span class="info-separator">|</span>
+                                <i class="bi bi-calendar small-icon"></i>
+                                <span>{{ presupuesto.fecha | date:'dd/MM/yyyy' }}</span>
+                                <span class="info-separator">|</span>
+                                <i class="bi bi-currency-dollar small-icon"></i>
+                                <span>{{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</span>
+                              </div>
+                              
+                              <!-- Segunda línea: Reparación -->
+                              <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
+                                <i class=" bi bi-tools small-icon"></i>
+                                <span class="info-label">Reparación:</span>
+                                <span class="info-value">{{ presupuesto.reparacion?.descripcion }}</span>
+                              </div>
+                              
+                              <!-- Tercera línea: Estado reparación -->
+                              <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.estado">
+                                <i class="bi bi-tag small-icon"></i>
+                                <span class="info-label">Estado reparación:</span>
+                                <span class="info-value estado-badge" 
+                                      [class]="getEstadoReparacionBadgeClass(presupuesto.reparacion?.estado)">
+                                  {{ presupuesto.reparacion?.estado }}
+                                </span>
+                              </div>
+                              
+                              <!-- Indicador de presupuesto aceptado -->
+                              <div class="info-line secondary-line">
+                                <span class="presupuesto-estado-indicador" 
+                                      [class.aceptado]="presupuesto.aceptado"
+                                      [class.pendiente]="!presupuesto.aceptado">
+                                  <i class="bi" [class]="presupuesto.aceptado ? 'bi-check-circle' : 'bi-clock'"></i>
                                   {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
                                 </span>
                               </div>
-                              <div class="detalles-sugerencia" *ngIf="getEstadoReparacion(presupuesto.id) !== 'Desconocido'">
-                                Estado reparación: <span class="badge-estado" [class]="getEstadoReparacion(presupuesto.id) === 'finalizada' ? 'estado-finalizada' : 'estado-pendiente'">
-                                  {{ getEstadoReparacion(presupuesto.id) }}
-                                </span>
-                              </div>
                             </div>
-                            <i class="bi bi-chevron-right"></i>
+
+                            <!-- Indicador de selección -->
+                            <i class="bi bi-chevron-right icono-seleccion"></i>
                           </div>
                         </div>
 
@@ -174,13 +204,15 @@
                         </div>
                       </div>
                       
-                      <!-- Badge de selección -->
+                      <!-- Badge de selección simplificado -->
                       <div *ngIf="editBuffer.presupuestoSeleccionado" class="badge-seleccion">
                         <i class="bi bi-check-circle"></i>
                         Presupuesto seleccionado: #{{ editBuffer.presupuestoSeleccionado.id }}
-                        <small class="monto-seleccion">Monto: {{ (editBuffer.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}</small>
-                        <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(editBuffer.presupuestoSeleccionado.id) !== 'Desconocido'">
-                          | Estado reparación: {{ getEstadoReparacion(editBuffer.presupuestoSeleccionado.id) }}
+                        <small class="monto-seleccion">
+                          Monto: {{ (editBuffer.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}
+                        </small>
+                        <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(editBuffer.presupuestoSeleccionado?.id) !== 'Desconocido'">
+                          | Estado reparación: {{ getEstadoReparacion(editBuffer.presupuestoSeleccionado?.id) }}
                         </small>
                       </div>
                     </div>
@@ -210,7 +242,7 @@
               </ng-template>
             </div>
 
-            <!-- Columna derecha: acciones - INTEGRACIÓN DE CAMBIOS -->
+            <!-- Columna derecha: acciones -->
             <div class="item-acciones">
               <button *ngIf="editingId !== f.id" class="boton-accion boton-editar" (click)="startEdit(f)" title="Editar">
                 <i class="bi bi-pencil-square"></i>
@@ -225,7 +257,7 @@
                 </button>
               </ng-container>
 
-              <!-- ✅ BOTÓN PARA MODAL DE PAGOS CON VERIFICACIÓN DE ID -->
+              <!-- BOTÓN PARA MODAL DE PAGOS CON VERIFICACIÓN DE ID -->
               <button class="boton-accion boton-cobros" 
                       (click)="abrirModalCobros(f)" 
                       title="Gestionar pagos"
@@ -233,7 +265,7 @@
                 <i class="bi bi-wallet2"></i>
               </button>
 
-              <!-- ❌ Mostrar advertencia si no tiene ID válido -->
+              <!-- Mostrar advertencia si no tiene ID válido -->
               <div *ngIf="!f.id || f.id <= 0" class="badge bg-warning ms-1" title="Factura sin ID válido">
                 <i class="bi bi-exclamation-triangle"></i>
               </div>
@@ -304,35 +336,62 @@
               <i class="bi bi-x"></i>
             </button>
 
-            <!-- Dropdown de sugerencias -->
+            <!-- DROPDOWN DE SUGERENCIAS - VERSIÓN SIMPLIFICADA -->
             <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
                  class="menu-sugerencias">
               <div class="cabecera-sugerencias">
                 <i class="bi bi-search"></i>
-                Presupuestos aprobados para facturar
+                Presupuestos encontrados
                 <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
               </div>
-                <div *ngFor="let presupuesto of presupuestosSugeridos" 
-                    class="item-sugerencia"
-                    (mousedown)="seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()">
-                  <div class="contenido-sugerencia">
-                    <strong>Presupuesto #{{ presupuesto.id }} - {{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</strong>
-                    <div class="detalles-sugerencia">
-                      Reparación: {{ getDescripcionReparacion(presupuesto.id) }}
-                    </div>
-                    <div class="detalles-sugerencia">
-                      Estado: <span [class]="'badge-estado ' + (presupuesto.aceptado ? 'estado-aceptado' : 'estado-pendiente')">
-                        {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
-                      </span>
-                      <span *ngIf="getEstadoReparacion(presupuesto.id) !== 'Desconocido'">
-                        | Reparación: <span class="badge-estado" [class]="getEstadoReparacion(presupuesto.id) === 'finalizada' ? 'estado-finalizada' : 'estado-pendiente'">
-                          {{ getEstadoReparacion(presupuesto.id) }}
-                        </span>
-                      </span>
-                    </div>
+              <div *ngFor="let presupuesto of presupuestosSugeridos" 
+                   class="item-sugerencia presupuesto-item"
+                   (mousedown)="seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()">
+                
+                <!-- Información básica simplificada -->
+                <div class="presupuesto-info-simple">
+                  <!-- Primera línea: Presupuesto #ID | Fecha | Monto -->
+                  <div class="info-line primary-line">
+                    <strong>Presupuesto #{{ presupuesto.id }}</strong>
+                    <span class="info-separator">|</span>
+                    <i class="bi bi-calendar small-icon"></i>
+                    <span>{{ presupuesto.fecha | date:'dd/MM/yyyy' }}</span>
+                    <span class="info-separator">|</span>
+                    <i class="bi bi-currency-dollar small-icon"></i>
+                    <span>{{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</span>
                   </div>
-                  <i class="bi bi-chevron-right"></i>
+                  
+                  <!-- Segunda línea: Reparación -->
+                  <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
+                    <i class="bi bi-tools small-icon"></i>
+                    <span class="info-label">Reparación:</span>
+                    <span class="info-value">{{ presupuesto.reparacion?.descripcion }}</span>
+                  </div>
+                  
+                  <!-- Tercera línea: Estado reparación -->
+                  <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.estado">
+                    <i class="bi bi-tag small-icon"></i>
+                    <span class="info-label">Estado reparación:</span>
+                    <span class="info-value estado-badge" 
+                          [class]="getEstadoReparacionBadgeClass(presupuesto.reparacion?.estado)">
+                      {{ presupuesto.reparacion?.estado }}
+                    </span>
+                  </div>
+                  
+                  <!-- Indicador de presupuesto aceptado -->
+                  <div class="info-line secondary-line">
+                    <span class="presupuesto-estado-indicador" 
+                          [class.aceptado]="presupuesto.aceptado"
+                          [class.pendiente]="!presupuesto.aceptado">
+                      <i class="bi" [class]="presupuesto.aceptado ? 'bi-check-circle' : 'bi-clock'"></i>
+                      {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
+                    </span>
+                  </div>
                 </div>
+
+                <!-- Indicador de selección -->
+                <i class="bi bi-chevron-right icono-seleccion"></i>
+              </div>
             </div>
 
             <!-- Sin resultados -->
@@ -356,13 +415,15 @@
             </div>
           </div>
           
-          <!-- Badge de selección -->
+          <!-- Badge de selección simplificado -->
           <div *ngIf="nuevo.presupuestoSeleccionado" class="badge-seleccion">
             <i class="bi bi-check-circle"></i>
             Presupuesto seleccionado: #{{ nuevo.presupuestoSeleccionado.id }}
-            <small class="monto-seleccion">Monto: {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}</small>
-            <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'Desconocido'">
-              | Estado reparación: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
+            <small class="monto-seleccion">
+              Monto: {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}
+            </small>
+            <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'Desconocido'">
+              | Estado reparación: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) }}
             </small>
           </div>
         </div>
@@ -408,7 +469,7 @@
                 </div>
                 <div class="item-informacion">
                   <strong>Estado presupuesto:</strong> 
-                  <span [class]="'badge-estado ' + (nuevo.presupuestoSeleccionado.aceptado ? 'estado-aceptado' : 'estado-pendiente')">
+                  <span class="badge-estado" [class]="getEstadoReparacionBadgeClass(nuevo.presupuestoSeleccionado.aceptado ? 'finalizada' : 'pendiente')">
                     {{ nuevo.presupuestoSeleccionado.aceptado ? 'Aceptado' : 'Pendiente' }}
                   </span>
                 </div>
@@ -420,7 +481,7 @@
                 </div>
                 <div class="item-informacion" *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'Desconocido'">
                   <strong>Estado reparación:</strong> 
-                  <span class="badge-estado" [class]="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) === 'finalizada' ? 'estado-finalizada' : 'estado-pendiente'">
+                  <span class="badge-estado" [class]="getEstadoReparacionBadgeClass(getEstadoReparacion(nuevo.presupuestoSeleccionado.id))">
                     {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
                   </span>
                 </div>
@@ -440,13 +501,13 @@
       </div>
 
       <!-- Mensaje de validación -->
-      <div *ngIf="nuevo.presupuestoSeleccionado && (!nuevo.presupuestoSeleccionado.aceptado || (nuevo.presupuestoSeleccionado.id && getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada'))" 
+      <div *ngIf="nuevo.presupuestoSeleccionado && (!nuevo.presupuestoSeleccionado.aceptado || getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada')" 
            class="alert alert-warning mb-3">
         <i class="bi bi-exclamation-triangle me-2"></i>
         <strong>No se puede facturar:</strong>
         <ul class="mb-0 mt-2">
           <li *ngIf="!nuevo.presupuestoSeleccionado.aceptado">El presupuesto no está aprobado</li>
-          <li *ngIf="nuevo.presupuestoSeleccionado.id && getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada'">
+          <li *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada'">
             La reparación está en estado: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
           </li>
         </ul>
@@ -455,7 +516,7 @@
       <button class="boton-enviar" type="submit" 
           [disabled]="!nuevo.presupuesto_id || 
            !nuevo.presupuestoSeleccionado?.aceptado || 
-           (nuevo.presupuestoSeleccionado && getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada')">        
+           getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'finalizada'">        
           <i class="bi bi-check2-circle icono-boton"></i> 
         <ng-container *ngIf="nuevo.presupuestoSeleccionado">
           <span *ngIf="nuevo.presupuestoSeleccionado.aceptado && getEstadoReparacion(nuevo.presupuestoSeleccionado.id) === 'finalizada'">
@@ -465,12 +526,13 @@
             No cumple requisitos para facturar
           </span>
         </ng-container>
-        <app-presupuesto-picker 
-            *ngIf="mostrandoPresupuestos"
-            (closed)="ocultarPresupuestos()"
-            (select)="seleccionarPresupuestoDelPicker($event)">
-        </app-presupuesto-picker>
       </button>
+      
+      <app-presupuesto-picker 
+          *ngIf="mostrandoPresupuestos"
+          (closed)="ocultarPresupuestos()"
+          (select)="seleccionarPresupuestoDelPicker($event)">
+      </app-presupuesto-picker>
     </form>
   </div>
 

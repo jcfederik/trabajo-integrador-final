@@ -620,6 +620,11 @@ cargar(): void {
   }
 
   async crear(): Promise<void> {
+    if (this.nuevo.fecha && new Date(this.nuevo.fecha) < new Date(this.getToday())) {
+      this.alertService.showGenericError('La fecha del presupuesto no puede ser anterior al día de hoy.');
+      return;
+    }
+
     const payload = this.limpiar(this.nuevo);
     if (!this.valida(payload)) return;
 
@@ -696,6 +701,10 @@ cargar(): void {
   }
 
   async saveEdit(id: number): Promise<void> {
+    if (this.editBuffer.fecha && new Date(this.editBuffer.fecha) < new Date(this.getToday())) {
+      this.alertService.showGenericError('La fecha del presupuesto no puede ser anterior al día de hoy.');
+      return;
+    }
     const payload = this.limpiarEdit(this.editBuffer);
     if (!this.valida(payload)) return;
 
@@ -816,41 +825,47 @@ cargar(): void {
     return new Date(yyyyMMdd + 'T00:00:00Z').toISOString();
   }
 
-getTituloPresupuesto(p: Presupuesto): string {
-  const rep = p.reparacion || this.reparacionesInfoCache.get(p.reparacion_id);
+  getTituloPresupuesto(p: Presupuesto): string {
+    const rep = p.reparacion || this.reparacionesInfoCache.get(p.reparacion_id);
 
-  if (!rep) return `Presupuesto #${p.id}`;
+    if (!rep) return `Presupuesto #${p.id}`;
 
-  const cliente =
-    rep.cliente_nombre ||
-    rep.equipo?.cliente?.nombre ||
-    'Cliente';
+    const cliente =
+      rep.cliente_nombre ||
+      rep.equipo?.cliente?.nombre ||
+      'Cliente';
 
-  const equipo =
-    rep.equipo_nombre ||
-    rep.equipo?.descripcion ||
-    'Equipo';
+    const equipo =
+      rep.equipo_nombre ||
+      rep.equipo?.descripcion ||
+      'Equipo';
 
-  const estado = p.aceptado ? 'Aceptado' : 'Pendiente';
+    const estado = p.aceptado ? 'Aceptado' : 'Pendiente';
 
-  return `Presupuesto #${p.id} - ${cliente} | ${equipo}`;
-}
-
-
-getInfoEquipo(reparacionId: number): string {
-  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
-  return reparacionInfo?.equipo_nombre || '';
-}
-
-getInfoTecnico(reparacionId: number): string {
-  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
-  return reparacionInfo?.tecnico_nombre || '';
-}
-
-getInfoCliente(reparacionId: number): string {
-  const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
-  return reparacionInfo?.cliente_nombre || '';
-}
+    return `Presupuesto #${p.id} - ${cliente} | ${equipo}`;
+  }
 
 
+  getInfoEquipo(reparacionId: number): string {
+    const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+    return reparacionInfo?.equipo_nombre || '';
+  }
+
+  getInfoTecnico(reparacionId: number): string {
+    const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+    return reparacionInfo?.tecnico_nombre || '';
+  }
+
+  getInfoCliente(reparacionId: number): string {
+    const reparacionInfo = this.reparacionesInfoCache.get(reparacionId);
+    return reparacionInfo?.cliente_nombre || '';
+  }
+  // ====== MÉTODO PARA OBTENER FECHA ACTUAL EN FORMATO YYYY-MM-DD ======
+  getToday(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
 }

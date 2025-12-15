@@ -230,7 +230,12 @@
 
                   <div class="col-6 col-md-3">
                     <label class="form-label small">Fecha</label>
-                    <input type="date" class="form-control" [(ngModel)]="editBuffer.fecha" />
+                    <input 
+                      type="date" 
+                      class="form-control" 
+                      [(ngModel)]="editBuffer.fecha" 
+                      [min]="getToday()"
+                    />
                   </div>
                   <div class="col-6 col-md-3">
                     <label class="form-label small">Monto total</label>
@@ -402,7 +407,14 @@
 
         <div class="col-12 col-md-4">
           <label class="form-label">Fecha <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" [(ngModel)]="nuevo.fecha" name="fecha" required />
+          <input 
+            type="date" 
+            class="form-control" 
+            [(ngModel)]="nuevo.fecha" 
+            name="fecha" 
+            required 
+            [min]="getToday()"
+          />
         </div>
         
         <div class="col-12 col-md-4">

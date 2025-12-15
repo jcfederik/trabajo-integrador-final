@@ -236,6 +236,7 @@
                   type="date" 
                   class="form-control text-center" 
                   [(ngModel)]="editBuffer.fecha"
+                  [min]="getToday()"
                 />
               </div>
 
@@ -245,6 +246,7 @@
                   type="date" 
                   class="form-control text-center" 
                   [(ngModel)]="editBuffer.fecha_estimada"
+                  [min]="getToday()"
                 />
               </div>
 
@@ -435,7 +437,7 @@
           <small class="context-help">Describe claramente el problema a resolver</small>
         </div>
 
-        <!-- Fecha y Estado -->
+        <!-- Fecha (no editable, ya que debe ser hoy) -->
         <div class="col-12 col-md-6">
           <label class="form-label fw-semibold">Fecha</label>
           <input 
@@ -444,20 +446,21 @@
             [(ngModel)]="nuevo.fecha" 
             name="fecha" 
             required 
+            [min]="getToday()"
           />
         </div>
 
         <div class="col-12 col-md-6">
-        <label class="form-label fw-semibold">Fecha Estimada (opcional)</label>
-        <input 
-          type="date" 
-          class="form-control" 
-          [(ngModel)]="nuevo.fecha_estimada" 
-          name="fecha_estimada"
-        />
-        <small class="text-muted">Esta fecha es opcional</small>
-      </div>
-
+          <label class="form-label fw-semibold">Fecha Estimada (opcional)</label>
+          <input 
+            type="date" 
+            class="form-control" 
+            [(ngModel)]="nuevo.fecha_estimada" 
+            name="fecha_estimada"
+            [min]="getToday()"
+          />
+          <small class="text-muted">Esta fecha es opcional. No puede ser anterior a hoy.</small>
+        </div>
         
         <div class="col-12 col-md-6">
           <label class="form-label fw-semibold">Estado</label>

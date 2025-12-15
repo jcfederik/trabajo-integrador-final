@@ -538,63 +538,72 @@ public function listadoOptimizado(Request $request)
         $presupuestos = $query->paginate($perPage, [
             'id', 'reparacion_id', 'fecha', 'monto_total', 'aceptado'
         ]);
-
         $presupuestos->getCollection()->transform(function ($presupuesto) {
             $reparacion = $presupuesto->reparacion;
             
             if (!$reparacion) {
-                return [
-                    'id' => $presupuesto->id,
-                    'reparacion_id' => $presupuesto->reparacion_id,
-                    'fecha' => $presupuesto->fecha,
-                    'monto_total' => $presupuesto->monto_total,
-                    'aceptado' => (bool)$presupuesto->aceptado,
-
-                    'reparacion' => [
-                        'id' => $reparacion->id,
-                        'descripcion' => $reparacion->descripcion,
-                        'equipo_id' => $reparacion->equipo_id,
-                        'usuario_id' => $reparacion->usuario_id,
-                        'fecha' => $reparacion->fecha,
-                        'estado' => $reparacion->estado,
-
-                        'equipo_nombre' => $equipo->descripcion ?? 'Sin equipo',
-                        'cliente_nombre' => $cliente->nombre ?? 'No especificado',
-                        'tecnico_nombre' => $tecnico->nombre ?? 'Sin técnico',
-
-                        'equipo' => $equipo ? [
-                            'id' => $equipo->id,
-                            'descripcion' => $equipo->descripcion,
-                            'marca' => $equipo->marca,
-                            'modelo' => $equipo->modelo,
-                            'nro_serie' => $equipo->nro_serie,
-                            'cliente_id' => $equipo->cliente_id,
-                            'cliente' => $cliente ? [
-                                'id' => $cliente->id,
-                                'nombre' => $cliente->nombre,
-                                'telefono' => $cliente->telefono,
-                                'email' => $cliente->email
-                            ] : null
-                        ] : null,
-
-                        'tecnico' => $tecnico ? [
-                            'id' => $tecnico->id,
-                            'nombre' => $tecnico->nombre,
-                            'tipo' => $tecnico->tipo
-                        ] : null
-                    ]
+                $presupuesto->reparacion = null;
+                return $presupuesto;
+            }
+            
+            // Cargar relaciones si no están ya cargadas
+            $reparacion->loadMissing(['equipo.cliente', 'tecnico']);
+            
+            $equipo = $reparacion->equipo;
+            $cliente = $equipo ? $equipo->cliente : null;
+            $tecnico = $reparacion->tecnico;
+            
+            // Estructurar los datos de forma más limpia
+            $presupuesto->reparacion = [
+                'id' => $reparacion->id,
+                'descripcion' => $reparacion->descripcion,
+                'equipo_id' => $reparacion->equipo_id,
+                'usuario_id' => $reparacion->usuario_id,
+                'fecha' => $reparacion->fecha,
+                'estado' => $reparacion->estado,
+                'equipo_nombre' => $equipo ? $equipo->descripcion : 'Sin equipo',
+                'cliente_nombre' => $cliente ? $cliente->nombre : 'No especificado',
+                'tecnico_nombre' => $tecnico ? $tecnico->nombre : 'Sin técnico',
+            ];
+            
+            // Solo incluir objetos completos si existen
+            if ($equipo) {
+                $presupuesto->reparacion['equipo'] = [
+                    'id' => $equipo->id,
+                    'descripcion' => $equipo->descripcion,
+                    'marca' => $equipo->marca,
+                    'modelo' => $equipo->modelo,
+                    'nro_serie' => $equipo->nro_serie,
+                    'cliente_id' => $equipo->cliente_id,
                 ];
-            });
+                
+                if ($cliente) {
+                    $presupuesto->reparacion['equipo']['cliente'] = [
+                        'id' => $cliente->id,
+                        'nombre' => $cliente->nombre,
+                        'telefono' => $cliente->telefono,
+                        'email' => $cliente->email
+                    ];
+                }
+            }
+            
+            if ($tecnico) {
+                $presupuesto->reparacion['tecnico'] = [
+                    'id' => $tecnico->id,
+                    'nombre' => $tecnico->nombre,
+                    'tipo' => $tecnico->tipo
+                ];
+            }
+            
+            return $presupuesto;
+        });
 
-            return response()->json($presupuestos);
-        } catch (\Exception $e) {
-            Log::error('Error en listadoOptimizado: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-
-    } catch (\Exception $e) {
+        return response()->json($presupuestos);
+    } catch (\Throwable $e) {
         return response()->json([
-            'error' => 'Error interno del servidor',
-            'message' => $e->getMessage()
+            'error' => 'Error al obtener los presupuestos',
+            'detalle' => $e->getMessage()
         ], 500);
     }
+}
 }
