@@ -57,6 +57,7 @@ export class EspecializacionesComponent implements OnInit {
     this.cargarTecnicos();
   }
 
+  // VERIFICAR PERMISOS
   private verificarPermisos(): void {
     if (!this.authService.isAuthenticated()) {
       this.alertService.showError('Acceso denegado', 'Debes iniciar sesión para acceder a esta página');
@@ -84,6 +85,7 @@ export class EspecializacionesComponent implements OnInit {
     return this.authService.canAssignEspecializaciones();
   }
 
+  // CARGAR ESPECIALIZACIONES
   cargarEspecializaciones() {
     this.http.get<any>('http://127.0.0.1:8000/api/especializaciones').subscribe({
       next: (response) => {
@@ -104,6 +106,7 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
+  // CARGAR TÉCNICOS
   cargarTecnicos() {
     this.http.get<any>('http://127.0.0.1:8000/api/usuarios').subscribe({
       next: (response) => {
@@ -112,13 +115,12 @@ export class EspecializacionesComponent implements OnInit {
         );
       },
       error: (error) => {
-        if (error.status === 403) {
-          console.warn('Usuario no tiene permisos para ver los técnicos');
-        }
+        if (error.status === 403) {}
       }
     });
   }
 
+  // CREAR ESPECIALIZACIÓN
   crearEspecializacion() {
     if (!this.puedeCrearOEditar()) {
       this.alertService.showError('Permisos insuficientes', 'No tienes permisos para crear especializaciones');
@@ -147,6 +149,7 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
+  // INICIAR EDICIÓN
   iniciarEdicion(especializacion: Especializacion) {
     if (!this.puedeCrearOEditar()) {
       this.alertService.showError('Permisos insuficientes', 'No tienes permisos para editar especializaciones');
@@ -157,6 +160,7 @@ export class EspecializacionesComponent implements OnInit {
     this.especializacionEditada = { nombre: especializacion.nombre };
   }
 
+  // GUARDAR EDICIÓN
   guardarEdicion() {
     if (!this.editandoEspecializacion || !this.puedeCrearOEditar()) return;
 
@@ -184,11 +188,13 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
+  // CANCELAR EDICIÓN
   cancelarEdicion() {
     this.editandoEspecializacion = null;
     this.especializacionEditada = { nombre: '' };
   }
 
+  // ELIMINAR ESPECIALIZACIÓN
   async eliminarEspecializacion(id: number) {
     if (!this.puedeEliminar()) return;
 
@@ -210,6 +216,7 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
+  // INICIAR ASIGNACIÓN
   iniciarAsignacion(especializacion: Especializacion) {
     if (!this.puedeAsignarTecnicos()) return;
 
@@ -217,6 +224,7 @@ export class EspecializacionesComponent implements OnInit {
     this.cargarTecnicosAsignados(especializacion.id);
   }
 
+  // CARGAR TÉCNICOS ASIGNADOS
   cargarTecnicosAsignados(especializacionId: number) {
     this.http.get<any>('http://127.0.0.1:8000/api/users').subscribe({
       next: (response) => {
@@ -231,12 +239,11 @@ export class EspecializacionesComponent implements OnInit {
           }
         });
       },
-      error: (error) => {
-        console.error('Error cargando técnicos asignados:', error);
-      }
+      error: (error) => {}
     });
   }
 
+  // GUARDAR ASIGNACIÓN
   async guardarAsignacion() {
     if (!this.asignandoTecnicos || !this.puedeAsignarTecnicos()) return;
 
@@ -258,6 +265,7 @@ export class EspecializacionesComponent implements OnInit {
     }
   }
 
+  // ASIGNAR ESPECIALIZACIÓN ADMIN
   asignarEspecializacionAdmin(tecnicoId: number, especializacionId: number): Promise<void> {
     return new Promise((resolve, reject) => {
       this.http.post(`http://127.0.0.1:8000/api/admin/users/${tecnicoId}/especializaciones`, {
@@ -274,11 +282,13 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
+  // CANCELAR ASIGNACIÓN
   cancelarAsignacion() {
     this.asignandoTecnicos = null;
     this.tecnicosSeleccionados = [];
   }
 
+  // TOGGLE TÉCNICO
   toggleTecnico(tecnicoId: number) {
     const index = this.tecnicosSeleccionados.indexOf(tecnicoId);
     if (index > -1) {
@@ -288,15 +298,18 @@ export class EspecializacionesComponent implements OnInit {
     }
   }
 
+  // ESTÁ SELECCIONADO
   estaSeleccionado(tecnicoId: number): boolean {
     return this.tecnicosSeleccionados.includes(tecnicoId);
   }
 
+  // CANCELAR CREACIÓN
   cancelarCreacion() {
     this.mostrarFormulario = false;
     this.nuevaEspecializacion = { nombre: '' };
   }
 
+  // CONTAR TÉCNICOS POR ESPECIALIZACIÓN
   contarTecnicosPorEspecializacion(especializacionId: number): number {
     if (!especializacionId) return 0;
     
@@ -306,6 +319,7 @@ export class EspecializacionesComponent implements OnInit {
     ).length;
   }
 
+  // AUTO ASIGNAR ESPECIALIZACIÓN
   autoAsignarEspecializacion(especializacionId: number): void {
     if (!this.authService.canSelfAssignEspecializaciones()) {
       this.alertService.showError('Permisos insuficientes', 'No tienes permisos para auto-asignarte especializaciones');

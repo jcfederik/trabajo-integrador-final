@@ -59,16 +59,17 @@ export class SidebarComponent implements OnInit {
       });
   }
 
+  // LIFECYCLE HOOKS
   ngOnInit() {
     this.userPermissions = this.authService.getUserPermissions();
-    console.log('🔐 Permisos del usuario:', this.userPermissions);
-    console.log('👤 Es administrador:', this.authService.isAdmin());
   }
 
+  // VERIFICACIÓN DE PERMISOS
   hasPermission(permission: string): boolean {
     return this.authService.hasPermission(permission);
   }
 
+  // FILTRADO DE MENÚ
   get filteredMenuItems(): SidebarItem[] {
     const filteredItems: SidebarItem[] = [];
     let lastHeader: SidebarItem | null = null;
@@ -91,6 +92,7 @@ export class SidebarComponent implements OnInit {
     return filteredItems;
   }
 
+  // CONTROL DE SIDEBAR
   toggleSidebar() {
     this.isCollapsed = !this.isCollapsed;
     this.sidebarStateChange.emit(this.isCollapsed);

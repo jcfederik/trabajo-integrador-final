@@ -26,7 +26,6 @@ type Acción = 'listar' | 'crear';
 export class ReparacionesComponent implements OnInit, OnDestroy {
   selectedAction: Acción = 'listar';
 
-  // ====== PROPIEDADES DE LISTADO Y PAGINACIÓN ======
   reparacionesAll: Reparacion[] = [];
   reparacionesFiltradas: Reparacion[] = [];
   page = 1;
@@ -34,7 +33,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
-  // ====== PROPIEDADES DE BÚSQUEDA ======
   private searchSub?: Subscription;
   searchTerm: string = '';
   private isServerSearch = false;
@@ -42,17 +40,14 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   private serverSearchLastPage = false;
   private busquedaReparacion = new Subject<string>();
 
-  // ====== PROPIEDADES PARA SELECCIÓN (CREACIÓN) ======
   equipoSeleccionado: SearchResult | null = null;
   clienteSeleccionado: SearchResult | null = null;
   tecnicoSeleccionado: SearchResult | null = null;
 
-  // ====== PROPIEDADES PARA SELECCIÓN (EDICIÓN) ======
   equipoEditSeleccionado: SearchResult | null = null;
   clienteEditSeleccionado: SearchResult | null = null;
   tecnicoEditSeleccionado: SearchResult | null = null;
 
-  // ====== REFERENCIAS A COMPONENTES DE BÚSQUEDA ======
   @ViewChild('clienteSelector') clienteSelector!: SearchSelectorComponent;
   @ViewChild('equipoSelector') equipoSelector!: SearchSelectorComponent;
   @ViewChild('tecnicoSelector') tecnicoSelector!: SearchSelectorComponent;
@@ -60,18 +55,15 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   @ViewChild('tecnicoEditSelector') tecnicoEditSelector!: SearchSelectorComponent;
   @ViewChild('repuestoCrearSelector') repuestoCrearSelector!: SearchSelectorComponent;
 
-  // ====== PROPIEDADES DE EDICIÓN INLINE ======
   editingId: number | null = null;
   editBuffer: Partial<Reparacion> = {};
 
-  // ====== PROPIEDADES DE CREACIÓN ======
   nuevo: Partial<Reparacion> = {
     fecha: new Date().toISOString().slice(0, 10),
     fecha_estimada: null,
     estado: 'pendiente'
   };
 
-  // ====== PROPIEDADES DE MODALES Y REPUESTOS ======
   repuestosDisponibles: any[] = [];
   repuestosAsignados: any[] = [];
   reparacionSeleccionada: Reparacion | null = null;
@@ -80,7 +72,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   cargandoRepuestosDisponibles: boolean = false;
   cargandoRepuestosAsignados: boolean = false;
 
-  // ====== PROPIEDADES PARA REPUESTOS EN CREACIÓN ======
   repuestoSeleccionadoCrear: any = null;
   repuestosSeleccionadosCrear: any[] = [];
   cantidadRepuestoCrear: number = 1;
@@ -98,7 +89,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     private authService: AuthService
   ) {}
 
-  // ====== CICLO DE VIDA ======
+  // CICLO DE VIDA
   ngOnInit(): void {
     this.resetList();
     this.configurarBusqueda();
@@ -113,7 +104,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // ====== CONFIGURACIÓN DE BÚSQUEDA ======
+  // CONFIGURACIÓN DE BÚSQUEDA
   private configurarBusqueda(): void {
     this.searchService.setCurrentComponent('reparaciones');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -139,14 +130,11 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== BÚSQUEDA DE REPARACIONES ======
+  // BÚSQUEDA DE REPARACIONES
   onBuscarReparaciones(termino: string): void {
     const terminoLimpio = (termino || '').trim();
     
-    console.log('🔍 Buscando con término:', terminoLimpio);
-    
     if (!terminoLimpio) {
-      // Si el término está vacío, limpiar resultados
       this.reparacionesFiltradas = [...this.reparacionesAll];
       this.isServerSearch = false;
       return;
@@ -155,10 +143,8 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.searchTerm = terminoLimpio;
 
     if (terminoLimpio.length <= 2) {
-      // Búsqueda local para términos cortos
       this.applyFilterLocal();
     } else {
-      // Búsqueda en servidor para términos largos
       this.busquedaReparacion.next(terminoLimpio);
     }
   }
@@ -168,15 +154,9 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.serverSearchPage = 1;
     this.serverSearchLastPage = false;
 
-    console.log('📡 Buscando en servidor:', termino);
-
     this.repService.buscarReparaciones(termino).subscribe({
       next: (reparaciones: Reparacion[]) => {
-        console.log('✅ Resultados del servidor:', reparaciones.length);
-        
-        // Si no hay resultados, usar búsqueda local como fallback
         if (!reparaciones || reparaciones.length === 0) {
-          console.log('⚠️ Sin resultados del servidor, usando búsqueda local');
           this.applyFilterLocal();
           return;
         }
@@ -184,17 +164,13 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
         this.reparacionesAll = reparaciones;
         this.reparacionesFiltradas = [...reparaciones];
         
-        // Preparar datos para búsqueda global
         this.prepararDatosParaBusquedaGlobal();
       },
       error: (error) => {
-        console.error('❌ Error en búsqueda servidor:', error);
-        console.log('🔄 Usando búsqueda local como fallback');
         this.applyFilterLocal();
       }
     });
   }
-
 
   private applyFilterLocal(): void {
     const term = this.searchTerm.toLowerCase();
@@ -235,7 +211,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.reparacionesFiltradas = [...this.reparacionesAll];
   }
 
-  // ====== GESTIÓN DE LISTADO Y SCROLL ======
+  // GESTIÓN DE LISTADO Y SCROLL
   cargar() {
     if (this.loading || this.lastPage) return;
     
@@ -347,7 +323,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ====== MÉTODOS HELPER PARA OBTENER NOMBRES ======
+  // MÉTODOS HELPER PARA OBTENER NOMBRES
   getClienteNombre(r: Reparacion): string {
     if (r.cliente_nombre && r.cliente_nombre !== 'No especificado') {
       return r.cliente_nombre;
@@ -384,7 +360,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     return 'Sin técnico';
   }
 
-  // ====== CREACIÓN DE REPARACIONES ======
+  // CREACIÓN DE REPARACIONES
   async crear() {
     if (this.nuevo.fecha && new Date(this.nuevo.fecha) < new Date(this.getToday())) {
       this.alertService.showGenericError('La fecha no puede ser anterior al día de hoy.');
@@ -466,7 +442,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
     } catch (e: any) {
       this.alertService.closeLoading();
-      console.error('Error al crear reparación:', e);
       this.alertService.showGenericError(
         e?.error?.error || 
         e?.error?.detalle || 
@@ -476,7 +451,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ====== ELIMINACIÓN DE REPARACIONES ======
+  // ELIMINACIÓN DE REPARACIONES
   async eliminar(id: number) {
     const reparacion = this.reparacionesAll.find(r => r.id === id);
     const confirmed = await this.alertService.confirmDeleteReparacion(reparacion?.descripcion || 'esta reparación');
@@ -499,7 +474,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== EDICIÓN INLINE ======
+  // EDICIÓN INLINE
   startEdit(item: Reparacion) {
     this.editingId = item.id;
     this.editBuffer = {
@@ -596,13 +571,11 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   }
 
   async saveEdit(id: number) {
-    // Validación de fecha
     if (this.editBuffer.fecha && new Date(this.editBuffer.fecha) < new Date(this.getToday())) {
       this.alertService.showGenericError('La fecha no puede ser anterior al día de hoy.');
       return;
     }
     
-    // Validación de fecha estimada
     if (this.editBuffer.fecha_estimada && new Date(this.editBuffer.fecha_estimada) < new Date(this.getToday())) {
       this.alertService.showGenericError('La fecha estimada no puede ser anterior al día de hoy.');
       return;
@@ -614,14 +587,14 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ====== LIMPIAR BÚSQUEDA GLOBAL ======
+  // LIMPIAR BÚSQUEDA GLOBAL
   limpiarBusqueda() {
     this.searchService.clearSearch();
     this.searchTerm = '';
     this.resetList();
   }
 
-  // ====== MÉTODOS PARA CARGAR DATOS INICIALES ======
+  // MÉTODOS PARA CARGAR DATOS INICIALES
   cargarClientesIniciales() {
     this.clienteService.getClientes(1, 10).subscribe({
       next: (res: any) => {
@@ -673,7 +646,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ====== MÉTODOS DE FOCUS ======
+  // MÉTODOS DE FOCUS
   onFocusClientes() {
     this.cargarClientesIniciales();
   }
@@ -688,7 +661,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ====== HELPERS PARA EL TEMPLATE ======
+  // HELPERS PARA EL TEMPLATE
   isListar(): boolean {
     return this.selectedAction === 'listar';
   }
@@ -735,7 +708,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
 
-  // ====== BÚSQUEDA DE CLIENTES (CREACIÓN) ======
+  // BÚSQUEDA DE CLIENTES (CREACIÓN)
   buscarClientes(termino: string) {
     if (termino.length < 2) {
       this.clienteSelector.updateSuggestions([]);
@@ -753,24 +726,17 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   }
 
   seleccionarCliente(cliente: SearchResult) {
-    console.log('🔍 Cliente seleccionado:', cliente);
-    console.log('📋 Tipo:', typeof cliente);
-    console.log('🗂️ Propiedades:', Object.keys(cliente || {}));
-    console.log('👤 Nombre:', cliente?.nombre);
-    console.log('🆔 ID:', cliente?.id);
-    
     this.clienteSeleccionado = cliente;
     this.limpiarEquipo();
     this.cargarTodosLosEquiposDelCliente();
   }
-
 
   limpiarCliente() {
     this.clienteSeleccionado = null;
     this.limpiarEquipo();
   }
 
-  // ====== BÚSQUEDA DE EQUIPOS (CREACIÓN) ======
+  // BÚSQUEDA DE EQUIPOS (CREACIÓN)
   buscarEquipos(termino: string = '') {
     if (!this.clienteSeleccionado) {
       this.equipoSelector.updateSuggestions([]);
@@ -811,7 +777,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.equipoSelector.updateSuggestions([]);
   }
 
-  // ====== BÚSQUEDA DE EQUIPOS (EDICIÓN) ======
+  // BÚSQUEDA DE EQUIPOS (EDICIÓN)
   buscarEquiposEdit(termino: string = '') {
     if (!this.clienteEditSeleccionado) {
       this.equipoEditSelector?.updateSuggestions([]);
@@ -875,7 +841,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.editBuffer.equipo_id = undefined;
   }
 
-  // ====== BÚSQUEDA DE TÉCNICOS (CREACIÓN) ======
+  // BÚSQUEDA DE TÉCNICOS (CREACIÓN)
   buscarTecnicos(termino: string) {
     if (termino.length < 2) {
       this.tecnicoSelector.updateSuggestions([]);
@@ -902,7 +868,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.nuevo.usuario_id = undefined;
   }
 
-  // ====== BÚSQUEDA DE TÉCNICOS (EDICIÓN) ======
+  // BÚSQUEDA DE TÉCNICOS (EDICIÓN)
   buscarTecnicosEdit(termino: string) {
     if (termino.length < 2) {
       this.tecnicoEditSelector?.updateSuggestions([]);
@@ -929,7 +895,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.editBuffer.usuario_id = undefined;
   }
 
-  // ====== VALIDACIÓN DE FORMULARIO ======
+  // VALIDACIÓN DE FORMULARIO
   isFormValid(): boolean {
     const camposBasicos = !!(this.clienteSeleccionado && 
                           this.equipoSeleccionado && 
@@ -945,7 +911,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     return camposBasicos && repuestosValidos;
   }
 
-  // ====== MANEJO DE MENSAJES DE EQUIPO ======
+  // MANEJO DE MENSAJES DE EQUIPO
   private setEquipoEditSelectorMessage(type: 'noClient' | 'noResults' | 'noEquipos', show: boolean): void {
     if (!this.equipoEditSelector) return;
 
@@ -989,7 +955,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     return '';
   }
 
-  // ====== GESTIÓN DE REPUESTOS ======
+  // GESTIÓN DE REPUESTOS
   getStockClass(stock: number): string {
     if (stock === 0) {
       return 'text-danger fw-bold';
@@ -1007,7 +973,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }).format(precio);
   }
 
-  // ====== MODALES DE REPUESTOS ======
+  // MODALES DE REPUESTOS
   abrirModalRepuestos(reparacion: Reparacion): void {
     this.reparacionSeleccionada = reparacion;
     this.mostrarModalRepuestos = true;
@@ -1036,7 +1002,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.reparacionSeleccionada = null;
   }
 
-  // ====== CARGA DE REPUESTOS ======
+  // CARGA DE REPUESTOS
   cargarRepuestosDisponibles(): void {
     this.cargandoRepuestosDisponibles = true;
     
@@ -1070,7 +1036,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== ASIGNACIÓN Y REMOCIÓN DE REPUESTOS ======
+  // ASIGNACIÓN Y REMOCIÓN DE REPUESTOS
   asignarRepuesto(repuesto: any, cantidad?: number): void {
     if (!this.reparacionSeleccionada) return;
 
@@ -1150,7 +1116,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== REPUESTOS EN CREACIÓN ======
+  // REPUESTOS EN CREACIÓN
   cargarRepuestosInicialesCrear(): void {
     if (this.repuestoCrearSelector && !this.repuestoCrearSelector.hasSearched) {
       this.repuestoService.getRepuestos(1, 5).subscribe({
@@ -1187,7 +1153,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
           repuestosArray = response;
         }
         
-        
         if (repuestosArray.length > 0) {
           this.repuestoCrearSelector.updateSuggestions(repuestosArray);
         } else {
@@ -1206,8 +1171,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       }
     });
   }
-
-
 
   seleccionarRepuestoCrear(repuesto: any): void {
     this.repuestoSeleccionadoCrear = repuesto;
@@ -1249,7 +1212,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.repuestosSeleccionadosCrear = this.repuestosSeleccionadosCrear.filter(r => r.id !== repuestoId);
   }
 
-  // ====== MÉTODOS AUXILIARES ======
+  // MÉTODOS AUXILIARES
   getTextoBotonCrear(): string {
     if (!this.isFormValid()) {
       return 'Completa todos los campos';
@@ -1274,6 +1237,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       return total + (cantidad * costo);
     }, 0);
   }
+
   getNombreDisplayCliente(cliente: any): string {
     if (!cliente) return 'No seleccionado';
     
@@ -1316,7 +1280,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // También agrega estos métodos para el resumen (ya que los necesitas en el template)
   getNombreCliente(): string {
     return this.getNombreDisplayCliente(this.clienteSeleccionado);
   }
@@ -1341,7 +1304,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     return this.getNombreDisplayTecnico(this.tecnicoEditSeleccionado);
   }
 
-  // ====== MÉTODO PARA OBTENER FECHA ACTUAL EN FORMATO YYYY-MM-DD ======
+  // MÉTODO PARA OBTENER FECHA ACTUAL EN FORMATO YYYY-MM-DD
   getToday(): string {
     const today = new Date();
     const year = today.getFullYear();
@@ -1349,7 +1312,8 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-  // =============== VERIFICACIÓN DE PERMISOS ===============
+
+  // VERIFICACIÓN DE PERMISOS
   isUser(): boolean {
     return this.authService.isUsuario();
   }
