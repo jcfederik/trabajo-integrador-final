@@ -186,23 +186,19 @@ class CompraRepuestoController extends Controller
             $compra = DB::transaction(function () use ($validator) {
                 $data = $validator->validated();
 
-                // Calcular precio unitario si no viene
                 if (empty($data['precio_unitario']) && $data['cantidad'] > 0) {
                     $data['precio_unitario'] = $data['total'] / $data['cantidad'];
                 }
 
                 $data['user_id'] = Auth::id();
 
-                // Crear compra
                 $compra = CompraRepuesto::create($data);
 
-                // Actualizar stock del repuesto
                 $repuesto = Repuesto::findOrFail($data['repuesto_id']);
                 $stockAnterior = $repuesto->stock;
                 $repuesto->stock += $data['cantidad'];
                 $repuesto->save();
 
-                // Registrar historial de stock
                 HistorialStock::create([
                     'repuesto_id'    => $repuesto->id,
                     'tipo_mov'       => 'COMPRA',
@@ -371,7 +367,6 @@ class CompraRepuestoController extends Controller
             'numero_comprobante' => 'sometimes|string|max:50|unique:compra_repuesto,numero_comprobante,' . $compra->id,
             'total'              => 'sometimes|numeric|min:0',
             'estado'             => 'sometimes|in:pendiente,procesado,cancelado'
-            // NOTA: No permitimos cambiar cantidad porque alteraría el stock
         ]);
 
         if ($validator->fails()) {

@@ -82,7 +82,6 @@ public function index(Request $request)
 
             return response()->json($equipos, 200);
         } catch (\Throwable $e) {
-            \Log::error('Error listando equipos', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al obtener los equipos'], 500);
         }
     }

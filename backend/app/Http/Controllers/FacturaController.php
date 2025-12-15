@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\Factura;
@@ -75,7 +74,6 @@ class FacturaController extends Controller
             $facturas = $q->paginate($perPage, ['*'], 'page', $page);
             return response()->json($facturas, 200);
         } catch (\Throwable $e) {
-            \Log::error('Error listando facturas', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al obtener las facturas', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -129,7 +127,6 @@ class FacturaController extends Controller
         try {
             $data = $validator->validated();
 
-            // Fecha automática
             $data['fecha'] = now()->format('Y-m-d H:i:s');
 
             $factura = Factura::create($data);
@@ -139,7 +136,6 @@ class FacturaController extends Controller
                 'factura' => $factura
             ], 201);
         } catch (\Throwable $e) {
-            \Log::error('Error creando factura', ['err' => $e->getMessage()]);
             return response()->json([
                 'error' => 'Error al crear la factura',
                 'detalle' => $e->getMessage()
@@ -254,7 +250,6 @@ class FacturaController extends Controller
                 'factura' => $factura
             ], 200);
         } catch (\Throwable $e) {
-            \Log::error('Error actualizando factura', ['err' => $e->getMessage()]);
             return response()->json([
                 'error'   => 'Error al actualizar la factura',
                 'detalle' => $e->getMessage()
@@ -297,7 +292,6 @@ class FacturaController extends Controller
             $factura->delete();
             return response()->json(['mensaje' => 'Factura eliminada correctamente'], 200);
         } catch (\Throwable $e) {
-            \Log::error('Error eliminando factura', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al eliminar la factura', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -324,10 +318,8 @@ class FacturaController extends Controller
     public function getSaldoPendiente($id)
     {
         try {
-            // Utilizamos 'with('cobros')' para asegurar que la relación esté cargada para calcular el saldo
             $factura = Factura::with('cobros')->findOrFail($id);
 
-            // Este método asume que has añadido getSaldoPendienteAttribute() al modelo Factura.
             $saldo = $factura->getSaldoPendienteAttribute();
 
             return response()->json([
@@ -335,8 +327,6 @@ class FacturaController extends Controller
                 'saldo_pendiente' => $saldo
             ], 200);
         } catch (\Exception $e) {
-            // Error al no encontrar la factura o cualquier otro problema
-            \Log::error('Error obteniendo saldo de factura', ['id' => $id, 'err' => $e->getMessage()]);
             return response()->json(['error' => 'Factura no encontrada o error de cálculo', 'detalle' => $e->getMessage()], 404);
         }
     }
@@ -357,15 +347,12 @@ class FacturaController extends Controller
     public function getCobrosPorFactura($id)
     {
         try {
-            // Aseguramos que la factura existe
             $factura = Factura::findOrFail($id);
 
-            // Obtenemos los cobros asociados, cargando los detalles (medio de cobro)
             $cobros = $factura->cobros()->with('detalles.medioCobro')->orderByDesc('fecha')->get();
 
             return response()->json($cobros, 200);
         } catch (\Exception $e) {
-            \Log::error('Error obteniendo cobros por factura', ['id' => $id, 'err' => $e->getMessage()]);
             return response()->json(['error' => 'Factura no encontrada o error al obtener cobros', 'detalle' => $e->getMessage()], 404);
         }
     }

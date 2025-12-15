@@ -65,7 +65,6 @@ class RepuestoController extends Controller
         try {
             $query = Repuesto::query();
 
-            // Búsqueda por término
             if ($request->has('search') && $request->search !== '') {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
@@ -74,12 +73,10 @@ class RepuestoController extends Controller
                 });
             }
 
-            // Orden
             $sort = $request->get('sort', 'id');
             $direction = $request->get('direction', 'desc');
             $query->orderBy($sort, $direction);
 
-            // Paginación
             $perPage = $request->get('per_page', 15);
             $repuestos = $query->paginate($perPage);
             
@@ -313,15 +310,12 @@ class RepuestoController extends Controller
         try {
             DB::beginTransaction();
 
-            // Buscar si el repuesto ya existe
             $repuesto = Repuesto::where('nombre', 'LIKE', $request->nombre)->first();
 
             if ($repuesto) {
-                // Si existe, actualizar stock y costo
                 $stockAnterior = $repuesto->stock;
                 $repuesto->stock += $request->cantidad;
                 
-                // Actualizar costo base si es necesario (promedio ponderado)
                 if ($request->costo_base > 0) {
                     $nuevoCosto = (($repuesto->costo_base * $stockAnterior) + ($request->costo_base * $request->cantidad)) 
                                 / ($stockAnterior + $request->cantidad);
@@ -331,7 +325,6 @@ class RepuestoController extends Controller
                 $repuesto->save();
                 $mensaje = 'Stock actualizado correctamente';
             } else {
-                // Si no existe, crear nuevo repuesto
                 $repuesto = Repuesto::create([
                     'nombre' => $request->nombre,
                     'stock' => $request->cantidad,
@@ -341,7 +334,6 @@ class RepuestoController extends Controller
                 $mensaje = 'Repuesto creado correctamente';
             }
 
-            // Registrar en el historial de stock
             $historial = HistorialStock::create([
                 'repuesto_id' => $repuesto->id,
                 'tipo_mov' => 'COMPRA',
