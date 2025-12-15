@@ -108,21 +108,25 @@ export class FacturasComponent implements OnInit, OnDestroy {
       if (!estado) return 'estado-desconocido';
       
       switch (estado.toLowerCase()) {
-          case 'finalizada':
-          case 'finalizado':
-              return 'estado-finalizada';
-          case 'en proceso':
-          case 'en_proceso':
-          case 'en proceso':
-              return 'estado-proceso';
-          case 'pendiente':
-              return 'estado-pendiente';
-          case 'cancelada':
-          case 'cancelado':
-              return 'estado-cancelada';
-          default:
-              return 'estado-desconocido';
+        case 'finalizada':
+        case 'finalizado':
+          return 'estado-finalizada';
+
+        case 'en proceso':
+        case 'en_proceso':
+          return 'estado-proceso';
+
+        case 'pendiente':
+          return 'estado-pendiente';
+
+        case 'cancelada':
+        case 'cancelado':
+          return 'estado-cancelada';
+
+        default:
+          return 'estado-desconocido';
       }
+
   }
 
   presupuestosSugeridos: PresupuestoConReparacion[] = [];
