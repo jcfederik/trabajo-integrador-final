@@ -5,7 +5,7 @@
       <i class="bi bi-list"></i> Listar
     </button>
     <button class="action-pill success" (click)="seleccionarAccion('comprar')" [class.active]="selectedAction==='comprar'">
-      <i class="bi bi-cart-plus"></i> Comprar
+      <i class="bi bi-cart-plus"></i> Regristrar Compra
     </button>
   </div>
 
@@ -94,7 +94,7 @@
 
   <!-- COMPRAR REPUESTO -->
   <div *ngIf="selectedAction==='comprar'">
-    <h4 class="text-center mb-3">Comprar Repuesto</h4>
+    <h4 class="text-center mb-3">Registrar Compra</h4>
     
     <div class="row mb-4">
       <div class="col-12">
@@ -105,7 +105,7 @@
             [class.active]="modoCompra === 'nuevo'"
             (click)="cambiarModoCompra('nuevo')"
           >
-            <i class="bi bi-plus-circle"></i> Comprar Repuesto Nuevo
+            <i class="bi bi-plus-circle"></i> Registrar Compra de Repuesto Nuevo
           </button>
           <button 
             type="button" 
@@ -113,7 +113,7 @@
             [class.active]="modoCompra === 'existente'"
             (click)="cambiarModoCompra('existente')"
           >
-            <i class="bi bi-arrow-clockwise"></i> Comprar Repuesto Existente
+            <i class="bi bi-arrow-clockwise"></i> Registrar Compra de Repuesto Existente
           </button>
         </div>
       </div>
