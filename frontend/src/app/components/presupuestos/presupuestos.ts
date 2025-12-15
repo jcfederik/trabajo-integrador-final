@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, catchError, of, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { AuthService } from '../../services/auth';
 
 import {
   PresupuestoService,
@@ -97,7 +98,8 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     private svc: PresupuestoService,
     private reparacionSvc: ReparacionService,
     public searchService: SearchService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private authService: AuthService
   ) {}
 
   // =============== LIFECYCLE ===============
@@ -867,5 +869,21 @@ cargar(): void {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+  // =============== VERIFICACIÓN DE PERMISOS ===============
+  isUser(): boolean {
+    return this.authService?.isUsuario?.() || false;
+  }
+
+  canCreate(): boolean {
+    return !this.isUser() || this.authService?.hasPermission?.('presupuestos.create') || false;
+  }
+
+  canEdit(): boolean {
+    return !this.isUser() || this.authService?.hasPermission?.('presupuestos.update') || false;
+  }
+
+  canDelete(): boolean {
+    return !this.isUser() || this.authService?.hasPermission?.('presupuestos.delete') || false;
   }
 }

@@ -4,8 +4,14 @@
     <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="isListar()">
       <i class="bi bi-list"></i> Listar
     </button>
-    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="isCrear()">
+    <button class="action-pill success" 
+            (click)="seleccionarAccion('crear')" 
+            [class.active]="isCrear()"
+            [disabled]="!canCreate()">
       <i class="bi bi-plus-circle"></i> Crear
+      <span *ngIf="!canCreate()" class="badge bg-secondary ms-1" title="Sin permisos">
+        <i class="bi bi-lock"></i>
+      </span>
     </button>
   </div>
 
@@ -277,7 +283,7 @@
           <!-- Botones de acción -->
           <div class="d-flex gap-2 align-self-start flex-shrink-0 mt-2 mt-md-0">
             <button 
-              *ngIf="editingId !== r.id" 
+              *ngIf="editingId !== r.id && canEdit()" 
               class="btn btn-sm btn-outline-warning" 
               (click)="startEdit(r)"
               title="Editar reparación"
@@ -286,12 +292,15 @@
             </button>
           
             <button 
-              *ngIf="editingId !== r.id" class="btn btn-sm btn-outline-info" 
-              (click)="abrirModalRepuestos(r)" title="Gestionar repuestos">
+              *ngIf="editingId !== r.id && canManageRepuestos()" 
+              class="btn btn-sm btn-outline-info" 
+              (click)="abrirModalRepuestos(r)" 
+              title="Gestionar repuestos"
+            >
               <i class="bi bi-tools"></i>
             </button>
 
-            <ng-container *ngIf="editingId === r.id">
+            <ng-container *ngIf="editingId === r.id && canEdit()">              
               <button 
                 class="btn btn-sm btn-success" 
                 (click)="saveEdit(r.id)"
@@ -310,12 +319,16 @@
             </ng-container>
             
             <button 
+              *ngIf="canDelete()"
               class="btn btn-sm btn-outline-danger" 
               (click)="eliminar(r.id)"
               title="Eliminar reparación"
             >
               <i class="bi bi-trash"></i>
             </button>
+              <span *ngIf="isUser() && !canEdit() && !canManageRepuestos() && !canDelete()" class="text-muted small align-self-center">
+                <i class="bi bi-eye"></i> Solo lectura
+              </span>
           </div>
         </div>
       </div>

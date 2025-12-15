@@ -13,9 +13,13 @@
     <button class="action-pill success"
             (click)="seleccionarAccion('crear')"
             [class.active]="selectedAction==='crear'"
+            [disabled]="!canCreate()"
             aria-label="Crear">
       <i class="bi bi-clipboard-plus"></i>
       Crear
+      <span *ngIf="!canCreate()" class="badge bg-secondary ms-1" title="Sin permisos">
+        <i class="bi bi-lock"></i>
+      </span>
     </button>
   </div>
 
@@ -254,7 +258,10 @@
 
             <!-- Derecha: acciones -->
             <div class="d-flex gap-2">
-              <button *ngIf="editingId !== p.id" class="btn btn-sm btn-outline-warning btn-action" (click)="startEdit(p)" title="Editar">
+              <button *ngIf="editingId !== p.id && canEdit()" 
+                      class="btn btn-sm btn-outline-warning btn-action" 
+                      (click)="startEdit(p)" 
+                      title="Editar">
                 <i class="bi bi-pencil-square"></i>
               </button>
 
@@ -267,9 +274,17 @@
                 </button>
               </ng-container>
 
-              <button class="btn btn-sm btn-outline-danger btn-action" (click)="eliminar(p.id)" title="Eliminar">
+              <button *ngIf="canDelete()"
+                      class="btn btn-sm btn-outline-danger btn-action" 
+                      (click)="eliminar(p.id)" 
+                      title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
+
+                <span *ngIf="isUser() && !canEdit() && !canDelete()" 
+                      class="text-muted small align-self-center">
+                  <i class="bi bi-eye"></i> Solo lectura
+                </span>
             </div>
 
           </div>
