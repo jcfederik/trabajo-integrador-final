@@ -137,30 +137,51 @@ class ReparacionController extends Controller
         $perPage = $request->get('per_page', 100);
 
         if (!$termino) {
-            return response()->json([], 200);
+            return response()->json(['data' => []], 200);
         }
 
         try {
+            
+            // Primero, prueba una consulta SIMPLE
             $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
-                ->where(function($query) use ($termino) {
-                    $query->where('descripcion', 'LIKE', "%{$termino}%")
-                          ->orWhere('estado', 'LIKE', "%{$termino}%")
-                          ->orWhereHas('equipo', function($q) use ($termino) {
-                              $q->where('descripcion', 'LIKE', "%{$termino}%")
-                                ->orWhere('marca', 'LIKE', "%{$termino}%")
-                                ->orWhere('modelo', 'LIKE', "%{$termino}%")
-                                ->orWhere('nro_serie', 'LIKE', "%{$termino}%");
-                          })
-                          ->orWhereHas('tecnico', function($q) use ($termino) {
-                              $q->where('nombre', 'LIKE', "%{$termino}%")
-                                ->orWhere('email', 'LIKE', "%{$termino}%");
-                          });
-                })
+                ->where('descripcion', 'LIKE', "%{$termino}%")
                 ->paginate($perPage);
 
-            return response()->json($reparaciones, 200);
+                Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                ->where('descripcion', 'LIKE', "%{$termino}%")
+                ->toSql();
+                        
+            if ($reparaciones->count() === 0) {
+                
+                $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                    ->where(function($query) use ($termino) {
+                        $query->where('descripcion', 'LIKE', "%{$termino}%")
+                            ->orWhere('estado', 'LIKE', "%{$termino}%")
+                            ->orWhere('id', 'LIKE', "%{$termino}%");
+                    })
+                    ->paginate($perPage);
+                    
+                    Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                    ->where(function($query) use ($termino) {
+                        $query->where('descripcion', 'LIKE', "%{$termino}%")
+                            ->orWhere('estado', 'LIKE', "%{$termino}%")
+                            ->orWhere('id', 'LIKE', "%{$termino}%");
+                    })
+                    ->toSql();
+                }
+            
+            return response()->json([
+                'data' => $reparaciones->items(),
+                'current_page' => $reparaciones->currentPage(),
+                'last_page' => $reparaciones->lastPage(),
+                'per_page' => $reparaciones->perPage(),
+                'total' => $reparaciones->total(),
+                'from' => $reparaciones->firstItem(),
+                'to' => $reparaciones->lastItem()
+            ], 200);
+            
         } catch (\Exception $e) {
-            return response()->json([], 200);
+            return response()->json(['data' => []], 200);
         }
     }
 
@@ -588,9 +609,7 @@ class ReparacionController extends Controller
             return response()->json($reparaciones);
 
         } catch (\Exception $e) {
-            \Log::error('Error en completo: ' . $e->getMessage());
-            \Log::error('Trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'error' => 'Error al cargar reparaciones',
                 'debug' => env('APP_DEBUG') ? $e->getMessage() : null
@@ -644,9 +663,6 @@ class ReparacionController extends Controller
                 ], 403);
             }
         }
-
-        Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
-
         $request->validate([
             'repuesto_id' => 'required|exists:repuesto,id',
             'cantidad' => 'required|integer|min:1'

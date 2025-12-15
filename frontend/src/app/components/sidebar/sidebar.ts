@@ -43,6 +43,7 @@ export class SidebarComponent implements OnInit {
     { title: 'Proveedores', icon: 'bi-truck', route: '/proveedores', requiredPermission: 'proveedores.manage' },
     
     { title: 'ADMINISTRACIÓN', isHeader: true },
+    { title: 'Historial de Stock', icon: 'bi-journal-text', route: '/historial-stock', requiredPermission: 'stock.history' },
     { title: 'Usuarios', icon: 'bi-person-badge', route: '/usuarios', requiredPermission: 'users.manage' },
     { title: 'Especializaciones', icon: 'bi-mortarboard', route: '/especializaciones', requiredPermission: 'especializaciones.manage' },
   ];

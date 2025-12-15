@@ -4,13 +4,9 @@
     <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="selectedAction==='listar'">
       <i class="bi bi-list"></i> Listar
     </button>
-    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="selectedAction==='crear'">
-      <i class="bi bi-plus-circle"></i> Crear
+    <button class="action-pill success" (click)="seleccionarAccion('comprar')" [class.active]="selectedAction==='comprar'">
+      <i class="bi bi-cart-plus"></i> Comprar
     </button>
-    <button class="action-pill info" (click)="abrirModalCompra()">
-    <i class="bi bi-cart-plus"></i> Comprar Repuestos
-    </button>
-
   </div>
 
   <!-- LISTAR -->
@@ -33,8 +29,8 @@
                 #{{ r.id }} — {{ r.nombre }}
               </div>
               <div class="text-muted small">
-                  Stock: <span [class]="getStockClass(r.stock)">
-    {{ r.stock }} unidades
+                Stock: <span [class]="getStockClass(r.stock)">
+                  {{ r.stock }} unidades
                 </span> · 
                 Costo: {{ formatearPrecio(r.costo_base) }}
               </div>
@@ -96,85 +92,209 @@
     </div>
   </div>
 
-  <!-- CREAR -->
-<div *ngIf="selectedAction==='crear'">
-  <h4 class="text-center mb-3">Registrar Repuesto</h4>
-  <form (ngSubmit)="crear()" class="mx-auto form-max-width">
-    <div class="row g-3">
-      
-      <!-- Nombre -->
+  <!-- COMPRAR REPUESTO -->
+  <div *ngIf="selectedAction==='comprar'">
+    <h4 class="text-center mb-3">Comprar Repuesto</h4>
+    
+    <div class="row mb-4">
       <div class="col-12">
-        <label class="form-label">Nombre del Repuesto</label>
-        <input 
-          type="text" 
-          class="form-control" 
-          [(ngModel)]="nuevo.nombre" 
-          name="nombre" 
-          placeholder="Ej: Filtro de aceite, Bujía, Pastilla de freno"
-          required
-        />
-      </div>
-
-      <!-- Stock y Costo -->
-      <div class="col-12 col-md-6">
-        <label class="form-label">Stock Inicial</label>
-        <input 
-          type="number" 
-          class="form-control" 
-          [(ngModel)]="nuevo.stock" 
-          name="stock" 
-          min="0"
-          [value]="nuevo.stock || 0"
-          required
-        />
-        <div class="form-text">Cantidad disponible en inventario</div>
-      </div>
-
-      <div class="col-12 col-md-6">
-        <label class="form-label">Costo Base</label>
-        <div class="input-group">
-          <span class="input-group-text">$</span>
-          <input 
-            type="number" 
-            step="0.01" 
-            class="form-control" 
-            [(ngModel)]="nuevo.costo_base" 
-            name="costo_base" 
-            min="0"
-            [value]="nuevo.costo_base || 0"
-            placeholder="0.00"
-            required
-          />
-        </div>
-        <div class="form-text">Precio de costo por unidad</div>
-      </div>
-
-      <!-- Información adicional -->
-      <div class="col-12">
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i>
-          <strong>Información:</strong> El stock y costo base se pueden ajustar posteriormente. 
-          Los repuestos se asociarán a las reparaciones que los utilicen.
+        <div class="btn-group w-100" role="group">
+          <button 
+            type="button" 
+            class="btn btn-outline-primary" 
+            [class.active]="modoCompra === 'nuevo'"
+            (click)="cambiarModoCompra('nuevo')"
+          >
+            <i class="bi bi-plus-circle"></i> Comprar Repuesto Nuevo
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-outline-success" 
+            [class.active]="modoCompra === 'existente'"
+            (click)="cambiarModoCompra('existente')"
+          >
+            <i class="bi bi-arrow-clockwise"></i> Comprar Repuesto Existente
+          </button>
         </div>
       </div>
     </div>
 
-    <button 
-      class="btn btn-success w-100 mt-3" 
-      type="submit" 
-      [disabled]="!nuevo.nombre || nuevo.nombre.trim() === ''"
-    >
-      <i class="bi bi-check-lg"></i> Guardar Repuesto
-    </button>
-  </form>
+    <form (ngSubmit)="comprar()" class="mx-auto form-max-width">
+      <div class="row g-3">
+        
+        <div class="col-12">
+          <label class="form-label">
+            Nombre del Repuesto <span class="text-danger">*</span>
+          </label>
+          
+          <div *ngIf="modoCompra === 'nuevo'">
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="nuevo.nombre" 
+              name="nombre" 
+              placeholder="Ej: Filtro de aceite, Bujía, Pastilla de freno"
+              autocomplete="off"
+              required
+            />
+            <div class="form-text">Ingresa el nombre del nuevo repuesto</div>
+          </div>
+          
+          <div *ngIf="modoCompra === 'existente'" class="search-selector-wrapper">
+            <app-search-selector
+              #RepuestoSelector
+              [ngClass]="{'has-viewchild': true}"
+              [type]="'repuesto'"
+              [placeholder]="'Buscar repuesto existente...'"
+              (search)="buscarRepuestosExistentes($event)"
+              (selectItem)="seleccionarRepuestoExistente($event)"
+              (clearSelection)="limpiarRepuestoExistente()"
+              [selectedItem]="repuestoExistenteSeleccionado"
+              [preloadOnFocus]="false"
+            >
+            </app-search-selector>
+            
+            <div *ngIf="repuestoExistenteSeleccionado" class="mt-2 p-2 border rounded bg-light">
+              <div class="small">
+                <strong>Stock actual:</strong> {{ repuestoExistenteSeleccionado.stock || 0 }} unidades
+                <span class="ms-3">
+                  <strong>Costo actual:</strong> {{ formatearPrecio(repuestoExistenteSeleccionado.costo_actual || 0) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
 
+        <!-- Cantidad a comprar -->
+        <div class="col-12 col-md-6">
+          <label class="form-label">Cantidad a Comprar <span class="text-danger">*</span></label>
+          <input 
+            type="number" 
+            class="form-control" 
+            [(ngModel)]="nuevo.cantidad" 
+            name="cantidad" 
+            min="1"
+            [value]="nuevo.cantidad || 1"
+            required
+          />
+          <div class="form-text">Cantidad de unidades a agregar al inventario</div>
+        </div>
 
-  
+        <!-- Costo por unidad -->
+        <div class="col-12 col-md-6">
+          <label class="form-label">Costo por Unidad <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input 
+              type="number" 
+              step="0.01" 
+              class="form-control" 
+              [(ngModel)]="nuevo.costo_base" 
+              name="costo_base" 
+              min="0"
+              [value]="nuevo.costo_base || 0"
+              placeholder="0.00"
+              required
+            />
+          </div>
+          <div class="form-text" *ngIf="!repuestoExistenteSeleccionado">
+            Precio de compra por unidad
+          </div>
+        </div>
+
+        <!-- === SECCIÓN DE PROVEEDOR === -->
+        <div class="col-12">
+          <label class="form-label">Proveedor</label>
+          
+          <div class="search-selector-wrapper-proveedor">
+            <app-search-selector
+              #ProveedorSelector
+              [ngClass]="{'has-viewchild': true}"
+              [type]="'proveedor'"
+              [placeholder]="'Buscar proveedor existente...'"
+              (search)="buscarProveedores($event)"
+              (selectItem)="seleccionarProveedor($event)"
+              (clearSelection)="limpiarProveedor()"
+              [selectedItem]="proveedorSeleccionado"
+              [preloadOnFocus]="true"
+              required
+            ></app-search-selector>
+
+            <!-- Info del proveedor seleccionado -->
+            <div *ngIf="proveedorSeleccionado" class="mt-2 p-2 border rounded bg-light">
+              <div class="small">
+                <strong>Proveedor seleccionado:</strong> {{ proveedorSeleccionado.nombre }}
+                <span *ngIf="proveedorSeleccionado.cuit" class="ms-3">
+                  <strong>CUIT:</strong> {{ proveedorSeleccionado.cuit }}
+                </span>
+                <span *ngIf="proveedorSeleccionado.telefono" class="ms-3">
+                  <strong>Tel:</strong> {{ proveedorSeleccionado.telefono }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>        
+      
+        <!-- Descripción -->
+        <div class="col-12">
+          <label class="form-label">Descripción (Opcional)</label>
+          <textarea 
+            class="form-control" 
+            [(ngModel)]="nuevo.descripcion" 
+            name="descripcion" 
+            rows="2"
+            placeholder="Ej: Compra a proveedor mayorista, lote #12345, calidad premium"
+          ></textarea>
+          <div class="form-text">Detalles adicionales sobre la compra</div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="d-flex gap-2 mt-4">
+          <button 
+            class="btn btn-success flex-grow-1" 
+            type="submit" 
+            [disabled]="!esFormularioCompraValido()"
+          >
+            <i class="bi bi-cart-check me-2"></i> 
+            {{ modoCompra === 'nuevo' ? 'Registrar Compra' : 'Actualizar Stock' }}
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-outline-secondary" 
+            (click)="seleccionarAccion('listar')"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
-<app-modal-compra-repuesto
-  [mostrar]="mostrarModalCompra"
-  [repuestos]="repuestosAll"
-  (cerrar)="mostrarModalCompra=false"
-  (compraRealizada)="onCompraRealizada()">
-</app-modal-compra-repuesto>
+<!-- Modal para detalles de compra (opcional) -->
+<div class="modal fade" id="compraModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Compra registrada</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-3">
+          <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+        </div>
+        <h6 class="text-center">¡Compra realizada exitosamente!</h6>
+        <div class="mt-3">
+          <p><strong>Repuesto:</strong> <span id="modalNombre"></span></p>
+          <p><strong>Cantidad:</strong> <span id="modalCantidad"></span> unidades</p>
+          <p><strong>Costo unitario:</strong> <span id="modalCosto"></span></p>
+          <p><strong>Stock anterior:</strong> <span id="modalStockAnterior"></span></p>
+          <p><strong>Stock nuevo:</strong> <span id="modalStockNuevo"></span></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
