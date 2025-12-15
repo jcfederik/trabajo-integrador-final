@@ -54,11 +54,11 @@ export class ProveedoresService {
    * Obtener proveedor por ID
    */
   getProveedor(id: number): Observable<Proveedor> {
-    return this.http.get<Proveedor>(`${this.apiUrl}/${id}`).pipe(
+    const url = `${this.apiUrl}/${id}`;    
+    return this.http.get<Proveedor>(url).pipe(
       map(proveedor => this.formatearProveedorParaDisplay(proveedor))
     );
   }
-
   /**
    * crear proveedor
   */
