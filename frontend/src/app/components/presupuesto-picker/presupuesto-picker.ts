@@ -5,7 +5,6 @@ import { Subscription, Subject, EMPTY, firstValueFrom } from 'rxjs';
 import { debounceTime, switchMap, tap, finalize } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 
-// =============== INTERFACES ===============
 interface Presupuesto {
   id: number;
   reparacion_id: number;
@@ -40,32 +39,26 @@ interface Paginated<T> {
   styleUrls: ['./presupuesto-picker.css']
 })
 export class PresupuestoPickerComponent implements OnInit, OnDestroy {
-
-  // =============== OUTPUTS ===============
   @Output() closed = new EventEmitter<void>();
   @Output() select = new EventEmitter<{
     presupuesto: Presupuesto,
     reparacion?: Reparacion,
   }>();
 
-  // =============== ESTADOS DEL COMPONENTE ===============
   visible = false;
   loading = false;
   loadingMore = false;
   error: string | null = null;
 
-  // =============== BÚSQUEDA ===============
   term = '';
   private search$ = new Subject<string>();
 
-  // =============== DATOS ===============
   items: Array<{
     presupuesto: Presupuesto;
     reparacion?: Reparacion;
     matchScore?: number;
   }> = [];
 
-  // =============== PAGINACIÓN ===============
   page = 1;
   perPage = 10;
   lastPage = false;
@@ -74,7 +67,7 @@ export class PresupuestoPickerComponent implements OnInit, OnDestroy {
 
   constructor(private http: HttpClient) {}
 
-  // =============== LIFECYCLE ===============
+  // LIFECYCLE
   ngOnInit(): void {
     this.subs.push(
       this.search$.pipe(
@@ -89,7 +82,7 @@ export class PresupuestoPickerComponent implements OnInit, OnDestroy {
     this.subs.forEach(s => s.unsubscribe());
   }
 
-  // =============== APERTURA Y CIERRE ===============
+  // APERTURA Y CIERRE
   open() {
     this.visible = true;
     if (this.items.length === 0) {
@@ -103,11 +96,12 @@ export class PresupuestoPickerComponent implements OnInit, OnDestroy {
     this.closed.emit();
   }
 
-  // =============== BÚSQUEDA ===============
+  // BÚSQUEDA
   onInput() {
     this.search$.next(this.term.trim());
   }
 
+  // RESET LIST
   private resetList() {
     this.items = [];
     this.page = 1;
@@ -115,14 +109,14 @@ export class PresupuestoPickerComponent implements OnInit, OnDestroy {
     this.error = null;
   }
 
-  // =============== SELECCIÓN ===============
+  // SELECCIÓN
   usar(it: { presupuesto: Presupuesto; reparacion?: Reparacion }): void {
     this.select.emit(it);
     this.visible = false;
     this.closed.emit();
   }
 
-  // =============== API CALLS ===============
+  // API CALLS
   private listPresupuestos(page: number, perPage: number) {
     return this.http.get<Paginated<Presupuesto>>(`http://127.0.0.1:8000/api/presupuestos?page=${page}&per_page=${perPage}`);
   }
@@ -131,7 +125,7 @@ export class PresupuestoPickerComponent implements OnInit, OnDestroy {
     return this.http.get<Reparacion>(`http://127.0.0.1:8000/api/reparaciones/${id}`);
   }
 
-  // =============== CARGA DE DATOS ===============
+  // CARGA DE DATOS
   fetchPage() {
     if (this.loading || this.lastPage) return EMPTY;
 

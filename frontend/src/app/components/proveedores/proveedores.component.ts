@@ -17,28 +17,22 @@ type ProveedorUI = Proveedor;
   styleUrls: ['./proveedores.component.css']
 })
 export class ProveedoresComponent implements OnInit, OnDestroy {
-
-  // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
   
   proveedoresAll: ProveedorUI[] = [];
   proveedores: ProveedorUI[] = [];
 
-  // =============== VALIDACIÓN DE EMAIL ===============
   emailInvalido = false;
   emailEditInvalido = false;
 
-  // =============== PAGINACIÓN ===============
   page = 1;
   perPage = 15;
   lastPage = false;
   loading = false;
 
-  // =============== BÚSQUEDA GLOBAL ===============
   private searchSub?: Subscription;
   searchTerm = '';
 
-  // =============== EDICIÓN ===============
   editingId: number | null = null;
   editBuffer: Partial<ProveedorUI> = {
     razon_social: '',
@@ -48,7 +42,6 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     email: ''
   };
 
-  // =============== CREACIÓN ===============
   nuevo: Partial<ProveedorUI> = {
     razon_social: '',
     cuit: '',
@@ -63,7 +56,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     private alertService: AlertService
   ) {}
 
-  // =============== LIFECYCLE ===============
+  // LIFECYCLE
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
@@ -76,8 +69,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // =============== VALIDACIÓN DE EMAIL ===============
-  
+  // VALIDACIÓN DE EMAIL
   private readonly EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
   validarEmailCreacion(): void {
@@ -113,8 +105,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     return this.EMAIL_REGEX.test(email.trim());
   }
 
-  // =============== MÉTODOS PARA VALIDACIÓN DE INPUTS NUMÉRICOS ===============
-  
+  // MÉTODOS PARA VALIDACIÓN DE INPUTS NUMÉRICOS
   soloNumeros(event: KeyboardEvent): boolean {
     const charCode = (event.which) ? event.which : event.keyCode;
     
@@ -157,7 +148,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     }
   }
 
-  // =============== CONFIGURACIÓN DE BÚSQUEDA ===============
+  // CONFIGURACIÓN DE BÚSQUEDA
   configurarBusqueda() {
     this.searchService.setCurrentComponent('proveedores');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -169,7 +160,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== CARGA Y PAGINACIÓN ===============
+  // CARGA Y PAGINACIÓN
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -217,7 +208,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  // =============== NAVEGACIÓN ===============
+  // NAVEGACIÓN
   seleccionarAccion(a: Accion) { 
     this.selectedAction = a; 
   }
@@ -226,7 +217,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // =============== CREACIÓN ===============
+  // CREACIÓN
   async crear(): Promise<void> {
     if (this.nuevo.email && !this.esEmailValido(this.nuevo.email)) {
       this.emailInvalido = true;
@@ -262,7 +253,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== ELIMINACIÓN ===============
+  // ELIMINACIÓN
   async eliminar(id: number): Promise<void> {
     const proveedor = this.proveedoresAll.find(p => p.id === id);
     const confirmed = await this.alertService.confirmDeleteProveedor(proveedor?.razon_social || 'este proveedor');
@@ -285,7 +276,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== EDICIÓN INLINE ===============
+  // EDICIÓN INLINE
   startEdit(item: ProveedorUI): void {
     this.editingId = item.id!;
     this.editBuffer = {
@@ -346,7 +337,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== VALIDACIÓN Y UTILIDADES ===============
+  // VALIDACIÓN Y UTILIDADES
   private limpiarPayload(obj: Partial<ProveedorUI>): Partial<ProveedorUI> {
     const sanitized = {
       cuit: obj.cuit?.toString().replace(/\D/g, '').substring(0, 11),

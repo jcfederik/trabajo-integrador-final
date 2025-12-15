@@ -11,15 +11,13 @@ import { AlertService } from '../../services/alert.service';
   template: ''
 })
 export class FacturaReportComponent {
-  
-  // =============== INPUTS ===============
   @Input() facturas: Factura[] = [];
   @Input() titulo: string = 'Listado de Facturas';
   @Input() cliente?: Cliente;
 
   constructor(private alertService: AlertService) {}
 
-  // =============== MÉTODO PRINCIPAL ===============
+  // MÉTODO PRINCIPAL
   generarReporte(): void {
     if (this.facturas.length === 0) {
       this.alertService.showGenericError('No hay facturas para generar el reporte');
@@ -53,7 +51,7 @@ export class FacturaReportComponent {
     }
   }
 
-  // =============== CONFIGURACIÓN DEL DOCUMENTO ===============
+  // CONFIGURACIÓN DEL DOCUMENTO
   private configurarDocumento(doc: jsPDF): void {
     doc.setProperties({
       title: this.titulo,
@@ -66,6 +64,7 @@ export class FacturaReportComponent {
     doc.setTextColor(100);
   }
 
+  // AGREGAR TÍTULO
   private agregarTitulo(doc: jsPDF): void {
     doc.setFontSize(18);
     doc.setTextColor(40, 40, 40);
@@ -80,6 +79,7 @@ export class FacturaReportComponent {
     doc.line(14, 35, 196, 35);
   }
 
+  // AGREGAR INFO CLIENTE
   private agregarInfoCliente(doc: jsPDF): void {
     if (!this.cliente) return;
     
@@ -100,7 +100,7 @@ export class FacturaReportComponent {
     doc.line(14, 63, 196, 63);
   }
 
-  // =============== TABLA DE FACTURAS ===============
+  // TABLA DE FACTURAS
   private agregarTablaFacturas(doc: jsPDF): void {
     const startY = this.cliente ? 68 : 40;
     
@@ -143,6 +143,7 @@ export class FacturaReportComponent {
     });
   }
 
+  // AGREGAR TOTAL
   private agregarTotal(doc: jsPDF): void {
     const total = this.facturas.reduce((sum, factura) => 
       sum + (Number(factura.monto_total) || 0), 0
@@ -161,7 +162,7 @@ export class FacturaReportComponent {
     doc.text(this.formatearMonto(total), 182, finalY + 10, { align: 'right' });
   }
 
-  // =============== UTILIDADES ===============
+  // UTILIDADES
   private generarNombreArchivo(): string {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     let baseName = 'facturas';

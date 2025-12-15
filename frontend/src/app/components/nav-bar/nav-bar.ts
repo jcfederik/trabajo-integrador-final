@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth';
 import { Subscription, filter } from 'rxjs';
 import { LogoutModalComponent } from '../logout-modal/logout-modal.component';
 
+// COMPONENTE NAVBAR
 @Component({
   selector: 'nav-bar',
   standalone: true,
@@ -15,33 +16,29 @@ import { LogoutModalComponent } from '../logout-modal/logout-modal.component';
   styleUrls: ['./nav-bar.css']
 })
 export class NavBar implements OnInit, OnDestroy {
-
-  // =============== ESTADOS DEL COMPONENTE ===============
+  // PROPIEDADES DEL COMPONENTE
   searchTerm: string = '';
   placeholder: string = 'Buscar...';
   usuarioActual: string = 'Usuario';
   userTipo: string = 'Usuario';
   isDashboard: boolean = false;
-  mostrarModalLogout: boolean = false; // ✅ MANTENIDO: No cambiar el nombre
+  mostrarModalLogout: boolean = false;
 
-  // =============== CONTROL DE TECLADO ===============
-  private backspacePresionado = false;  
-
-  // =============== SUSCRIPCIONES ===============
+  // PROPIEDADES PRIVADAS
+  private backspacePresionado = false;
   private searchSubscription!: Subscription;
   private componentSubscription!: Subscription;
   private routerSubscription!: Subscription;
 
+  // CONSTRUCTOR
   constructor(
     public searchService: SearchService, 
     public router: Router,
     private authService: AuthService
   ) {}
 
-  // =============== LIFECYCLE ===============
+  // LIFECYCLE HOOKS
   ngOnInit() {
-    console.log('🔐 NavBar iniciado - Usuario:', this.authService.getCurrentUser());
-    
     this.checkCurrentRoute();
     this.setPlaceholderByRoute();
     this.loadUserData();
@@ -54,7 +51,7 @@ export class NavBar implements OnInit, OnDestroy {
     if (this.routerSubscription) this.routerSubscription.unsubscribe();
   }
 
-  // =============== CONFIGURACIÓN ===============
+  // CONFIGURACIÓN DE SUSCRIPCIONES
   private configurarSuscripciones() {
     this.searchSubscription = this.searchService.globalSearchTerm$.subscribe(term => {
       if (term !== this.searchTerm) {
@@ -78,24 +75,21 @@ export class NavBar implements OnInit, OnDestroy {
       });
   }
 
-  // ✅ MODIFICADO: Abrir modal directamente
+  // GESTIÓN DE MODAL DE PERFIL
   abrirModalPerfil() {
-    console.log('👤 Abriendo modal de perfil directamente...');
-    this.mostrarModalLogout = true; // ✅ MANTENIDO: Usar mostrarModalLogout
+    this.mostrarModalLogout = true;
   }
 
-  // ✅ MODIFICADO: Cerrar modal
   cerrarModalPerfil() {
-    this.mostrarModalLogout = false; // ✅ MANTENIDO: Usar mostrarModalLogout
-    this.loadUserData(); // Actualizar datos si hubo cambios
+    this.mostrarModalLogout = false;
+    this.loadUserData();
   }
 
-  // ✅ NUEVO: Para verificar si está autenticado
+  // AUTENTICACIÓN Y USUARIO
   isAuthenticated(): boolean {
     return this.authService.isAuthenticated();
   }
 
-  // ✅ NUEVO: Obtener número de especializaciones
   getEspecializacionesCount(): number {
     const user = this.authService.getCurrentUser();
     return user?.especializaciones?.length || 0;
@@ -104,7 +98,7 @@ export class NavBar implements OnInit, OnDestroy {
   getUserTipo(): string {
     const user = this.authService.getCurrentUser();
     const tipo = user?.tipo || 'usuario';
-  
+
     const tipoMap: { [key: string]: string } = {
       'administrador': 'Admin',
       'tecnico': 'Técnico', 
@@ -113,8 +107,8 @@ export class NavBar implements OnInit, OnDestroy {
     
     return tipoMap[tipo] || tipo;
   }
-
-  // =============== GESTIÓN DE RUTAS ===============
+ 
+  // GESTIÓN DE RUTAS
   private checkCurrentRoute() {
     this.isDashboard = this.esDashboard();
   }
@@ -149,15 +143,13 @@ export class NavBar implements OnInit, OnDestroy {
     return this.router.url.startsWith('/dashboard');
   }
 
-
-  // =============== GESTIÓN DE USUARIO ===============
+  // CARGA DE DATOS DE USUARIO
   private loadUserData() {
     const user = this.authService.getCurrentUser();
 
     if (user) {
       this.usuarioActual = user.nombre || user.name || 'Usuario';
       this.userTipo = user.tipo || 'Usuario';
-      console.log('👤 Usuario cargado:', this.usuarioActual, 'Tipo:', this.userTipo);
       return;
     }
 
@@ -172,8 +164,7 @@ export class NavBar implements OnInit, OnDestroy {
     }
   }
 
-
-  // =============== BÚSQUEDA ===============
+  // GESTIÓN DE BÚSQUEDA
   onSearch() {
     this.searchService.setGlobalSearchTerm(this.searchTerm);
 
@@ -189,10 +180,10 @@ export class NavBar implements OnInit, OnDestroy {
     this.searchService.clearGlobalSearch();
     this.searchService.clearSearch();
     this.searchService.clearDashboardSearch();
-    this.router.navigate([this.router.url]); // fuerza refresco visual
+    this.router.navigate([this.router.url]);
   }
 
-  // =============== PLACEHOLDER DINÁMICO ===============
+  // PLACEHOLDER DINÁMICO
   private getPlaceholder(component: string): string {
     const placeholders: { [key: string]: string } = {
       'equipos': 'Buscar equipos...',
@@ -212,7 +203,7 @@ export class NavBar implements OnInit, OnDestroy {
     return placeholders[component] || 'Buscar...';
   }
 
-  // =============== CONTROL BACKSPACE ===============
+  // CONTROL DE TECLADO
   bloquearBackspaceHold(event: KeyboardEvent) {
     if (event.key !== 'Backspace') return;
 

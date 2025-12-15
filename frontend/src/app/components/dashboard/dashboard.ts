@@ -13,7 +13,6 @@ import { AuthService } from '../../services/auth';
 export class DashboardComponent implements OnInit {
   currentUser = signal<any>(null);
 
-  // Reorganizar el orden: HistorialStock antes de Repuestos
   cards: DashboardCard[] = [
     { 
       title: 'Clientes', 
@@ -92,7 +91,7 @@ export class DashboardComponent implements OnInit {
       icon: 'bi-mortarboard', 
       description: 'Gestión de especializaciones', 
       route: '/especializaciones',
-      permissions: ['especializaciones.manage', 'especializaciones.view'],
+      permissions: ['especializaciones.manage'],
       color: 'success'
     },
   ];
@@ -104,6 +103,7 @@ export class DashboardComponent implements OnInit {
     this.applyPermissions();
   }
 
+  // APLICAR PERMISOS
   private applyPermissions() {
     const updatedCards = this.cards.map(card => {
       const hasAccess = card.permissions 
@@ -119,16 +119,17 @@ export class DashboardComponent implements OnInit {
     this.cards = updatedCards;
   }
 
+  // ES USER ADMIN
   isUserAdmin(): boolean {
     return this.authService.isAdmin();
   }
 
-  // Método para obtener la clase de color del badge
+  // GET BADGE CLASS
   getBadgeClass(card: DashboardCard): string {
     return card.disabled ? 'bg-warning' : `bg-${card.color}`;
   }
 
-  // Método para obtener la clase del icono
+  // GET ICON CLASS
   getIconClass(card: DashboardCard): string {
     return card.disabled ? 'text-muted' : `text-${card.color}`;
   }

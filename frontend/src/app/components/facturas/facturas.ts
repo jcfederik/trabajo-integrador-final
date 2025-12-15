@@ -58,7 +58,6 @@ interface PresupuestoConFactura extends Presupuesto {
   styleUrls: ['./facturas.css']
 })
 export class FacturasComponent implements OnInit, OnDestroy {
-
   private facService = inject(FacturaService);
   private presupuestoService = inject(PresupuestoService);
   private reparacionService = inject(ReparacionService);
@@ -104,27 +103,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     presupuestoBusqueda: ''
   };
 
-  getEstadoReparacionBadgeClass(estado?: string): string {
-      if (!estado) return 'estado-desconocido';
-      
-      switch (estado.toLowerCase()) {
-          case 'finalizada':
-          case 'finalizado':
-              return 'estado-finalizada';
-          case 'en_proceso':
-          case 'en proceso':
-              return 'estado-proceso';
-          case 'pendiente':
-              return 'estado-pendiente';
-          case 'cancelada':
-          case 'cancelado':
-              return 'estado-cancelada';
-          default:
-              return 'estado-desconocido';
-      }
-
-  }
-
   presupuestosSugeridos: PresupuestoConReparacion[] = [];
   mostrandoPresupuestos = false;
   buscandoPresupuestos = false;
@@ -155,6 +133,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
+  // CONFIGURAR BÚSQUEDA PRESUPUESTOS
   private configurarBusquedaPresupuestos(): void {
     this.busquedaPresupuesto.pipe(
       debounceTime(300),
@@ -164,6 +143,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // CONFIGURAR BÚSQUEDA GLOBAL
   private configurarBusquedaGlobal(): void {
     this.searchService.setCurrentComponent('facturas');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -172,29 +152,28 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // SELECCIONAR ACCIÓN
   seleccionarAccion(a: Accion): void { 
     this.selectedAction = a; 
   }
 
+  // ABRIR MODAL EXPORTACIÓN
   abrirModalExportacion(): void {
     this.mostrarModalExportacion = true;
   }
 
+  // CERRAR MODAL EXPORTACIÓN
   cerrarModalExportacion(): void {
     this.mostrarModalExportacion = false;
   }
 
+  // TOGGLE COBROS
   toggleCobros(facturaId: number): void {
     this.mostrarCobros[facturaId] = !this.mostrarCobros[facturaId];
   }
 
+  // ABRIR MODAL COBROS
   abrirModalCobros(factura: Factura): void {
-    console.log('🔍 Datos de factura al abrir modal:', {
-      id: factura.id,
-      numero: factura.numero,
-      monto_total: factura.monto_total
-    });
-
     if (!factura.id || factura.id <= 0) {
       this.alertService.showError('Error', 'La factura no tiene un ID válido');
       return;
@@ -212,9 +191,10 @@ export class FacturasComponent implements OnInit, OnDestroy {
     );
   }
 
-  cerrarModalCobros(): void {
-  }
+  // CERRAR MODAL COBROS
+  cerrarModalCobros(): void {}
 
+  // CARGAR DATOS
   cargar(): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -240,6 +220,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // CARGAR INFORMACIÓN PRESUPUESTOS
   private cargarInformacionPresupuestos(facturas: Factura[]): void {
     const presupuestosIds = [...new Set(facturas.map(f => f.presupuesto_id))];
     
@@ -250,6 +231,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // CARGAR PRESUPUESTO COMPLETO
   private cargarPresupuestoCompleto(presupuestoId: number): void {
     this.presupuestoService.show(presupuestoId).pipe(
       switchMap((presupuesto: Presupuesto) => {
@@ -266,12 +248,12 @@ export class FacturasComponent implements OnInit, OnDestroy {
         return of(presupuestoConReparacion);
       }),
       catchError(() => {
-        console.warn(`No se pudo cargar presupuesto ${presupuestoId}`);
         return of(null);
       })
     ).subscribe();
   }
 
+  // RESET LISTA
   resetLista(): void {
     this.facturasAll = [];
     this.facturas = [];
@@ -288,6 +270,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   }
 
+  // SCROLL
   onScroll = (): void => {
     if (this.loading) return;
     
@@ -302,6 +285,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   };
 
+  // APLICAR FILTRO
   private applyFilter(): void {
     const term = this.searchTerm.toLowerCase();
     
@@ -321,6 +305,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   }
 
+  // BUSCAR EN SERVIDOR
   private buscarEnServidor(termino: string): void {
     if (this.loading) return;
     
@@ -348,6 +333,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // BUSCAR PRESUPUESTO
   onBuscarPresupuesto(termino: string, esEdicion: boolean = false): void {
     if (termino.length > 0) {
       this.mostrandoPresupuestos = true;
@@ -358,6 +344,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   }
 
+  // BUSCAR PRESUPUESTOS
   private buscarPresupuestos(termino: string): void {
     const terminoLimpio = termino.trim();
     
@@ -420,6 +407,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // VERIFICAR PRESUPUESTOS CON FACTURA
   private verificarPresupuestosConFactura(presupuestos: Presupuesto[]): Observable<PresupuestoConFactura[]> {
     if (presupuestos.length === 0) {
       return of([]);
@@ -460,6 +448,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     );
   }
 
+  // FORMATEAR PRESUPUESTOS PARA DROPDOWN
   private formatearPresupuestosParaDropdown(presupuestos: PresupuestoConFactura[]): PresupuestoConReparacion[] {
     return presupuestos.map(p => {
       const presupuestoConReparacion: PresupuestoConReparacion = {
@@ -489,6 +478,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // FILTRAR PRESUPUESTOS FACTURABLES
   private filtrarPresupuestosFacturables(presupuestos: Presupuesto[]): Presupuesto[] {
     return presupuestos.filter(presupuesto => {
       if (!presupuesto.aceptado) return false;
@@ -510,6 +500,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // SELECCIONAR PRESUPUESTO
   seleccionarPresupuesto(presupuesto: PresupuestoConReparacion, esEdicion: boolean = false, reparacion?: Reparacion): void {
     if (presupuesto.yaFacturado) {
       const facturaExistente = presupuesto.facturaExistente;
@@ -559,6 +550,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.presupuestosSugeridos = [];
   }
 
+  // CARGAR REPARACIÓN PARA PRESUPUESTO
   private cargarReparacionParaPresupuesto(presupuesto: PresupuestoConReparacion): void {
     this.reparacionService.show(presupuesto.reparacion_id).subscribe({
         next: (reparacion: Reparacion) => {
@@ -576,12 +568,11 @@ export class FacturasComponent implements OnInit, OnDestroy {
             }
             
         },
-        error: (error) => {
-            console.error('❌ Error cargando reparación:', error);
-        }
+        error: (error) => {}
     });
   }
 
+  // SELECCIONAR PRESUPUESTO DEL PICKER
   seleccionarPresupuestoDelPicker(evento: {presupuesto: any, reparacion?: Reparacion}): void {
       const { presupuesto, reparacion } = evento;
       
@@ -602,6 +593,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
       this.presupuestosSugeridos = [];
   }
 
+  // ON PRESUPUESTO SELECCIONADO
   onPresupuestoSeleccionado(evento: {presupuesto: any, reparacion?: Reparacion}): void {
       const esEdicion = this.selectedAction === 'listar' && this.editingId !== null;
       
@@ -612,6 +604,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
       }
   }
 
+  // LIMPIAR PRESUPUESTO
   limpiarPresupuesto(esEdicion: boolean = false): void {
     const target = esEdicion ? this.editBuffer : this.nuevo;
     
@@ -624,17 +617,20 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.mostrandoPresupuestos = false;
   }
 
+  // CERRAR MENÚ SUGERENCIAS
   cerrarMenuSugerencias(): void {
     this.mostrandoPresupuestos = false;
     this.presupuestosSugeridos = [];
   }
 
+  // OCULTAR PRESUPUESTOS
   ocultarPresupuestos(): void {
     setTimeout(() => {
       this.mostrandoPresupuestos = false;
     }, 200);
   }
 
+  // GET DESCRIPCIÓN REPARACIÓN
   getDescripcionReparacion(presupuestoId: number): string {
     const presupuesto = this.presupuestosCache.get(presupuestoId);
     if (presupuesto?.reparacion?.descripcion) {
@@ -644,6 +640,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     return `Presupuesto #${presupuestoId}`;
   }
 
+  // GET INFO CLIENTE
   getInfoCliente(presupuestoId: number): string {
     const presupuesto = this.presupuestosCache.get(presupuestoId);
     if (presupuesto?.reparacion?.cliente_nombre) {
@@ -657,6 +654,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     return 'Cliente no especificado';
   }
 
+  // GET INFO EQUIPO
   getInfoEquipo(presupuestoId: number): string {
     const presupuesto = this.presupuestosCache.get(presupuestoId);
     if (presupuesto?.reparacion?.equipo_nombre) {
@@ -670,6 +668,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     return 'Equipo no especificado';
   }
 
+  // GET ESTADO REPARACIÓN
   getEstadoReparacion(presupuestoId?: number): string {
     if (!presupuestoId) return 'Desconocido';
     
@@ -677,10 +676,12 @@ export class FacturasComponent implements OnInit, OnDestroy {
     return presupuesto?.reparacion?.estado || 'Desconocido';
   }
 
+  // TRACK BY PRESUPUESTO ID
   trackByPresupuestoId(index: number, presupuesto: PresupuestoConReparacion): number {
     return presupuesto.id;
   }
 
+  // CREAR
   async crear(): Promise<void> {
     if (!this.nuevo.presupuestoSeleccionado) {
       this.alertService.showGenericError('Debe seleccionar un presupuesto.');
@@ -699,9 +700,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
         );
         return;
       }
-    } catch (error) {
-      console.error('Error al verificar presupuesto facturado:', error);
-    }
+    } catch (error) {}
 
     if (!this.nuevo.presupuestoSeleccionado.aceptado) {
       this.alertService.showGenericError('Solo se pueden facturar presupuestos aprobados.');
@@ -723,9 +722,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
           this.reparacionesCache.set(this.nuevo.presupuestoSeleccionado.reparacion_id, reparacion);
           this.nuevo.presupuestoSeleccionado.reparacion = reparacion;
         }
-      } catch (error) {
-        console.error('Error al cargar reparación:', error);
-      }
+      } catch (error) {}
     }
 
     if (!estadoReparacionValido) {
@@ -782,6 +779,8 @@ export class FacturasComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  // ELIMINAR
   async eliminar(id: number): Promise<void> {
     if (!id || id <= 0) {
       this.alertService.showGenericError('ID de factura no válido');
@@ -820,6 +819,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ELIMINAR DEL FRONTEND
   private eliminarDelFrontend(id: number): void {
     this.facturasAll = this.facturasAll.filter(f => f.id !== id);
     this.facturas = this.facturas.filter(f => f.id !== id);
@@ -827,6 +827,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.searchService.setSearchData(this.facturasAll);
   }
 
+  // START EDIT
   startEdit(item: Factura): void {
     this.editingId = item.id;
     
@@ -846,6 +847,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     };
   }
 
+  // CANCEL EDIT
   cancelEdit(): void { 
     this.editingId = null; 
     this.editBuffer = {
@@ -859,6 +861,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }; 
   }
 
+  // SAVE EDIT
   async saveEdit(id: number): Promise<void> {
     if (!this.editBuffer.presupuestoSeleccionado) {
       this.alertService.showGenericError('Debe seleccionar un presupuesto.');
@@ -879,9 +882,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
           return;
         }
       }
-    } catch (error) {
-      console.error('Error al verificar presupuesto facturado:', error);
-    }
+    } catch (error) {}
 
     if (!this.editBuffer.presupuestoSeleccionado.aceptado) {
       this.alertService.showGenericError('Solo se pueden facturar presupuestos aprobados.');
@@ -944,6 +945,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
+  // EXPORTAR TODAS FACTURAS
   exportarTodasFacturas(): void {
     if (this.facturas.length === 0) {
       this.alertService.showGenericError('No hay facturas para exportar');
@@ -957,6 +959,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     this.mostrarModalExportacion = false;
   }
 
+  // LIMPIAR
   private limpiar(obj: Partial<FacturaForm>): Partial<Factura> {
     const presupuestoId = typeof obj.presupuesto_id === 'string'
       ? Number(obj.presupuesto_id)
@@ -982,6 +985,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     };
   }
 
+  // VALIDAR
   private valida(p: Partial<Factura>): boolean {
     if (!p.presupuesto_id || !p.numero || !p.letra || !p.fecha || p.monto_total === undefined || p.monto_total === null) {
       this.alertService.showGenericError('Completá: presupuesto_id, número, letra, fecha y monto_total.');
@@ -998,10 +1002,12 @@ export class FacturasComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  // TO ISO DATE
   private toISODate(yyyyMMdd: string): string {
     return new Date(yyyyMMdd + 'T00:00:00Z').toISOString();
   }
   
+  // FORMATEAR DISPLAY TEXT PRESUPUESTO
   private formatearDisplayTextPresupuesto(presupuesto: PresupuestoConReparacion): string {
     const monto = presupuesto.monto_total ? 
       `$${presupuesto.monto_total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
@@ -1036,5 +1042,26 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
     
     return detalles.join(' · ');
+  }
+
+  // GET ESTADO REPARACIÓN BADGE CLASS
+  getEstadoReparacionBadgeClass(estado?: string): string {
+      if (!estado) return 'estado-desconocido';
+      
+      switch (estado.toLowerCase()) {
+          case 'finalizada':
+          case 'finalizado':
+              return 'estado-finalizada';
+          case 'en_proceso':
+          case 'en proceso':
+              return 'estado-proceso';
+          case 'pendiente':
+              return 'estado-pendiente';
+          case 'cancelada':
+          case 'cancelado':
+              return 'estado-cancelada';
+          default:
+              return 'estado-desconocido';
+      }
   }
 }
