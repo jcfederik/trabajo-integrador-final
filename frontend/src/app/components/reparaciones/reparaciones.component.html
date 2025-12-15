@@ -475,19 +475,18 @@
           <small class="text-muted">Esta fecha es opcional. No puede ser anterior a hoy.</small>
         </div>
         
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6" >
           <label class="form-label fw-semibold">Estado</label>
           <select 
-            class="form-control" 
-            [(ngModel)]="nuevo.estado" 
-            name="estado" 
+            class="form-control text-center fw-bold bg-light"
+            [(ngModel)]="nuevo.estado"
+            name="estado"
             required
           >
             <option value="pendiente">Pendiente</option>
             <option value="en proceso">En proceso</option>
-            <option value="finalizada">Finalizada</option>
-            <option value="cancelada">Cancelada</option>
           </select>
+
         </div>
 
         <!-- Repuestos a asignar -->

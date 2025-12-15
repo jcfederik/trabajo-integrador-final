@@ -111,7 +111,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
           case 'finalizada':
           case 'finalizado':
               return 'estado-finalizada';
-          case 'en proceso':
           case 'en_proceso':
           case 'en proceso':
               return 'estado-proceso';
@@ -123,6 +122,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
           default:
               return 'estado-desconocido';
       }
+
   }
 
   presupuestosSugeridos: PresupuestoConReparacion[] = [];

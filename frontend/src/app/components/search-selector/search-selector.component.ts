@@ -151,9 +151,6 @@ export class SearchSelectorComponent implements OnInit {
 
   getDisplayText(item: SearchResult): string {
     switch (this.type) {
-      case 'proveedor':
-        return item.razon_social || item.nombre || '';
-
       case 'cliente':
         return item.nombre || '';
       case 'equipo':
