@@ -122,6 +122,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
           default:
               return 'estado-desconocido';
       }
+
   }
 
   presupuestosSugeridos: PresupuestoConReparacion[] = [];

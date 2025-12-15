@@ -6,6 +6,7 @@ import { SearchService } from '../../services/busquedaglobal';
 import { EquipoService } from '../../services/equipos';
 import { ClienteService } from '../../services/cliente.service';
 import { Repuesto } from '../../services/repuestos.service';
+import {  } from '../../services/equipos';
 import { UsuarioService } from '../../services/usuario.service';
 import { RepuestoService } from '../../services/repuestos.service';
 import { Subscription, Subject } from 'rxjs';
@@ -611,7 +612,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       return;
     }
   }
-  
+
   // ====== LIMPIAR BÚSQUEDA GLOBAL ======
   limpiarBusqueda() {
     this.searchService.clearSearch();

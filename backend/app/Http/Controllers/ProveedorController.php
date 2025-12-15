@@ -63,8 +63,7 @@ class ProveedorController extends Controller
         try {
             $query = Proveedor::query();
 
-            // Búsqueda por término
-            if ($request->has('search') && $request->search !== '') {
+            if ($request->has(key: 'search') && $request->search !== '') {
                 $search = $request->search;
 
                 $query->where(function ($q) use ($search) {
@@ -74,12 +73,10 @@ class ProveedorController extends Controller
                 });
             }
 
-            // Orden
             $sort = $request->get('sort', 'id');
             $direction = $request->get('direction', 'desc');
             $query->orderBy($sort, $direction);
 
-            // Paginación
             $perPage = $request->get('per_page', 15);
             $proveedores = $query->paginate($perPage);
             

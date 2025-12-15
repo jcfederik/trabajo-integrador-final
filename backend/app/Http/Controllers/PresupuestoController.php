@@ -69,24 +69,20 @@ class PresupuestoController extends Controller
                         ->orWhere('fecha', 'LIKE', "%{$search}%")
                         ->orWhereRaw("IF(aceptado=1,'aceptado','pendiente') LIKE ?", ["%{$search}%"]);
 
-                    // Reparación
                     $q->orWhereHas('reparacion', function ($q2) use ($search) {
                         $q2->where('descripcion', 'LIKE', "%{$search}%")
                             ->orWhere('estado', 'LIKE', "%{$search}%");
                     });
 
-                    // Equipo
                     $q->orWhereHas('reparacion.equipo', function ($q3) use ($search) {
                         $q3->where('descripcion', 'LIKE', "%{$search}%");
                     });
 
-                    // Cliente
                     $q->orWhereHas('reparacion.equipo.cliente', function ($q4) use ($search) {
                         $q4->where('nombre', 'LIKE', "%{$search}%")
                             ->orWhere('telefono', 'LIKE', "%{$search}%");
                     });
 
-                    // Técnico
                     $q->orWhereHas('reparacion.tecnico', function ($q5) use ($search) {
                         $q5->where('nombre', 'LIKE', "%{$search}%");
                     });
@@ -275,12 +271,6 @@ class PresupuestoController extends Controller
                     }]);
             }]);
 
-            // COMENTA temporalmente este filtro para probar
-            // if ($soloAceptados) {
-            //     $query->where('aceptado', true);
-            // }
-
-            // Primero intentar búsqueda por fecha
             $esBusquedaPorFecha = $this->agregarBusquedaPorFecha($query, $termino);
                         
             if (!$esBusquedaPorFecha) {
@@ -386,7 +376,6 @@ class PresupuestoController extends Controller
         $user = Auth::user();
         $data = $request->all();
 
-        // ✅ RN4 y RN5: Solo secretarios/admin pueden aprobar/rechazar
         if (isset($data['aceptado'])) {
             $aceptado = filter_var($data['aceptado'], FILTER_VALIDATE_BOOLEAN);
 
@@ -398,7 +387,6 @@ class PresupuestoController extends Controller
 
             $data['aceptado'] = $aceptado ? 1 : 0;
 
-            // ✅ RN5: Si se rechaza, verificar que no tenga reparación
             if ($data['aceptado'] == 0) {
                 $reparacionExistente = Reparacion::where('presupuesto_id', $presupuesto->id)->first();
                 if ($reparacionExistente) {
@@ -457,7 +445,6 @@ class PresupuestoController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Solo administradores pueden eliminar
         if ($user->tipo !== 'administrador') {
             return response()->json([
                 'error' => 'Solo los administradores pueden eliminar presupuestos'
@@ -470,7 +457,6 @@ class PresupuestoController extends Controller
         }
 
         try {
-            // ✅ Verificar que no tenga reparación asociada
             if ($presupuesto->reparacion) {
                 return response()->json([
                     'error' => 'No se puede eliminar un presupuesto con reparación asociada'
@@ -546,14 +532,12 @@ public function listadoOptimizado(Request $request)
                 return $presupuesto;
             }
             
-            // Cargar relaciones si no están ya cargadas
             $reparacion->loadMissing(['equipo.cliente', 'tecnico']);
             
             $equipo = $reparacion->equipo;
             $cliente = $equipo ? $equipo->cliente : null;
             $tecnico = $reparacion->tecnico;
             
-            // Estructurar los datos de forma más limpia
             $presupuesto->reparacion = [
                 'id' => $reparacion->id,
                 'descripcion' => $reparacion->descripcion,
@@ -566,7 +550,6 @@ public function listadoOptimizado(Request $request)
                 'tecnico_nombre' => $tecnico ? $tecnico->nombre : 'Sin técnico',
             ];
             
-            // Solo incluir objetos completos si existen
             if ($equipo) {
                 $presupuesto->reparacion['equipo'] = [
                     'id' => $equipo->id,

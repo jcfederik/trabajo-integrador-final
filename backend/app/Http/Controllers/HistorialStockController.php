@@ -114,7 +114,6 @@ class HistorialStockController extends Controller
     {
         $query = HistorialStock::with('repuesto');
 
-        // Filtrar por repuesto
         if ($request->has('repuesto_id') && $request->repuesto_id !== null) {
             $query->where('repuesto_id', $request->repuesto_id);
         }

@@ -255,17 +255,21 @@ class AuthController extends Controller
                 'historial-stock.manage', 
                 'admin.full'
             ],
-            'usuario' => [ // Secretarios/Administrativos
-                'clients.manage',
-                'equipos.manage',
-                'presupuestos.manage',
-                'reparaciones.manage',
+            'usuario' => [  
+                'clients.view',
+                'clients.create',
+                'equipos.view',
+                'equipos.create',
+                'presupuestos.view',
+                'reparaciones.view',
+                'facturas.view',
                 'facturas.create',
+                'cobros.view',
                 'cobros.create',
                 'dashboard.view',
                 'user.basic'
             ],
-            'tecnico' => [ // Técnicos reparadores - RESTRINGIDOS
+            'tecnico' => [ 
                 'reparaciones.view',
                 'reparaciones.update.estado',
                 'presupuestos.create',
@@ -273,7 +277,6 @@ class AuthController extends Controller
                 'equipos.view',
                 'repuestos.view',
                 'especializaciones.view',
-                'especializaciones.self_assign',
                 'dashboard.view',
                 'tecnico.basic'
             ]

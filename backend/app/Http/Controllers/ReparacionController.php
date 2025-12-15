@@ -8,7 +8,6 @@ use App\Models\Presupuesto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -89,12 +88,10 @@ class ReparacionController extends Controller
             });
         }
 
-        // orden
         $sort = $request->get('sort', 'id');
         $direction = $request->get('direction', 'desc');
         $query->orderBy($sort, $direction);
 
-        // paginación
         $perPage = $request->get('size', 10);
         return $query->paginate($perPage);
     }
@@ -142,7 +139,6 @@ class ReparacionController extends Controller
 
         try {
             
-            // Primero, prueba una consulta SIMPLE
             $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                 ->where('descripcion', 'LIKE', "%{$termino}%")
                 ->paginate($perPage);
@@ -222,7 +218,6 @@ class ReparacionController extends Controller
     {
         $user = Auth::user();
         
-        // ✅ RN18: Solo secretarios/admin pueden crear reparaciones
         if ($user->tipo === 'tecnico') {
             return response()->json([
                 'error' => 'Los técnicos no pueden crear reparaciones. Solo secretarios o administradores.'
@@ -246,7 +241,6 @@ class ReparacionController extends Controller
         try {
             $data = $validator->validated();
             
-            // ✅ RN18: Si se proporciona presupuesto_id, debe estar aprobado
             if (isset($data['presupuesto_id'])) {
                 $presupuesto = Presupuesto::find($data['presupuesto_id']);
                 
@@ -256,14 +250,12 @@ class ReparacionController extends Controller
                     ], 400);
                 }
                 
-                // ✅ RN4: Solo presupuestos aprobados habilitan reparación
                 if ($presupuesto->aceptado !== 1) {
                     return response()->json([
                         'error' => 'Solo se puede crear reparación con presupuesto aprobado'
                     ], 400);
                 }
                 
-                // ✅ RN20: Verificar que el presupuesto pertenezca al equipo
                 $reparacionPresupuesto = $presupuesto->reparacion ?? null;
                 if ($reparacionPresupuesto && $reparacionPresupuesto->equipo_id != $data['equipo_id']) {
                     return response()->json([
@@ -284,7 +276,6 @@ class ReparacionController extends Controller
                 'reparacion' => $reparacionConRelaciones
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Error al crear reparación: ' . $e->getMessage());
             return response()->json(['error' => 'Error al crear la reparación', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -367,20 +358,16 @@ class ReparacionController extends Controller
 
         $user = Auth::user();
         
-        // ✅ TÉCNICOS: Solo pueden editar SI están asignados y solo campos específicos
         if ($user->tipo === 'tecnico') {
-            // Verificar si el técnico está asignado a ESTA reparación
             if ($reparacion->usuario_id != $user->id) {
                 return response()->json([
                     'error' => 'Solo puedes editar reparaciones asignadas a ti'
                 ], 403);
             }
             
-            // Solo permitir campos específicos para técnicos
             $allowedFields = ['estado', 'descripcion', 'fecha_estimada'];
             $data = $request->only($allowedFields);
             
-            // Validar estado si se envía
             if (isset($data['estado'])) {
                 $estadosValidos = ['pendiente', 'en_proceso', 'completada', 'cancelada'];
                 if (!in_array($data['estado'], $estadosValidos)) {
@@ -389,7 +376,6 @@ class ReparacionController extends Controller
                     ], 400);
                 }
                 
-                // ✅ RN19: Si se marca como completada, verificar que tenga factura
                 if ($data['estado'] === 'completada') {
                     $factura = $reparacion->factura ?? null;
                     if (!$factura) {
@@ -401,10 +387,8 @@ class ReparacionController extends Controller
             }
             
         } else {
-            // ✅ ADMIN/SECRETARIOS: Pueden editar todo
             $data = $request->all();
             
-            // Validar estado si se envía
             if (isset($data['estado']) && !in_array($data['estado'], ['pendiente', 'en_proceso', 'completada', 'cancelada'])) {
                 return response()->json(['error' => 'Estado no válido'], 400);
             }
@@ -421,7 +405,6 @@ class ReparacionController extends Controller
                 'reparacion' => $reparacionActualizada
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Error al actualizar reparación: ' . $e->getMessage());
             return response()->json(['error' => 'Error al actualizar la reparación', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -456,7 +439,6 @@ class ReparacionController extends Controller
     {
         $user = Auth::user();
         
-        // ✅ Solo administradores pueden eliminar
         if ($user->tipo !== 'administrador') {
             return response()->json([
                 'error' => 'Solo los administradores pueden eliminar reparaciones'
@@ -469,7 +451,6 @@ class ReparacionController extends Controller
         }
 
         try {
-            // ✅ Verificar que no tenga facturas asociadas
             if ($reparacion->factura) {
                 return response()->json([
                     'error' => 'No se puede eliminar una reparación con factura asociada'
@@ -479,7 +460,6 @@ class ReparacionController extends Controller
             $reparacion->delete();
             return response()->json(['mensaje' => 'Reparación eliminada correctamente'], 200);
         } catch (\Exception $e) {
-            Log::error('Error al eliminar reparación: ' . $e->getMessage());
             return response()->json(['error' => 'Error al eliminar la reparación', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -567,7 +547,6 @@ class ReparacionController extends Controller
                 'repuestos'
             ]);
 
-            // Búsqueda SIMPLIFICADA temporalmente
             if ($request->has('search') && $request->search !== '') {
                 $search = $request->search;
                 $query->where('descripcion', 'LIKE', "%$search%");
@@ -578,9 +557,7 @@ class ReparacionController extends Controller
             $perPage = $request->get('per_page', 10);
             $reparaciones = $query->paginate($perPage);
 
-            // Transformar datos de forma SEGURA
             $reparaciones->getCollection()->transform(function ($reparacion) {
-                // Manejo seguro de null con operador ternario
                 $equipoNombre = $reparacion->equipo ? $reparacion->equipo->descripcion : 'Sin equipo';
                 
                 $clienteNombre = 'No especificado';
@@ -663,7 +640,6 @@ class ReparacionController extends Controller
             }
         }
 
-        Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
 
         $request->validate([
             'repuesto_id' => 'required|exists:repuesto,id',
@@ -676,28 +652,18 @@ class ReparacionController extends Controller
             $reparacion = Reparacion::findOrFail($reparacionId);
             $repuesto = Repuesto::findOrFail($request->repuesto_id);
 
-            Log::info('Encontrados', [
-                'reparacion' => $reparacion->id,
-                'repuesto' => $repuesto->id,
-                'stock_actual' => $repuesto->stock,
-                'cantidad_solicitada' => $request->cantidad
-            ]);
-
-            // Verificar stock
             if ($repuesto->stock < $request->cantidad) {
                 return response()->json([
                     'error' => 'Stock insuficiente. Solo hay ' . $repuesto->stock . ' unidades disponibles.'
                 ], 400);
             }
 
-            // Verificar si ya existe la relación
             $existingRelation = DB::table('reparacion_repuesto')
                 ->where('reparacion_id', $reparacionId)
                 ->where('repuesto_id', $request->repuesto_id)
                 ->first();
 
             if ($existingRelation) {
-                // Actualizar cantidad existente
                 DB::table('reparacion_repuesto')
                     ->where('id', $existingRelation->id)
                     ->update([
@@ -705,7 +671,6 @@ class ReparacionController extends Controller
                         'updated_at' => now()
                     ]);
             } else {
-                // Crear nueva relación
                 DB::table('reparacion_repuesto')->insert([
                     'reparacion_id' => $reparacionId,
                     'repuesto_id' => $request->repuesto_id,
@@ -716,12 +681,10 @@ class ReparacionController extends Controller
                 ]);
             }
 
-            // Actualizar stock del repuesto
             $repuesto->decrement('stock', $request->cantidad);
 
             DB::commit();
 
-            // Cargar relación actualizada
             $reparacion->load('repuestos');
 
             return response()->json([
@@ -731,10 +694,6 @@ class ReparacionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en assignRepuesto', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             
             return response()->json([
                 'error' => 'Error al asignar repuesto: ' . $e->getMessage()
@@ -786,12 +745,10 @@ class ReparacionController extends Controller
             }
         }
 
-        Log::info('RemoveRepuesto llamado', ['reparacion_id' => $reparacionId, 'pivot_id' => $pivotId]);
 
         try {
             DB::beginTransaction();
 
-            // Obtener el registro pivot
             $pivot = DB::table('reparacion_repuesto')
                 ->where('id', $pivotId)
                 ->where('reparacion_id', $reparacionId)
@@ -801,23 +758,11 @@ class ReparacionController extends Controller
                 return response()->json(['error' => 'Repuesto no encontrado en esta reparación'], 404);
             }
 
-            Log::info('Pivot encontrado', [
-                'repuesto_id' => $pivot->repuesto_id,
-                'cantidad' => $pivot->cantidad
-            ]);
-
-            // Restaurar stock
             $repuesto = Repuesto::find($pivot->repuesto_id);
             if ($repuesto) {
                 $repuesto->increment('stock', $pivot->cantidad);
-                Log::info('Stock restaurado', [
-                    'repuesto_id' => $repuesto->id,
-                    'cantidad_restaurada' => $pivot->cantidad,
-                    'nuevo_stock' => $repuesto->stock
-                ]);
             }
 
-            // Eliminar la relación
             DB::table('reparacion_repuesto')->where('id', $pivotId)->delete();
 
             DB::commit();
@@ -828,11 +773,7 @@ class ReparacionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en removeRepuesto', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+
             return response()->json([
                 'error' => 'Error al remover repuesto: ' . $e->getMessage()
             ], 500);
@@ -865,26 +806,17 @@ class ReparacionController extends Controller
      */
     public function getRepuestosAsignados($reparacionId)
     {
-        Log::info('GetRepuestosAsignados llamado', ['reparacion_id' => $reparacionId]);
 
         try {
             $reparacion = Reparacion::with(['repuestos' => function($query) {
                 $query->withPivot('id', 'cantidad', 'costo_unitario', 'created_at', 'updated_at');
             }])->findOrFail($reparacionId);
-            
-            Log::info('Repuestos asignados encontrados', [
-                'count' => $reparacion->repuestos->count()
-            ]);
 
             return response()->json([
                 'data' => $reparacion->repuestos
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error en getRepuestosAsignados', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             
             return response()->json([
                 'error' => 'Error al cargar repuestos asignados: ' . $e->getMessage()

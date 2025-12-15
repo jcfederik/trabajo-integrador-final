@@ -210,24 +210,33 @@
                       </div>
                       
                       <!-- Badge de selección -->
-                      <div *ngIf="editBuffer.presupuestoSeleccionado" class="badge-seleccion">
+                      <div *ngIf="editBuffer.presupuestoSeleccionado as p" class="badge-seleccion">
                         <i class="bi bi-check-circle"></i>
-                        Presupuesto seleccionado: #{{ editBuffer.presupuestoSeleccionado.id }}
+                        Presupuesto seleccionado: #{{ p.id }}
+
                         <small class="monto-seleccion">
-                          Monto: {{ (editBuffer.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}
+                          Monto: {{ (p.monto_total ?? 0) | number:'1.2-2' }}
                         </small>
-                        <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(editBuffer.presupuestoSeleccionado?.id) !== 'Desconocido'">
-                          | Estado reparación: {{ getEstadoReparacion(editBuffer.presupuestoSeleccionado?.id) }}
+
+                        <small class="estado-reparacion-seleccion"
+                              *ngIf="getEstadoReparacion(p.id) !== 'Desconocido'">
+                          | Estado reparación: {{ getEstadoReparacion(p.id) }}
                         </small>
                       </div>
+
                       
                       <!-- Advertencia si ya está facturado -->
                       <div *ngIf="editBuffer.presupuestoSeleccionado && editBuffer.presupuestoSeleccionado.yaFacturado" 
                            class="alert alert-warning mt-2 mb-0">
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         <strong>Este presupuesto ya tiene una factura:</strong>
-                        {{ editBuffer.presupuestoSeleccionado?.facturaExistente?.numero || 'Ya facturado' }}
-                        {{ editBuffer.presupuestoSeleccionado?.facturaExistente?.letra ? ' (' + editBuffer.presupuestoSeleccionado?.facturaExistente?.letra + ')' : '' }}
+                          <ng-container *ngIf="editBuffer.presupuestoSeleccionado?.facturaExistente as factura; else yaFacturado">
+                            {{ factura.numero }}{{ factura.letra ? ' (' + factura.letra + ')' : '' }}
+                          </ng-container>
+
+                          <ng-template #yaFacturado>
+                            Ya facturado
+                          </ng-template>
                       </div>
                     </div>
 
@@ -494,10 +503,15 @@
                 
                 <div *ngIf="nuevo.presupuestoSeleccionado?.yaFacturado" class="item-informacion">
                   <strong>Factura existente:</strong> 
-                  <span class="text-danger">
-                    {{ nuevo.presupuestoSeleccionado?.facturaExistente?.numero || 'Ya facturado' }}
-                    {{ nuevo.presupuestoSeleccionado?.facturaExistente?.letra ? ' (' + nuevo.presupuestoSeleccionado?.facturaExistente?.letra + ')' : '' }}
-                  </span>
+                    <span class="text-danger"
+                          *ngIf="nuevo.presupuestoSeleccionado?.facturaExistente as factura; else yaFacturadoNuevo">
+                      {{ factura.numero }}{{ factura.letra ? ' (' + factura.letra + ')' : '' }}
+                    </span>
+
+                    <ng-template #yaFacturadoNuevo>
+                      Ya facturado
+                    </ng-template>
+
                 </div>
                 
                 <div class="item-informacion">
