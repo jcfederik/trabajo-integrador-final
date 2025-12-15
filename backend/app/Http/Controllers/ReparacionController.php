@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Reparacion;
 use App\Models\Repuesto;
+use App\Models\Presupuesto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @OA\Tag(
@@ -199,7 +201,7 @@ class ReparacionController extends Controller
      *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
      *             @OA\Property(property="estado", type="string", example="pendiente"),
      *             @OA\Property(property="fecha_estimada", type="string", format="date", example="2025-10-20"),
-    * 
+     *             @OA\Property(property="presupuesto_id", type="integer", example=1)
      *         )
      *     ),
      *     @OA\Response(
@@ -212,18 +214,29 @@ class ReparacionController extends Controller
      *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
      *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=403, description="No tiene permisos o presupuesto no aprobado"),
      *     @OA\Response(response=500, description="Error al crear la reparación")
      * )
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+        
+        // ✅ RN18: Solo secretarios/admin pueden crear reparaciones
+        if ($user->tipo === 'tecnico') {
+            return response()->json([
+                'error' => 'Los técnicos no pueden crear reparaciones. Solo secretarios o administradores.'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'equipo_id' => 'required|exists:equipo,id',
             'usuario_id' => 'required|exists:usuario,id',
             'descripcion' => 'required|string',
             'fecha' => 'required|date',
-            'estado' => 'required|string|max:50',
-            'fecha_estimada' => 'nullable|date'
+            'estado' => 'required|string|in:pendiente,en_proceso,completada,cancelada',
+            'fecha_estimada' => 'nullable|date',
+            'presupuesto_id' => 'nullable|exists:presupuestos,id'
         ]);
 
         if ($validator->fails()) {
@@ -231,7 +244,37 @@ class ReparacionController extends Controller
         }
 
         try {
-            $reparacion = Reparacion::create($validator->validated());
+            $data = $validator->validated();
+            
+            // ✅ RN18: Si se proporciona presupuesto_id, debe estar aprobado
+            if (isset($data['presupuesto_id'])) {
+                $presupuesto = Presupuesto::find($data['presupuesto_id']);
+                
+                if (!$presupuesto) {
+                    return response()->json([
+                        'error' => 'El presupuesto especificado no existe'
+                    ], 400);
+                }
+                
+                // ✅ RN4: Solo presupuestos aprobados habilitan reparación
+                if ($presupuesto->aceptado !== 1) {
+                    return response()->json([
+                        'error' => 'Solo se puede crear reparación con presupuesto aprobado'
+                    ], 400);
+                }
+                
+                // ✅ RN20: Verificar que el presupuesto pertenezca al equipo
+                $reparacionPresupuesto = $presupuesto->reparacion ?? null;
+                if ($reparacionPresupuesto && $reparacionPresupuesto->equipo_id != $data['equipo_id']) {
+                    return response()->json([
+                        'error' => 'El presupuesto no pertenece al equipo especificado'
+                    ], 400);
+                }
+                
+                $data['presupuesto_id'] = $presupuesto->id;
+            }
+            
+            $reparacion = Reparacion::create($data);
             
             $reparacionConRelaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                 ->find($reparacion->id);
@@ -241,6 +284,7 @@ class ReparacionController extends Controller
                 'reparacion' => $reparacionConRelaciones
             ], 201);
         } catch (\Exception $e) {
+            Log::error('Error al crear reparación: ' . $e->getMessage());
             return response()->json(['error' => 'Error al crear la reparación', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -298,7 +342,6 @@ class ReparacionController extends Controller
      *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
      *             @OA\Property(property="estado", type="string", example="finalizada"),
      *             @OA\Property(property="fecha_estimada", type="string", format="date", example="2025-10-20")
-     *
      *         )
      *     ),
      *     @OA\Response(
@@ -310,6 +353,7 @@ class ReparacionController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=403, description="No tiene permisos para editar esta reparación"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
      *     @OA\Response(response=500, description="Error al actualizar la reparación")
      * )
@@ -321,8 +365,53 @@ class ReparacionController extends Controller
             return response()->json(['error' => 'Reparación no encontrada'], 404);
         }
 
+        $user = Auth::user();
+        
+        // ✅ TÉCNICOS: Solo pueden editar SI están asignados y solo campos específicos
+        if ($user->tipo === 'tecnico') {
+            // Verificar si el técnico está asignado a ESTA reparación
+            if ($reparacion->usuario_id != $user->id) {
+                return response()->json([
+                    'error' => 'Solo puedes editar reparaciones asignadas a ti'
+                ], 403);
+            }
+            
+            // Solo permitir campos específicos para técnicos
+            $allowedFields = ['estado', 'descripcion', 'fecha_estimada'];
+            $data = $request->only($allowedFields);
+            
+            // Validar estado si se envía
+            if (isset($data['estado'])) {
+                $estadosValidos = ['pendiente', 'en_proceso', 'completada', 'cancelada'];
+                if (!in_array($data['estado'], $estadosValidos)) {
+                    return response()->json([
+                        'error' => 'Estado no válido. Opciones: ' . implode(', ', $estadosValidos)
+                    ], 400);
+                }
+                
+                // ✅ RN19: Si se marca como completada, verificar que tenga factura
+                if ($data['estado'] === 'completada') {
+                    $factura = $reparacion->factura ?? null;
+                    if (!$factura) {
+                        return response()->json([
+                            'error' => 'No se puede marcar como completada sin factura generada'
+                        ], 400);
+                    }
+                }
+            }
+            
+        } else {
+            // ✅ ADMIN/SECRETARIOS: Pueden editar todo
+            $data = $request->all();
+            
+            // Validar estado si se envía
+            if (isset($data['estado']) && !in_array($data['estado'], ['pendiente', 'en_proceso', 'completada', 'cancelada'])) {
+                return response()->json(['error' => 'Estado no válido'], 400);
+            }
+        }
+
         try {
-            $reparacion->update($request->all());
+            $reparacion->update($data);
             
             $reparacionActualizada = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                 ->find($id);
@@ -332,6 +421,7 @@ class ReparacionController extends Controller
                 'reparacion' => $reparacionActualizada
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Error al actualizar reparación: ' . $e->getMessage());
             return response()->json(['error' => 'Error al actualizar la reparación', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -357,21 +447,39 @@ class ReparacionController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=403, description="Solo administradores pueden eliminar reparaciones"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
      *     @OA\Response(response=500, description="Error al eliminar la reparación")
      * )
      */
     public function destroy($id)
     {
+        $user = Auth::user();
+        
+        // ✅ Solo administradores pueden eliminar
+        if ($user->tipo !== 'administrador') {
+            return response()->json([
+                'error' => 'Solo los administradores pueden eliminar reparaciones'
+            ], 403);
+        }
+
         $reparacion = Reparacion::find($id);
         if (!$reparacion) {
             return response()->json(['error' => 'Reparación no encontrada'], 404);
         }
 
         try {
+            // ✅ Verificar que no tenga facturas asociadas
+            if ($reparacion->factura) {
+                return response()->json([
+                    'error' => 'No se puede eliminar una reparación con factura asociada'
+                ], 400);
+            }
+            
             $reparacion->delete();
             return response()->json(['mensaje' => 'Reparación eliminada correctamente'], 200);
         } catch (\Exception $e) {
+            Log::error('Error al eliminar reparación: ' . $e->getMessage());
             return response()->json(['error' => 'Error al eliminar la reparación', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -544,6 +652,19 @@ class ReparacionController extends Controller
      */
     public function assignRepuesto(Request $request, $reparacionId)
     {
+        $user = Auth::user();
+        
+        if ($user->tipo === 'tecnico') {
+            $reparacion = Reparacion::find($reparacionId);
+            if (!$reparacion || $reparacion->usuario_id != $user->id) {
+                return response()->json([
+                    'error' => 'Solo puedes asignar repuestos a reparaciones asignadas a ti'
+                ], 403);
+            }
+        }
+
+        Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
+
         $request->validate([
             'repuesto_id' => 'required|exists:repuesto,id',
             'cantidad' => 'required|integer|min:1'
@@ -654,7 +775,18 @@ class ReparacionController extends Controller
      */
     public function removeRepuesto($reparacionId, $pivotId)
     {
-        Log::info('RemoveRepuesto llamado', context: ['reparacion_id' => $reparacionId, 'pivot_id' => $pivotId]);
+        $user = Auth::user();
+        
+        if ($user->tipo === 'tecnico') {
+            $reparacion = Reparacion::find($reparacionId);
+            if (!$reparacion || $reparacion->usuario_id != $user->id) {
+                return response()->json([
+                    'error' => 'Solo puedes remover repuestos de reparaciones asignadas a ti'
+                ], 403);
+            }
+        }
+
+        Log::info('RemoveRepuesto llamado', ['reparacion_id' => $reparacionId, 'pivot_id' => $pivotId]);
 
         try {
             DB::beginTransaction();
