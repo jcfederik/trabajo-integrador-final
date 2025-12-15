@@ -6,7 +6,7 @@ import { SearchService } from '../../services/busquedaglobal';
 import { EquipoService } from '../../services/equipos';
 import { ClienteService } from '../../services/cliente.service';
 import { Repuesto } from '../../services/repuestos.service';
-import {  } from '../../services/equipos';
+import { AuthService } from '../../services/auth';
 import { UsuarioService } from '../../services/usuario.service';
 import { RepuestoService } from '../../services/repuestos.service';
 import { Subscription, Subject } from 'rxjs';
@@ -94,7 +94,8 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     private equipoService: EquipoService,
     private usuarioService: UsuarioService,
     private repuestoService: RepuestoService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private authService: AuthService
   ) {}
 
   // ====== CICLO DE VIDA ======
@@ -1347,5 +1348,25 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+  // =============== VERIFICACIÓN DE PERMISOS ===============
+  isUser(): boolean {
+    return this.authService.isUsuario();
+  }
+
+  canCreate(): boolean {
+    return !this.isUser() || this.authService.hasPermission('reparaciones.create');
+  }
+
+  canEdit(): boolean {
+    return !this.isUser() || this.authService.hasPermission('reparaciones.update');
+  }
+
+  canDelete(): boolean {
+    return !this.isUser() || this.authService.hasPermission('reparaciones.delete');
+  }
+
+  canManageRepuestos(): boolean {
+    return !this.isUser() || this.authService.hasPermission('reparaciones.manage_repuestos');
   }
 }
