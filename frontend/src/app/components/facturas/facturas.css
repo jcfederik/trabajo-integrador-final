@@ -4,7 +4,9 @@
   padding-bottom: 2rem;
 }
 
-/* Botonera principal */
+/* =============== BOTONES TIPO PASTILLA (PÍLDORA) =============== */
+
+/* Botonera principal - botones tipo pastilla */
 .botonera-principal {
   display: flex;
   justify-content: center;
@@ -13,6 +15,69 @@
   flex-wrap: wrap;
 }
 
+.action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 50px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border: 2px solid #dee2e6;
+  background-color: white;
+  color: #495057;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.action-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: #adb5bd;
+}
+
+.action-pill.active {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: white;
+}
+
+.action-pill.success {
+  background-color: var(--bs-success);
+  border-color: var(--bs-success);
+  color: white;
+}
+
+.action-pill.success:hover {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.action-pill.warning {
+  background-color: var(--bs-warning);
+  border-color: var(--bs-warning);
+  color: #212529;
+}
+
+.action-pill.warning:hover {
+  background-color: #ffca2c;
+  border-color: #ffca2c;
+}
+
+.action-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.action-pill i {
+  font-size: 1rem;
+}
+
+/* =============== FIN BOTONES PASTILLA =============== */
 
 /* Títulos de sección */
 .titulo-seccion {
@@ -159,11 +224,19 @@
   font-size: 0.875rem;
 }
 
+.detalle-result {
+  color: rgb(31, 35, 43);
+}
+
+.detalle-value {
+  color: #6c757d;
+}
+
 .detalle-label {
   color: #6c757d;
 }
 
-/* Acciones de items */
+/* Botones de acción en lista - con bordes redondeados */
 .item-acciones {
   display: flex;
   gap: 0.5rem;
@@ -176,7 +249,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid;
   background: #fff;
   transition: all 0.2s ease;
@@ -190,6 +263,8 @@
 .boton-editar:hover {
   background: var(--bs-warning);
   color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
 .boton-guardar {
@@ -200,6 +275,8 @@
 .boton-guardar:hover {
   background: var(--bs-success);
   color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
 }
 
 .boton-cancelar {
@@ -210,6 +287,8 @@
 .boton-cancelar:hover {
   background: var(--bs-secondary);
   color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
 }
 
 .boton-eliminar {
@@ -220,6 +299,20 @@
 .boton-eliminar:hover {
   background: var(--bs-danger);
   color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.boton-cobros {
+  border-color: var(--bs-info);
+  color: var(--bs-info);
+}
+
+.boton-cobros:hover {
+  background: var(--bs-info);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
 }
 
 /* Formulario de edición */
@@ -435,10 +528,30 @@
   border-bottom: 1px solid #34495e;
   cursor: pointer;
 }
-
 .item-sugerencia:hover {
-  background: #34495e;
-  color: #fff;
+  background: #2c3e50; 
+  border-color: #3498db;
+}
+
+.presupuesto-item:hover {
+  background-color: #2c3e50; 
+  border-color: #3498db;
+}
+
+.presupuesto-item:hover {
+  background-color: #2c3e50;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+/* Versión más sutil del efecto */
+.presupuesto-item {
+  transition: all 0.2s ease;
+  transform: translateY(0);
+}
+
+.presupuesto-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: #2c3e50;
 }
 
 .item-sugerencia:last-child {
@@ -448,10 +561,6 @@
 
 .item-sugerencia.sin-resultados {
   cursor: default;
-}
-
-.item-sugerencia.sin-resultados:hover {
-  background: #2c3e50;
 }
 
 .contenido-sugerencia {
@@ -571,14 +680,14 @@
   background: var(--bs-secondary);
 }
 
-/* Botón de enviar */
+/* Botón de enviar - tipo pastilla */
 .boton-enviar {
   width: 100%;
   background: var(--bs-success);
   color: white;
-  border: 1px solid var(--bs-success);
+  border: 2px solid var(--bs-success);
   padding: 0.75rem 1.5rem;
-  border-radius: 0.375rem;
+  border-radius: 50px;
   font-weight: 600;
   transition: all 0.2s ease;
   margin-top: 1.5rem;
@@ -591,13 +700,15 @@
 .boton-enviar:hover:not(:disabled) {
   background: #198754;
   border-color: #198754;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .boton-enviar:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .icono-boton {
@@ -726,4 +837,372 @@
   margin: 1rem 0;
 }
 
+}
+/* Estilos para la visualización mejorada de presupuestos */
+.presupuesto-item {
+  border-bottom: 1px solid #eee;
+  padding: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+
+.presupuesto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.presupuesto-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.presupuesto-estado-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+}
+
+.presupuesto-monto {
+  font-weight: bold;
+  color: #198754;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.presupuesto-info {
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+.info-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+}
+
+.info-line.principal {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.info-line.fechas {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.small-icon {
+  font-size: 0.8rem;
+  min-width: 16px;
+  color: #3498db;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 100px;
+}
+.info-value {
+  color: #212529;
+  flex: 1;
+}
+
+.info-value.destacado {
+  font-weight: 500;
+  color: #0d6efd;
+}
+
+.info-separator {
+  color: #dee2e6;
+  margin: 0 8px;
+}
+
+.estado-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.estado-finalizada {
+  background-color: #198754;
+}
+
+.estado-proceso {
+  background-color: #0dcaf0;
+  color: #000;
+}
+
+.estado-pendiente {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.estado-cancelada {
+  background-color: #dc3545;
+}
+
+.estado-desconocido {
+  background-color: #6c757d;
+}
+
+.icono-seleccion {
+  color: #6c757d;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.presupuesto-item:hover .icono-seleccion {
+  opacity: 1;
+  color: #0d6efd;
+}
+
+/* =============== MEJORAS ADICIONALES =============== */
+
+/* Gradientes para botones success */
+.action-pill.success,
+.boton-enviar:not(:disabled) {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border: none;
+}
+
+.action-pill.success:hover,
+.boton-enviar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+}
+
+/* Botones en estados vacíos */
+.empty-actions .action-pill {
+  min-width: 180px;
+  justify-content: center;
+}
+
+.empty-actions .action-pill.success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border: none;
+}
+
+.empty-actions .action-pill:not(.success) {
+  background: white;
+  border-color: #adb5bd;
+}
+
+.empty-actions .action-pill:not(.success):hover {
+  background: #f8f9fa;
+  border-color: #6c757d;
+}
+
+/* Efectos de hover mejorados para botones de acción */
+.boton-editar:hover,
+.boton-guardar:hover,
+.boton-cancelar:hover,
+.boton-eliminar:hover,
+.boton-cobros:hover {
+  transform: translateY(-2px);
+}
+
+/* Transiciones suaves */
+.action-pill,
+.boton-accion,
+.boton-enviar,
+.boton-limpiar {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efectos de focus para accesibilidad */
+.action-pill:focus,
+.boton-accion:focus,
+.boton-enviar:focus,
+.boton-limpiar:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}
+
+.action-pill:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Estados activos mejorados */
+.action-pill.active {
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+  transform: translateY(-2px);
+}
+
+.action-pill.success:active,
+.boton-enviar:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Iconos en botones */
+.action-pill i {
+  transition: transform 0.2s ease;
+}
+
+.action-pill:hover i {
+  transform: scale(1.1);
+}
+
+.action-pill.success:hover i {
+  transform: rotate(5deg) scale(1.1);
+}
+
+/* Mejora para botón de exportar cuando está deshabilitado */
+.action-pill:disabled i {
+  opacity: 0.7;
+}
+
+/* Responsive para móviles muy pequeños */
+@media (max-width: 400px) {
+  .botonera-principal {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .action-pill {
+    width: 100%;
+    max-width: 250px;
+    justify-content: center;
+  }
+  
+  .empty-actions .action-pill {
+    width: 100%;
+    max-width: 220px;
+  }
+}
+
+/* Ajustes para badges dentro de presupuestos */
+.presupuesto-estado-badge.bg-success {
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+}
+
+.presupuesto-estado-badge.bg-warning {
+  background: linear-gradient(135deg, #ffc107, #fd7e14) !important;
+  color: #212529 !important;
+}
+
+/* Mejora visual para botón de limpiar */
+.boton-limpiar:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+/* Letras grises en el listado normal */
+.factura-letra {
+  color: #6c757d !important; /* Gris medio */
+  font-weight: normal;
+}
+
+/* Texto en resultados de búsqueda - blanco suave */
+.menu-sugerencias .presupuesto-info-simple,
+.menu-sugerencias .info-line,
+.menu-sugerencias .info-value,
+.menu-sugerencias .info-label,
+.menu-sugerencias .info-separator,
+.menu-sugerencias .small-icon,
+.menu-sugerencias .presupuesto-estado-indicador {
+  color: #f8f9fa !important; /* Blanco suave, no puro */
+}
+
+/* Asegurar que todo el texto dentro del dropdown sea blanco suave */
+.menu-sugerencias .primary-line,
+.menu-sugerencias .secondary-line,
+.menu-sugerencias strong {
+  color: #f8f9fa !important;
+}
+
+/* Estados en el dropdown - más visibles sobre fondo oscuro */
+.menu-sugerencias .estado-badge {
+  color: #fff !important;
+  font-weight: 600;
+}
+
+/* Iconos en dropdown en blanco */
+.menu-sugerencias .small-icon {
+  color: #adb5bd !important; /* Gris claro para iconos */
+}
+
+/* Badges de estado específicos - mantener colores pero asegurar legibilidad */
+.menu-sugerencias .estado-finalizada {
+  background-color: #28a745 !important;
+  color: white !important;
+}
+
+.menu-sugerencias .estado-proceso {
+  background-color: #17a2b8 !important;
+  color: white !important;
+}
+
+.menu-sugerencias .estado-pendiente {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+}
+
+.menu-sugerencias .estado-cancelada {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+
+.menu-sugerencias .estado-desconocido {
+  background-color: #6c757d !important;
+  color: white !important;
+}
+
+/* Estado "Aceptado" como "Finalizada" */
+.estado-aceptado {
+  background-color: var(--bs-success) !important;
+  color: white !important;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Indicador de presupuesto aceptado en dropdown */
+.presupuesto-estado-indicador.aceptado {
+  background-color: #28a745 !important;
+  color: white !important;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.presupuesto-estado-indicador.pendiente {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Icono dentro del estado aceptado */
+.presupuesto-estado-indicador.aceptado i {
+  color: white !important;
+}
+
+.presupuesto-estado-indicador.pendiente i {
+  color: #212529 !important;
+}
+.menu-sugerencias .info-separator {
+  color: #adb5bd !important; /* Gris claro para mejor contraste */
+  margin: 0 8px;
 }

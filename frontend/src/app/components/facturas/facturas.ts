@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, forkJoin, of } from 'rxjs';
+import { Subject, Subscription, of, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged, catchError, map, switchMap } from 'rxjs/operators';
 
 import { FacturaService, Factura, Paginated } from '../../services/facturas';
@@ -27,6 +27,21 @@ type FacturaForm = Omit<Factura, 'fecha' | 'monto_total' | 'id'> & {
 
 interface PresupuestoConReparacion extends Presupuesto {
   reparacion?: Reparacion;
+  yaFacturado?: boolean; 
+  facturaExistente?: {   
+    id: number;
+    numero: string;
+    letra: string;
+  };
+}
+
+interface PresupuestoConFactura extends Presupuesto {
+  yaFacturado: boolean;
+  facturaExistente?: {
+    id: number;
+    numero: string;
+    letra: string;
+  };
 }
 
 @Component({
@@ -89,14 +104,37 @@ export class FacturasComponent implements OnInit, OnDestroy {
     presupuestoBusqueda: ''
   };
 
+  getEstadoReparacionBadgeClass(estado?: string): string {
+      if (!estado) return 'estado-desconocido';
+      
+      switch (estado.toLowerCase()) {
+          case 'finalizada':
+          case 'finalizado':
+              return 'estado-finalizada';
+          case 'en proceso':
+          case 'en_proceso':
+          case 'en proceso':
+              return 'estado-proceso';
+          case 'pendiente':
+              return 'estado-pendiente';
+          case 'cancelada':
+          case 'cancelado':
+              return 'estado-cancelada';
+          default:
+              return 'estado-desconocido';
+      }
+  }
+
   presupuestosSugeridos: PresupuestoConReparacion[] = [];
   mostrandoPresupuestos = false;
   buscandoPresupuestos = false;
   private busquedaPresupuesto = new Subject<string>();
   
-  // Cache para información de reparaciones y presupuestos
   private reparacionesCache = new Map<number, Reparacion>();
   private presupuestosCache = new Map<number, PresupuestoConReparacion>();
+  
+  private busquedaPresupuestoCache = new Map<string, PresupuestoConReparacion[]>();
+  private busquedaPresupuestoTiempo = new Map<string, number>();
 
   mostrarCobros: { [key: number]: boolean } = {};
 
@@ -119,7 +157,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
   private configurarBusquedaPresupuestos(): void {
     this.busquedaPresupuesto.pipe(
-      debounceTime(50),
+      debounceTime(300),
       distinctUntilChanged()
     ).subscribe(termino => {
       this.buscarPresupuestos(termino);
@@ -157,7 +195,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
       monto_total: factura.monto_total
     });
 
-    // ✅ VERIFICAR QUE LA FACTURA TENGA ID VÁLIDO
     if (!factura.id || factura.id <= 0) {
       this.alertService.showError('Error', 'La factura no tiene un ID válido');
       return;
@@ -176,7 +213,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   cerrarModalCobros(): void {
-    // El cierre se maneja automáticamente en el modal
   }
 
   cargar(): void {
@@ -195,7 +231,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
         this.searchService.setSearchData(this.facturasAll);
         
-        // Cargar información de presupuestos y reparaciones asociadas a facturas
         this.cargarInformacionPresupuestos(nuevasFacturas);
       },
       error: () => { 
@@ -218,14 +253,12 @@ export class FacturasComponent implements OnInit, OnDestroy {
   private cargarPresupuestoCompleto(presupuestoId: number): void {
     this.presupuestoService.show(presupuestoId).pipe(
       switchMap((presupuesto: Presupuesto) => {
-        // Guardar el presupuesto en cache
         const presupuestoConReparacion: PresupuestoConReparacion = {
           ...presupuesto,
           reparacion: presupuesto.reparacion
         };
         this.presupuestosCache.set(presupuestoId, presupuestoConReparacion);
         
-        // Si tiene reparación, guardarla también en cache
         if (presupuesto.reparacion) {
           this.reparacionesCache.set(presupuesto.reparacion_id, presupuesto.reparacion);
         }
@@ -334,27 +367,48 @@ export class FacturasComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const ahora = Date.now();
+    const cacheEntry = this.busquedaPresupuestoCache.get(terminoLimpio);
+    const cacheTime = this.busquedaPresupuestoTiempo.get(terminoLimpio);
+    
+    if (cacheEntry && cacheTime && (ahora - cacheTime < 30000)) {
+      this.presupuestosSugeridos = cacheEntry;
+      this.mostrandoPresupuestos = true;
+      this.buscandoPresupuestos = false;
+      return;
+    }
+
     this.buscandoPresupuestos = true;
     
     this.presupuestoService.buscarPresupuestos(terminoLimpio).pipe(
-      map((presupuestos: Presupuesto[]) => {
-        return this.filtrarPresupuestosFacturables(presupuestos);
+      switchMap((presupuestos: Presupuesto[]) => {
+        const presupuestosFacturables = this.filtrarPresupuestosFacturables(presupuestos);
+        
+        return this.verificarPresupuestosConFactura(presupuestosFacturables);
       }),
-      switchMap((presupuestosFiltrados: Presupuesto[]) => {
-        // Para cada presupuesto, cargar información de reparación si no la tiene
-        if (presupuestosFiltrados.length === 0) {
-          return of([]);
-        }
+      map((presupuestosConEstado: PresupuestoConFactura[]) => {
+        const presupuestosFormateados = this.formatearPresupuestosParaDropdown(presupuestosConEstado);
         
-        const requests = presupuestosFiltrados.map(presupuesto => 
-          this.cargarInformacionReparacionParaPresupuesto(presupuesto)
-        );
+        this.busquedaPresupuestoCache.set(terminoLimpio, presupuestosFormateados);
+        this.busquedaPresupuestoTiempo.set(terminoLimpio, ahora);
         
-        return forkJoin(requests);
+        return presupuestosFormateados;
+      }),
+      catchError(() => {
+        return of([]);
       })
     ).subscribe({
       next: (presupuestosCompletos: PresupuestoConReparacion[]) => {
-        this.presupuestosSugeridos = presupuestosCompletos.slice(0, 10);
+        this.presupuestosSugeridos = presupuestosCompletos
+          .sort((a, b) => {
+            if (!a.yaFacturado && b.yaFacturado) return -1;
+            if (a.yaFacturado && !b.yaFacturado) return 1;
+            if (a.aceptado && !b.aceptado) return -1;
+            if (!a.aceptado && b.aceptado) return 1;
+            return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+          })
+          .slice(0, 10);
+        
         this.mostrandoPresupuestos = true;
         this.buscandoPresupuestos = false;
       },
@@ -366,58 +420,109 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
-  private filtrarPresupuestosFacturables(presupuestos: Presupuesto[]): Presupuesto[] {
-    return presupuestos.filter(presupuesto => {
-        if (!presupuesto.aceptado) {
-            return false;
-        }
+  private verificarPresupuestosConFactura(presupuestos: Presupuesto[]): Observable<PresupuestoConFactura[]> {
+    if (presupuestos.length === 0) {
+      return of([]);
+    }
+
+    const presupuestosIds = presupuestos.map(p => p.id);
+    
+    return this.facService.verificarPresupuestosFacturados(presupuestosIds).pipe(
+      map((facturados: any[]) => {
+        const presupuestosFacturadosMap = new Map<number, any>();
+        facturados.forEach(factura => {
+          if (factura.presupuesto_id) {
+            presupuestosFacturadosMap.set(factura.presupuesto_id, {
+              id: factura.id,
+              numero: factura.numero,
+              letra: factura.letra
+            });
+          }
+        });
         
-        const reparacionCache = this.reparacionesCache.get(presupuesto.reparacion_id);
-        if (reparacionCache) {
-            return reparacionCache.estado?.toLowerCase() === 'finalizada';
-        }
-        
-        return true;
+        return presupuestos.map(presupuesto => {
+          const facturaExistente = presupuestosFacturadosMap.get(presupuesto.id);
+          
+          return {
+            ...presupuesto,
+            yaFacturado: !!facturaExistente,
+            facturaExistente: facturaExistente
+          } as PresupuestoConFactura;
+        });
+      }),
+      catchError(() => {
+        return of(presupuestos.map(p => ({
+          ...p,
+          yaFacturado: false,
+          facturaExistente: undefined
+        } as PresupuestoConFactura)));
+      })
+    );
+  }
+
+  private formatearPresupuestosParaDropdown(presupuestos: PresupuestoConFactura[]): PresupuestoConReparacion[] {
+    return presupuestos.map(p => {
+      const presupuestoConReparacion: PresupuestoConReparacion = {
+        ...p,
+        yaFacturado: p.yaFacturado,
+        facturaExistente: p.facturaExistente,
+        reparacion: p.reparacion ? {
+          ...p.reparacion,
+          equipo_nombre: p.reparacion.equipo_nombre || 
+                        p.reparacion.equipo?.descripcion || 
+                        `Equipo #${p.reparacion.equipo_id}`,
+          cliente_nombre: p.reparacion.cliente_nombre || 
+                         p.reparacion.equipo?.cliente?.nombre || 
+                         `Cliente #${p.reparacion.equipo?.cliente_id}`,
+          tecnico_nombre: p.reparacion.tecnico_nombre || 
+                         p.reparacion.tecnico?.nombre || 
+                         `Técnico #${p.reparacion.usuario_id}`
+        } : undefined
+      };
+      
+      this.presupuestosCache.set(p.id, presupuestoConReparacion);
+      if (p.reparacion) {
+        this.reparacionesCache.set(p.reparacion_id, presupuestoConReparacion.reparacion!);
+      }
+      
+      return presupuestoConReparacion;
     });
   }
 
-  private cargarInformacionReparacionParaPresupuesto(presupuesto: Presupuesto): Promise<PresupuestoConReparacion> {
-    return new Promise((resolve) => {
-      // Si ya tiene información de reparación, usarla
-      if (presupuesto.reparacion) {
-        resolve({
-          ...presupuesto,
-          reparacion: presupuesto.reparacion
-        });
-        return;
+  private filtrarPresupuestosFacturables(presupuestos: Presupuesto[]): Presupuesto[] {
+    return presupuestos.filter(presupuesto => {
+      if (!presupuesto.aceptado) return false;
+      
+      const reparacionCache = this.reparacionesCache.get(presupuesto.reparacion_id);
+      if (reparacionCache) {
+        if (reparacionCache.estado?.toLowerCase() !== 'finalizada') {
+          return false;
+        }
       }
       
-      // Si no, cargarla
-      this.reparacionService.show(presupuesto.reparacion_id).subscribe({
-        next: (reparacion: Reparacion) => {
-          const presupuestoCompleto: PresupuestoConReparacion = {
-            ...presupuesto,
-            reparacion
-          };
-          
-          // Guardar en cache
-          this.presupuestosCache.set(presupuesto.id, presupuestoCompleto);
-          this.reparacionesCache.set(presupuesto.reparacion_id, reparacion);
-          
-          resolve(presupuestoCompleto);
-        },
-        error: () => {
-          // Si hay error, devolver el presupuesto sin reparación
-          resolve({
-            ...presupuesto,
-            reparacion: undefined
-          });
+      if (presupuesto.reparacion) {
+        if (presupuesto.reparacion.estado?.toLowerCase() !== 'finalizada') {
+          return false;
         }
-      });
+      }
+      
+      return true;
     });
   }
 
   seleccionarPresupuesto(presupuesto: PresupuestoConReparacion, esEdicion: boolean = false, reparacion?: Reparacion): void {
+    if (presupuesto.yaFacturado) {
+      const facturaExistente = presupuesto.facturaExistente;
+      if (facturaExistente) {
+        this.alertService.showGenericError(
+          `Este presupuesto ya tiene una factura: ${facturaExistente.numero}${facturaExistente.letra ? ' (' + facturaExistente.letra + ')' : ''}`
+        );
+      } else {
+        this.alertService.showGenericError('Este presupuesto ya tiene una factura asociada.');
+      }
+      return;
+    }
+
     const target = esEdicion ? this.editBuffer : this.nuevo;
     
     if (reparacion && presupuesto.reparacion_id === reparacion.id) {
@@ -442,7 +547,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
     if (presupuesto.reparacion) {
         const reparacionEstado = presupuesto.reparacion.estado?.toLowerCase();
         
-        if (reparacionEstado !== 'finalizada' && reparacionEstado !== 'finalizada') {
+        if (reparacionEstado !== 'finalizada') {
             this.alertService.showGenericError(
                 `La reparación asociada a este presupuesto está en estado "${presupuesto.reparacion.estado}". 
                 Solo se pueden facturar reparaciones finalizadas.`
@@ -470,7 +575,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
                 this.editBuffer.presupuestoSeleccionado.reparacion = reparacion;
             }
             
-            console.log('✅ Reparación cargada:', reparacion);
         },
         error: (error) => {
             console.error('❌ Error cargando reparación:', error);
@@ -566,15 +670,33 @@ export class FacturasComponent implements OnInit, OnDestroy {
     return 'Equipo no especificado';
   }
 
-  getEstadoReparacion(presupuestoId: number): string {
+  getEstadoReparacion(presupuestoId?: number): string {
+    if (!presupuestoId) return 'Desconocido';
+    
     const presupuesto = this.presupuestosCache.get(presupuestoId);
     return presupuesto?.reparacion?.estado || 'Desconocido';
+  }
+
+  trackByPresupuestoId(index: number, presupuesto: PresupuestoConReparacion): number {
+    return presupuesto.id;
   }
 
   async crear(): Promise<void> {
     if (!this.nuevo.presupuestoSeleccionado) {
         this.alertService.showGenericError('Debe seleccionar un presupuesto.');
         return;
+    }
+
+    if (this.nuevo.presupuestoSeleccionado.yaFacturado) {
+      const facturaExistente = this.nuevo.presupuestoSeleccionado.facturaExistente;
+      if (facturaExistente) {
+        this.alertService.showGenericError(
+          `Este presupuesto ya tiene una factura: ${facturaExistente.numero}${facturaExistente.letra ? ' (' + facturaExistente.letra + ')' : ''}`
+        );
+      } else {
+        this.alertService.showGenericError('Este presupuesto ya tiene una factura asociada.');
+      }
+      return;
     }
     
     if (!this.nuevo.presupuestoSeleccionado.aceptado) {
@@ -645,7 +767,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   async eliminar(id: number): Promise<void> {
-    // ✅ VERIFICAR QUE EL ID SEA VÁLIDO
     if (!id || id <= 0) {
       this.alertService.showGenericError('ID de factura no válido');
       return;
@@ -653,7 +774,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
     const factura = this.facturasAll.find(f => f.id === id);
     
-    // ✅ VERIFICAR QUE LA FACTURA EXISTA EN EL FRONTEND
     if (!factura) {
       this.alertService.showGenericError('Factura no encontrada en el listado');
       return;
@@ -665,7 +785,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
     this.alertService.showLoading('Eliminando factura...');
 
-    // ✅ PRIMERO INTENTAR ELIMINAR DEL BACKEND
     this.facService.delete(id).subscribe({
       next: () => { 
         this.alertService.closeLoading();
@@ -676,7 +795,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
         this.alertService.closeLoading();
         
         if (error.status === 404) {
-          // ✅ SI NO EXISTE EN EL BACKEND, ELIMINARLA SOLO DEL FRONTEND
           this.eliminarDelFrontend(id);
           this.alertService.showSuccess('Factura eliminada del listado');
         } else {
@@ -686,7 +804,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ NUEVO MÉTODO PARA ELIMINAR DEL FRONTEND
   private eliminarDelFrontend(id: number): void {
     this.facturasAll = this.facturasAll.filter(f => f.id !== id);
     this.facturas = this.facturas.filter(f => f.id !== id);
@@ -697,7 +814,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
   startEdit(item: Factura): void {
     this.editingId = item.id;
     
-    // Obtener información del presupuesto asociado
     const presupuesto = this.presupuestosCache.get(item.presupuesto_id);
     
     this.editBuffer = {
@@ -728,10 +844,19 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   async saveEdit(id: number): Promise<void> {
-    // Validar que el presupuesto esté aprobado
     if (!this.editBuffer.presupuestoSeleccionado) {
       this.alertService.showGenericError('Debe seleccionar un presupuesto.');
       return;
+    }
+
+    if (this.editBuffer.presupuestoSeleccionado.yaFacturado) {
+      const facturaExistente = this.editBuffer.presupuestoSeleccionado.facturaExistente;
+      if (facturaExistente && facturaExistente.id !== id) {
+        this.alertService.showGenericError(
+          `Este presupuesto ya tiene una factura: ${facturaExistente.numero}${facturaExistente.letra ? ' (' + facturaExistente.letra + ')' : ''}`
+        );
+        return;
+      }
     }
     
     if (!this.editBuffer.presupuestoSeleccionado.aceptado) {
@@ -838,5 +963,41 @@ export class FacturasComponent implements OnInit, OnDestroy {
 
   private toISODate(yyyyMMdd: string): string {
     return new Date(yyyyMMdd + 'T00:00:00Z').toISOString();
+  }
+  
+  private formatearDisplayTextPresupuesto(presupuesto: PresupuestoConReparacion): string {
+    const monto = presupuesto.monto_total ? 
+      `$${presupuesto.monto_total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
+      'Sin monto';
+    
+    const estado = presupuesto.aceptado ? '✓ Aceptado' : '✗ Pendiente';
+    const fecha = presupuesto.fecha ? new Date(presupuesto.fecha).toLocaleDateString('es-AR') : 'Sin fecha';
+    
+    if (!presupuesto.reparacion && this.reparacionesCache.has(presupuesto.reparacion_id)) {
+        presupuesto.reparacion = this.reparacionesCache.get(presupuesto.reparacion_id);
+    }
+    
+    let detalles = [];
+    detalles.push(`Presupuesto #${presupuesto.id} | ${monto} | ${estado} | ${fecha}`);
+    
+    if (presupuesto.reparacion) {
+        const estadoReparacion = presupuesto.reparacion.estado || 'Desconocido';
+        detalles.push(`Reparación: ${presupuesto.reparacion.descripcion || `#${presupuesto.reparacion_id}`}`);
+        detalles.push(`Estado: ${estadoReparacion}`);
+        
+        const clienteNombre = presupuesto.reparacion.cliente_nombre || 
+                             presupuesto.reparacion.equipo?.cliente?.nombre || 
+                             'Cliente no especificado';
+        detalles.push(`Cliente: ${clienteNombre}`);
+        
+        const equipoNombre = presupuesto.reparacion.equipo_nombre || 
+                           presupuesto.reparacion.equipo?.descripcion || 
+                           'Equipo no especificado';
+        detalles.push(`Equipo: ${equipoNombre}`);
+    } else {
+        detalles.push(`Reparación: #${presupuesto.reparacion_id}`);
+    }
+    
+    return detalles.join(' · ');
   }
 }

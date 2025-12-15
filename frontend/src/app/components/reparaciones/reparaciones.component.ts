@@ -384,11 +384,20 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   // ====== CREACIÓN DE REPARACIONES ======
   async crear() {
+    if (this.nuevo.fecha && new Date(this.nuevo.fecha) < new Date(this.getToday())) {
+      this.alertService.showGenericError('La fecha no puede ser anterior al día de hoy.');
+      return;
+    }
+    
+    if (this.nuevo.fecha_estimada && new Date(this.nuevo.fecha_estimada) < new Date(this.getToday())) {
+      this.alertService.showGenericError('La fecha estimada no puede ser anterior al día de hoy.');
+      return;
+    }
+
     if (!this.nuevo.equipo_id || !this.nuevo.usuario_id || !this.nuevo.descripcion || !this.nuevo.fecha || !this.nuevo.estado) {
       this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
       return;
     }
-
     for (const repuesto of this.repuestosSeleccionadosCrear) {
       if (repuesto.cantidad > repuesto.stock) {
         this.alertService.showGenericError(`Stock insuficiente para ${repuesto.nombre}. Solo hay ${repuesto.stock} unidades disponibles.`);
@@ -585,37 +594,24 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   }
 
   async saveEdit(id: number) {
+    // Validación de fecha
+    if (this.editBuffer.fecha && new Date(this.editBuffer.fecha) < new Date(this.getToday())) {
+      this.alertService.showGenericError('La fecha no puede ser anterior al día de hoy.');
+      return;
+    }
+    
+    // Validación de fecha estimada
+    if (this.editBuffer.fecha_estimada && new Date(this.editBuffer.fecha_estimada) < new Date(this.getToday())) {
+      this.alertService.showGenericError('La fecha estimada no puede ser anterior al día de hoy.');
+      return;
+    }
+
     if (!this.editBuffer.equipo_id || !this.editBuffer.usuario_id || !this.editBuffer.descripcion || !this.editBuffer.fecha || !this.editBuffer.estado) {
       this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
       return;
     }
-
-    this.alertService.showLoading('Actualizando reparación...');
-
-    this.repService.update(id, this.editBuffer).subscribe({
-      next: (res: any) => {
-        this.alertService.closeLoading();
-        const idx = this.reparacionesAll.findIndex(r => r.id === id);
-        if (idx >= 0) {
-          const reparacionActualizada = {
-            ...this.reparacionesAll[idx],
-            ...this.editBuffer
-          } as Reparacion;
-          
-          this.reparacionesAll[idx] = reparacionActualizada;
-          this.applyFilterLocal();
-          this.prepararDatosParaBusquedaGlobal();
-        }
-        this.cancelEdit();
-        this.alertService.showReparacionActualizada();
-      },
-      error: (e) => {
-        this.alertService.closeLoading();
-        this.alertService.showGenericError(e?.error?.error ?? 'Error al actualizar la reparación');
-      }
-    });
   }
-
+  
   // ====== LIMPIAR BÚSQUEDA GLOBAL ======
   limpiarBusqueda() {
     this.searchService.clearSearch();
@@ -1331,18 +1327,24 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     return this.getNombreDisplayTecnico(this.tecnicoSeleccionado);
   }
 
-  // Método para obtener nombre de cliente en edición
   getNombreClienteEdit(): string {
     return this.getNombreDisplayCliente(this.clienteEditSeleccionado);
   }
 
-  // Método para obtener nombre de equipo en edición  
   getNombreEquipoEdit(): string {
     return this.getNombreDisplayEquipo(this.equipoEditSeleccionado);
   }
 
-  // Método para obtener nombre de técnico en edición
   getNombreTecnicoEdit(): string {
     return this.getNombreDisplayTecnico(this.tecnicoEditSeleccionado);
+  }
+
+  // ====== MÉTODO PARA OBTENER FECHA ACTUAL EN FORMATO YYYY-MM-DD ======
+  getToday(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

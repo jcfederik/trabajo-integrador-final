@@ -38,10 +38,10 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     // Perfil
     Route::apiResource('profile', UserController::class)->only(['index', 'update']);
-
-    // =============================
-    // 🔍 RUTAS DE BÚSQUEDA
-    // =============================
+    
+    // =============================================
+    // 🔥 RUTAS DE BÚSQUEDA ESPECÍFICAS
+    // =============================================
     Route::get('/reparaciones/buscar', [ReparacionController::class, 'buscar']);
     Route::get('/presupuestos/buscar', [PresupuestoController::class, 'buscar']);
     Route::get('/presupuestos/listado-optimizado', [PresupuestoController::class, 'listadoOptimizado']);
@@ -90,28 +90,27 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     // Repuestos
     Route::post('/repuestos/comprar', [RepuestoController::class, 'comprar']);
-
-    // Historial Stock (protegido)
-    Route::middleware(['permission:historial-stock.view'])->get(
-        '/historial-stock',
+    
+    // Historial
+    Route::middleware(['permission:historial-stock.view'])->get('/historial-stock', 
         [HistorialStockController::class, 'index']
-    );
-
+    );    
     // Usuarios
     Route::get('/usuarios', [UserController::class, 'listarUsuarios']);
-
-    // =============================
-    // ✨ CREACIÓN (no admin)
-    // =============================
+    
+    // =============================================
+    // ✨ CREACIÓN (no requiere admin)
+    // =============================================
     Route::post('/especializaciones', [EspecializacionController::class, 'store']);
     Route::post('/users/{id}/especializaciones', [AdminUserController::class, 'autoAsignarEspecializaciones']);
-
-    // =============================
-    // 👑 SOLO ADMIN (PERMISSIONS)
-    // =============================
-    Route::middleware(['permission:users.manage'])->group(function () {
+    
+    // =============================================
+    // 👑 RUTAS SOLO PARA ADMINISTRADORES
+    // =============================================
+    Route::middleware(['admin'])->group(function () {
         Route::put('/especializaciones/{id}', [EspecializacionController::class, 'update']);
         Route::delete('/especializaciones/{id}', [EspecializacionController::class, 'destroy']);
+        
         Route::apiResource('users', AdminUserController::class);
         Route::post('/admin/users/{id}/especializaciones', [AdminUserController::class, 'asignarEspecializacionesUsuario']);
     });

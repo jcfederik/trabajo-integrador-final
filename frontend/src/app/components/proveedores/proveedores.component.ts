@@ -24,6 +24,10 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
   proveedoresAll: ProveedorUI[] = [];
   proveedores: ProveedorUI[] = [];
 
+  // =============== VALIDACIÓN DE EMAIL ===============
+  emailInvalido = false;
+  emailEditInvalido = false;
+
   // =============== PAGINACIÓN ===============
   page = 1;
   perPage = 15;
@@ -70,6 +74,87 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     window.removeEventListener('scroll', this.onScroll);
     this.searchSub?.unsubscribe();
     this.searchService.clearSearch();
+  }
+
+  // =============== VALIDACIÓN DE EMAIL ===============
+  
+  private readonly EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  validarEmailCreacion(): void {
+    if (!this.nuevo.email) {
+      this.emailInvalido = false;
+      return;
+    }
+    
+    this.emailInvalido = !this.EMAIL_REGEX.test(this.nuevo.email);
+    
+    if (this.emailInvalido) {
+      this.alertService.showInvalidEmailError();
+    }
+  }
+
+  validarEmailEdicion(): void {
+    if (!this.editBuffer.email) {
+      this.emailEditInvalido = false;
+      return;
+    }
+    
+    this.emailEditInvalido = !this.EMAIL_REGEX.test(this.editBuffer.email);
+    
+    if (this.emailEditInvalido) {
+      this.alertService.showInvalidEmailError();
+    }
+  }
+
+  private esEmailValido(email: string): boolean {
+    if (!email || email.trim() === '') {
+      return true;
+    }
+    return this.EMAIL_REGEX.test(email.trim());
+  }
+
+  // =============== MÉTODOS PARA VALIDACIÓN DE INPUTS NUMÉRICOS ===============
+  
+  soloNumeros(event: KeyboardEvent): boolean {
+    const charCode = (event.which) ? event.which : event.keyCode;
+    
+    if ([8, 9, 13, 27, 46].includes(charCode)) {
+      return true;
+    }
+    
+    if (event.ctrlKey && [65, 67, 86, 88].includes(charCode)) {
+      return true;
+    }
+    
+    if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+      event.preventDefault();
+      return false;
+    }
+    
+    return true;
+  }
+
+  limitarLongitud(campo: 'cuit' | 'telefono', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const valor = input.value;
+    
+    if (valor.length > 11) {
+      input.value = valor.substring(0, 11);
+      
+      if (campo === 'cuit') {
+        if (this.editingId) {
+          this.editBuffer.cuit = input.value;
+        } else {
+          this.nuevo.cuit = input.value;
+        }
+      } else if (campo === 'telefono') {
+        if (this.editingId) {
+          this.editBuffer.telefono = input.value;
+        } else {
+          this.nuevo.telefono = input.value;
+        }
+      }
+    }
   }
 
   // =============== CONFIGURACIÓN DE BÚSQUEDA ===============
@@ -143,6 +228,12 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
 
   // =============== CREACIÓN ===============
   async crear(): Promise<void> {
+    if (this.nuevo.email && !this.esEmailValido(this.nuevo.email)) {
+      this.emailInvalido = true;
+      this.alertService.showInvalidEmailError();
+      return;
+    }
+
     const payload = this.limpiarPayload(this.nuevo);
     if (!this.validarPayload(payload)) return;
 
@@ -160,6 +251,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
           direccion: '', 
           email: '' 
         };
+        this.emailInvalido = false;
         this.resetLista();
         this.alertService.showProveedorCreado(payload.razon_social!);
       },
@@ -198,19 +290,27 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.editingId = item.id!;
     this.editBuffer = {
       razon_social: item.razon_social ?? '',
-      cuit: item.cuit ?? '',
-      telefono: item.telefono ?? '',
+      cuit: (item.cuit ?? '').toString().replace(/\D/g, ''),
+      telefono: (item.telefono ?? '').toString().replace(/\D/g, ''),
       direccion: item.direccion ?? '',
       email: item.email ?? ''
     };
+    this.emailEditInvalido = false;
   }
 
   cancelEdit(): void {
     this.editingId = null;
     this.editBuffer = {};
+    this.emailEditInvalido = false;
   }
 
   async saveEdit(id: number): Promise<void> {
+    if (this.editBuffer.email && !this.esEmailValido(this.editBuffer.email)) {
+      this.emailEditInvalido = true;
+      this.alertService.showInvalidEmailError();
+      return;
+    }
+
     const payload = this.limpiarPayload(this.editBuffer);
     if (!this.validarPayload(payload)) return;
 
@@ -219,6 +319,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
     this.proveedoresService.updateProveedor(id, payload).subscribe({
       next: (response: any) => {
         this.alertService.closeLoading();
+        this.resetLista();
         const proveedorActualizado = response.proveedor || response;
         
         const updateLocal = (arr: ProveedorUI[]) => {
@@ -247,10 +348,15 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
 
   // =============== VALIDACIÓN Y UTILIDADES ===============
   private limpiarPayload(obj: Partial<ProveedorUI>): Partial<ProveedorUI> {
+    const sanitized = {
+      cuit: obj.cuit?.toString().replace(/\D/g, '').substring(0, 11),
+      telefono: obj.telefono?.toString().replace(/\D/g, '').substring(0, 11)
+    };
+    
     return {
       razon_social: obj.razon_social?.toString().trim(),
-      cuit: obj.cuit?.toString().trim(),
-      telefono: obj.telefono?.toString().trim(),
+      cuit: sanitized.cuit?.trim(),
+      telefono: sanitized.telefono?.trim(),
       direccion: obj.direccion?.toString().trim(),
       email: obj.email?.toString().trim()
     };
@@ -261,10 +367,18 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
       this.alertService.showRequiredFieldError('razón social');
       return false;
     }
+    
     if (!p.cuit || p.cuit.trim() === '') {
       this.alertService.showRequiredFieldError('CUIT');
       return false;
     }
+    
+    const cuitNumerico = p.cuit.replace(/\D/g, '');
+    if (cuitNumerico.length < 11) {
+      this.alertService.showError('CUIT inválido', 'El CUIT debe tener 11 dígitos');
+      return false;
+    }
+    
     return true;
   }
 

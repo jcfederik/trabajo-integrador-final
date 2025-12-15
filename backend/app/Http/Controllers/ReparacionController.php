@@ -654,7 +654,6 @@ class ReparacionController extends Controller
     {
         $user = Auth::user();
         
-        // ✅ Solo técnicos asignados pueden asignar repuestos
         if ($user->tipo === 'tecnico') {
             $reparacion = Reparacion::find($reparacionId);
             if (!$reparacion || $reparacion->usuario_id != $user->id) {
@@ -663,6 +662,9 @@ class ReparacionController extends Controller
                 ], 403);
             }
         }
+
+        Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
+
         $request->validate([
             'repuesto_id' => 'required|exists:repuesto,id',
             'cantidad' => 'required|integer|min:1'
@@ -775,7 +777,6 @@ class ReparacionController extends Controller
     {
         $user = Auth::user();
         
-        // ✅ Solo técnicos asignados pueden remover repuestos
         if ($user->tipo === 'tecnico') {
             $reparacion = Reparacion::find($reparacionId);
             if (!$reparacion || $reparacion->usuario_id != $user->id) {
