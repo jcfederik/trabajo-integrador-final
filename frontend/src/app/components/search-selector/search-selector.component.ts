@@ -61,6 +61,7 @@ export class SearchSelectorComponent implements OnInit {
     }
   }
 
+  // GESTIÓN DE SUGERENCIAS
   updateSuggestions(results: SearchResult[]) {
     this.suggestions = results;
     this.showSuggestions = results.length > 0;
@@ -70,6 +71,7 @@ export class SearchSelectorComponent implements OnInit {
     this._showNoRepuestosMessage = false;
   }
 
+  // CONTROL DE MENSAJES
   showMessage(type: 'noClient' | 'noResults' | 'noEquipos' | 'noRepuestos', show: boolean): void {
     switch (type) {
       case 'noClient':
@@ -87,6 +89,7 @@ export class SearchSelectorComponent implements OnInit {
     }
   }
 
+  // EVENTOS DE BÚSQUEDA
   onSearch(term: string) {
     this.searchTerm = term;
     
@@ -123,6 +126,7 @@ export class SearchSelectorComponent implements OnInit {
     }, 200);
   }
 
+  // SELECCIÓN DE ITEMS
   onSelect(item: SearchResult) {
     this.selectItem.emit(item);
     this.searchTerm = this.getDisplayText(item);
@@ -145,6 +149,7 @@ export class SearchSelectorComponent implements OnInit {
     }
   }
 
+  // UTILIDADES
   getInputWidth(): number {
     return this.searchInput ? this.searchInput.nativeElement.offsetWidth : 0;
   }
@@ -242,6 +247,7 @@ export class SearchSelectorComponent implements OnInit {
            this._showNoEquiposMessage || this._showNoRepuestosMessage;
   }
 
+  // MÉTODOS PRIVADOS
   private clearMessages(): void {
     this._showNoClientMessage = false;
     this._showNoResultsMessage = false;

@@ -73,7 +73,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     private alertService: AlertService
   ) {}
 
-  // ====== LIFECYCLE ======
+  // LIFECYCLE
   ngOnInit(): void {
     this.resetLista();
     this.cargarClientes();
@@ -89,7 +89,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // ====== CONFIGURACIÓN DE BÚSQUEDA ======
+  // CONFIGURACIÓN DE BÚSQUEDA
   private configurarBusqueda(): void {
     this.searchService.setCurrentComponent('equipos');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -112,7 +112,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== BÚSQUEDA DE CLIENTES ======
+  // BÚSQUEDA DE CLIENTES
   buscarClientes(termino: string): void {
     if (termino.length < 2) {
       this.clienteSelector.updateSuggestions([]);
@@ -189,7 +189,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.editBuffer.cliente_id = undefined;
   }
 
-  // ====== BÚSQUEDA Y FILTROS ======
+  // BÚSQUEDA Y FILTROS
   onBuscarEquipos(termino: string): void {
     const terminoLimpio = (termino || '').trim();
     
@@ -283,7 +283,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     this.equipos = [...this.equiposAll];
   }
 
-  // ====== LISTA / PAGINACIÓN ======
+  // LISTA / PAGINACIÓN
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -377,7 +377,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ====== CRUD OPERATIONS ======
+  // CRUD OPERATIONS
   async crear(): Promise<void> {
     const payload = this.limpiarPayload(this.nuevo);
     if (!this.validarPayload(payload)) return;
@@ -428,7 +428,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== EDICIÓN INLINE ======
+  // EDICIÓN INLINE
   startEdit(item: EquipoUI): void {
     this.editingId = item.id;
     this.editBuffer = {
@@ -458,9 +458,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
               telefono: cliente.telefono
             };
           },
-          error: (err) => {
-            // Silently handle error
-          }
+          error: (err) => {}
         });
       }
     } else {
@@ -500,7 +498,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== HELPERS ======
+  // HELPERS
   private limpiarPayload(obj: Partial<EquipoUI>): Partial<EquipoUI> {
     return {
       descripcion: obj.descripcion?.toString().trim(),
@@ -544,9 +542,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.clientes = res.data ?? res;
       },
-      error: (err) => {
-        // Silently handle error
-      }
+      error: (err) => {}
     });
   }
 

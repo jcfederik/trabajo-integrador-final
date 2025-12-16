@@ -40,22 +40,24 @@ export class UsuariosComponent implements OnInit {
     private alertService: AlertService
   ) {}
 
+  // LIFECYCLE HOOKS
   ngOnInit() {
     this.cargarUsuarios();
   }
 
+  // CARGA DE DATOS
   cargarUsuarios() {
     this.http.get<any>('http://127.0.0.1:8000/api/users').subscribe({
       next: (response) => {
         this.usuarios = response.data || [];
       },
       error: (error) => {
-        console.error('Error cargando usuarios:', error);
         this.alertService.showGenericError('Error al cargar usuarios');
       }
     });
   }
 
+  // CREACIÓN DE USUARIO
   async crearUsuario() {
     if (!this.nuevoUsuario.nombre || !this.nuevoUsuario.password) {
       this.alertService.showRequiredFieldError('nombre y contraseña');
@@ -74,12 +76,12 @@ export class UsuariosComponent implements OnInit {
       },
       error: (error) => {
         this.alertService.closeLoading();
-        console.error('Error creando usuario:', error);
         this.alertService.showGenericError(error.error?.message || 'Error al crear usuario');
       }
     });
   }
 
+  // ELIMINACIÓN DE USUARIO
   async eliminarUsuario(id: number, usuarioNombre: string) {
     const usuario = this.usuarios.find(u => u.id === id);
     if (usuario?.tipo === 'administrador') {
@@ -100,17 +102,18 @@ export class UsuariosComponent implements OnInit {
       },
       error: (error) => {
         this.alertService.closeLoading();
-        console.error('Error eliminando usuario:', error);
         this.alertService.showGenericError(error.error?.message || 'Error al eliminar usuario');
       }
     });
   }
 
+  // GESTIÓN DEL FORMULARIO DE CREACIÓN
   cancelarCreacion() {
     this.mostrarFormulario = false;
     this.nuevoUsuario = { nombre: '', tipo: 'usuario', password: '' };
   }
 
+  // EDICIÓN DE USUARIO
   iniciarEdicion(usuario: User) {
     this.editandoUsuario = usuario;
     this.usuarioEditado = {
@@ -157,7 +160,6 @@ export class UsuariosComponent implements OnInit {
       },
       error: (error) => {
         this.alertService.closeLoading();
-        console.error('Error actualizando usuario:', error);
         this.alertService.showGenericError(error.error?.message || 'Error al actualizar usuario');
       }
     });
