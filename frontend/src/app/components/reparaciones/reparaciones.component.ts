@@ -96,7 +96,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     private repuestoService: RepuestoService,
     private alertService: AlertService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   // ====== CICLO DE VIDA ======
   ngOnInit(): void {
@@ -119,7 +119,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       const oldTerm = this.searchTerm;
       this.searchTerm = (term || '').trim();
-          
+
       if (this.searchTerm) {
         this.onBuscarReparaciones(this.searchTerm);
       } else {
@@ -142,9 +142,9 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   // ====== BÚSQUEDA DE REPARACIONES ======
   onBuscarReparaciones(termino: string): void {
     const terminoLimpio = (termino || '').trim();
-    
+
     console.log('🔍 Buscando con término:', terminoLimpio);
-    
+
     if (!terminoLimpio) {
       // Si el término está vacío, limpiar resultados
       this.reparacionesFiltradas = [...this.reparacionesAll];
@@ -173,17 +173,17 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.repService.buscarReparaciones(termino).subscribe({
       next: (reparaciones: Reparacion[]) => {
         console.log('✅ Resultados del servidor:', reparaciones.length);
-        
+
         // Si no hay resultados, usar búsqueda local como fallback
         if (!reparaciones || reparaciones.length === 0) {
           console.log('⚠️ Sin resultados del servidor, usando búsqueda local');
           this.applyFilterLocal();
           return;
         }
-        
+
         this.reparacionesAll = reparaciones;
         this.reparacionesFiltradas = [...reparaciones];
-        
+
         // Preparar datos para búsqueda global
         this.prepararDatosParaBusquedaGlobal();
       },
@@ -198,7 +198,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   private applyFilterLocal(): void {
     const term = this.searchTerm.toLowerCase();
-    
+
     if (!term) {
       this.reparacionesFiltradas = [...this.reparacionesAll];
       this.isServerSearch = false;
@@ -211,7 +211,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       this.buscarEnServidor(term);
     } else {
       this.isServerSearch = false;
-      
+
       const filtered = this.reparacionesAll.filter(reparacion => {
         const searchableText = [
           reparacion.descripcion,
@@ -220,10 +220,10 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
           this.getTecnicoNombre(reparacion),
           this.getClienteNombre(reparacion)
         ].join(' ').toLowerCase();
-        
+
         return searchableText.includes(term);
       });
-      
+
       this.reparacionesFiltradas = filtered;
     }
   }
@@ -238,15 +238,15 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   // ====== GESTIÓN DE LISTADO Y SCROLL ======
   cargar() {
     if (this.loading || this.lastPage) return;
-    
+
     this.loading = true;
-    
+
     const searchTerm = this.searchTerm && this.searchTerm.trim() ? this.searchTerm.trim() : '';
-    
+
     this.repService.listCompleto(this.page, this.perPage, searchTerm).subscribe({
       next: (res: PaginatedResponse<Reparacion>) => {
         const nuevasReparaciones = res.data;
-        
+
         if (this.page === 1) {
           this.reparacionesAll = nuevasReparaciones;
         } else {
@@ -256,7 +256,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
         this.page++;
         this.lastPage = (res.current_page >= res.last_page);
         this.loading = false;
-        
+
         this.applyFilterLocal();
         this.prepararDatosParaBusquedaGlobal();
       },
@@ -275,24 +275,24 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       reparacion_nombre: reparacion.descripcion || 'Sin descripción',
       cliente_nombre: this.getClienteNombre(reparacion)
     }));
-    
+
     this.searchService.setSearchData(itemsForSearch);
   }
 
   private cargarMasResultadosBusqueda(): void {
     if (this.loading || this.serverSearchLastPage) return;
-    
+
     this.loading = true;
     this.serverSearchPage++;
 
     this.repService.listCompleto(this.serverSearchPage, this.perPage, this.searchTerm).subscribe({
       next: (response: PaginatedResponse<Reparacion>) => {
         const nuevasReparaciones = response.data;
-        
+
         if (Array.isArray(nuevasReparaciones) && nuevasReparaciones.length > 0) {
           this.reparacionesAll = [...this.reparacionesAll, ...nuevasReparaciones];
           this.reparacionesFiltradas = [...this.reparacionesAll];
-          
+
           const itemsForSearch = this.reparacionesAll.map(reparacion => ({
             ...reparacion,
             tecnico_nombre: this.getTecnicoNombre(reparacion),
@@ -304,7 +304,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
         } else {
           this.serverSearchLastPage = true;
         }
-        
+
         this.loading = false;
       },
       error: (error) => {
@@ -319,9 +319,9 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       return;
     }
     if (this.loading) return;
-    
+
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
-    
+
     if (nearBottom) {
       if (this.isServerSearch && !this.serverSearchLastPage) {
         this.cargarMasResultadosBusqueda();
@@ -339,7 +339,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.isServerSearch = false;
     this.reparacionesAll = [];
     this.reparacionesFiltradas = [];
-    
+
     if (this.searchTerm) {
       this.applyFilterLocal();
     } else {
@@ -390,7 +390,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       this.alertService.showGenericError('La fecha no puede ser anterior al día de hoy.');
       return;
     }
-    
+
     if (this.nuevo.fecha_estimada && new Date(this.nuevo.fecha_estimada) < new Date(this.getToday())) {
       this.alertService.showGenericError('La fecha estimada no puede ser anterior al día de hoy.');
       return;
@@ -411,13 +411,13 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
     try {
       const response = await this.repService.create(this.nuevo).toPromise() as any;
-      
+
       if (!response) {
         throw new Error('No se recibió respuesta del servidor al crear la reparación');
       }
 
       let nuevaReparacion: Reparacion;
-      
+
       if (response.reparacion) {
         nuevaReparacion = response.reparacion;
       } else if (response.id) {
@@ -433,9 +433,9 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       }
 
       this.alertService.closeLoading();
-      
+
       const reparacionCompleta = await this.repService.show(nuevaReparacion.id).toPromise();
-      
+
       if (reparacionCompleta) {
         this.reparacionesAll.unshift(reparacionCompleta);
         this.applyFilterLocal();
@@ -448,19 +448,19 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
         estado: 'pendiente',
         descripcion: ''
       };
-      
+
       this.clienteSeleccionado = null;
       this.equipoSeleccionado = null;
       this.tecnicoSeleccionado = null;
       this.repuestosSeleccionadosCrear = [];
       this.repuestoSeleccionadoCrear = null;
       this.cantidadRepuestoCrear = 1;
-      
+
       if (this.clienteSelector) this.clienteSelector.clearAll();
       if (this.equipoSelector) this.equipoSelector.clearAll();
       if (this.tecnicoSelector) this.tecnicoSelector.clearAll();
       if (this.repuestoCrearSelector) this.repuestoCrearSelector.clearAll();
-      
+
       this.selectedAction = 'listar';
       this.alertService.showReparacionCreada();
 
@@ -468,9 +468,9 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       this.alertService.closeLoading();
       console.error('Error al crear reparación:', e);
       this.alertService.showGenericError(
-        e?.error?.error || 
-        e?.error?.detalle || 
-        e?.message || 
+        e?.error?.error ||
+        e?.error?.detalle ||
+        e?.message ||
         'Error al crear la reparación'
       );
     }
@@ -549,7 +549,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
               modelo: equipo.modelo,
               nro_serie: equipo.nro_serie
             };
-            
+
             if (equipo.cliente_id) {
               this.clienteService.getCliente(equipo.cliente_id).subscribe({
                 next: (cliente) => {
@@ -561,11 +561,11 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
                   };
                   this.cargarTodosLosEquiposDelClienteEdit();
                 },
-                error: (e) => {}
+                error: (e) => { }
               });
             }
           },
-          error: (e) => {}
+          error: (e) => { }
         });
       }
     }
@@ -574,15 +574,15 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       this.usuarioService.getTecnicos(1, 50).subscribe({
         next: (response: any) => {
           const tecnicos = response.data || response;
-          const tecnico = Array.isArray(tecnicos) ? 
-            tecnicos.find((t: any) => t.id === item.usuario_id) : 
+          const tecnico = Array.isArray(tecnicos) ?
+            tecnicos.find((t: any) => t.id === item.usuario_id) :
             null;
-          
+
           if (tecnico) {
             this.tecnicoEditSeleccionado = tecnico;
           }
         },
-        error: (e) => {}
+        error: (e) => { }
       });
     }
   }
@@ -594,26 +594,68 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.equipoEditSeleccionado = null;
     this.tecnicoEditSeleccionado = null;
   }
+  saveEdit(id: number): void {
 
-  async saveEdit(id: number) {
-    // Validación de fecha
+    //Validación de fecha
     if (this.editBuffer.fecha && new Date(this.editBuffer.fecha) < new Date(this.getToday())) {
       this.alertService.showGenericError('La fecha no puede ser anterior al día de hoy.');
       return;
     }
-    
-    // Validación de fecha estimada
+
+    //Validación de fecha estimada
     if (this.editBuffer.fecha_estimada && new Date(this.editBuffer.fecha_estimada) < new Date(this.getToday())) {
       this.alertService.showGenericError('La fecha estimada no puede ser anterior al día de hoy.');
       return;
     }
 
-    if (!this.editBuffer.equipo_id || !this.editBuffer.usuario_id || !this.editBuffer.descripcion || !this.editBuffer.fecha || !this.editBuffer.estado) {
-      this.alertService.showGenericError('Completá todos los campos: equipo, técnico, descripción, fecha y estado.');
+    //Validación de campos obligatorios
+    if (
+      !this.editBuffer.equipo_id ||
+      !this.editBuffer.usuario_id ||
+      !this.editBuffer.descripcion ||
+      !this.editBuffer.fecha ||
+      !this.editBuffer.estado
+    ) {
+      this.alertService.showGenericError(
+        'Completá todos los campos: equipo, técnico, descripción, fecha y estado.'
+      );
       return;
     }
-  }
 
+    //GUARDAR CAMBIOS
+    this.repService.update(id, this.editBuffer).subscribe({
+      next: (updated) => {
+
+        //Actualizar lista principal
+        const indexAll = this.reparacionesAll.findIndex(r => r.id === updated.id);
+        if (indexAll !== -1) {
+          this.reparacionesAll[indexAll] = {
+            ...this.reparacionesAll[indexAll],
+            ...updated
+          };
+        }
+
+        //Actualizar lista filtrada
+        const indexFiltradas = this.reparacionesFiltradas.findIndex(r => r.id === updated.id);
+        if (indexFiltradas !== -1) {
+          this.reparacionesFiltradas[indexFiltradas] = {
+            ...this.reparacionesFiltradas[indexFiltradas],
+            ...updated
+          };
+        }
+
+        //Cerrar edición
+        this.editingId = null;
+        this.editBuffer = {};
+
+        this.alertService.showSuccess('Reparación actualizada correctamente.');
+      },
+      error: (err) => {
+        console.error('❌ Error al actualizar reparación', err);
+        this.alertService.showGenericError('No se pudo guardar la reparación.');
+      }
+    });
+  }
   // ====== LIMPIAR BÚSQUEDA GLOBAL ======
   limpiarBusqueda() {
     this.searchService.clearSearch();
@@ -699,7 +741,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   seleccionarAccion(a: Acción) {
     this.selectedAction = a;
-    
+
     if (a !== 'crear') {
       this.repuestosSeleccionadosCrear = [];
       this.repuestoSeleccionadoCrear = null;
@@ -716,12 +758,12 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       case 'pendiente':
         return 'badge bg-warning text-white';
       case 'en proceso':
-        return 'badge bg-info text-white';  
+        return 'badge bg-info text-white';
       case 'finalizada':
       case 'completado':
         return 'badge bg-success';
       case 'cancelada':
-        return 'badge bg-danger'; 
+        return 'badge bg-danger';
       default:
         return 'badge bg-secondary';
     }
@@ -758,7 +800,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     console.log('🗂️ Propiedades:', Object.keys(cliente || {}));
     console.log('👤 Nombre:', cliente?.nombre);
     console.log('🆔 ID:', cliente?.id);
-    
+
     this.clienteSeleccionado = cliente;
     this.limpiarEquipo();
     this.cargarTodosLosEquiposDelCliente();
@@ -815,7 +857,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   buscarEquiposEdit(termino: string = '') {
     if (!this.clienteEditSeleccionado) {
       this.equipoEditSelector?.updateSuggestions([]);
-      
+
       if (this.equipoEditSelector) {
         this.setEquipoEditSelectorMessage('noClient', true);
       }
@@ -829,7 +871,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.equipoService.buscarEquiposConFiltro(termino, this.clienteEditSeleccionado.id).subscribe({
       next: (equipos: SearchResult[]) => {
         this.equipoEditSelector?.updateSuggestions(equipos);
-        
+
         if (this.equipoEditSelector && equipos.length === 0 && termino.length >= 2) {
           this.setEquipoEditSelectorMessage('noResults', true);
         } else if (this.equipoEditSelector) {
@@ -852,7 +894,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.equipoService.buscarEquiposPorCliente(this.clienteEditSeleccionado.id).subscribe({
       next: (equipos: SearchResult[]) => {
         this.equipoEditSelector?.updateSuggestions(equipos);
-        
+
         if (this.equipoEditSelector && equipos.length === 0) {
           this.setEquipoEditSelectorMessage('noEquipos', true);
         } else if (this.equipoEditSelector) {
@@ -931,14 +973,14 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   // ====== VALIDACIÓN DE FORMULARIO ======
   isFormValid(): boolean {
-    const camposBasicos = !!(this.clienteSeleccionado && 
-                          this.equipoSeleccionado && 
-                          this.tecnicoSeleccionado && 
-                          this.nuevo.descripcion && 
-                          this.nuevo.fecha && 
-                          this.nuevo.estado);
+    const camposBasicos = !!(this.clienteSeleccionado &&
+      this.equipoSeleccionado &&
+      this.tecnicoSeleccionado &&
+      this.nuevo.descripcion &&
+      this.nuevo.fecha &&
+      this.nuevo.estado);
 
-    const repuestosValidos = this.repuestosSeleccionadosCrear.every(repuesto => 
+    const repuestosValidos = this.repuestosSeleccionadosCrear.every(repuesto =>
       repuesto.cantidad > 0 && repuesto.cantidad <= repuesto.stock
     );
 
@@ -950,7 +992,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     if (!this.equipoEditSelector) return;
 
     const selector = this.equipoEditSelector as any;
-    
+
     switch (type) {
       case 'noClient':
         selector._showNoClientMessage = show;
@@ -966,7 +1008,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   hasEquipoEditSelectorMessage(): boolean {
     if (!this.equipoEditSelector) return false;
-    
+
     const selector = this.equipoEditSelector as any;
     return selector._showNoClientMessage || selector._showNoResultsMessage || selector._showNoEquiposMessage;
   }
@@ -975,7 +1017,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     if (!this.equipoEditSelector) return '';
 
     const selector = this.equipoEditSelector as any;
-    
+
     if (selector._showNoClientMessage) {
       return 'Primero selecciona un cliente';
     }
@@ -985,7 +1027,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     if (selector._showNoEquiposMessage) {
       return 'Este cliente no tiene equipos registrados';
     }
-    
+
     return '';
   }
 
@@ -1011,10 +1053,10 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   abrirModalRepuestos(reparacion: Reparacion): void {
     this.reparacionSeleccionada = reparacion;
     this.mostrarModalRepuestos = true;
-    
+
     this.cargandoRepuestosDisponibles = false;
     this.cargandoRepuestosAsignados = false;
-    
+
     this.cargarRepuestosDisponibles();
     this.cargarRepuestosAsignados(reparacion.id);
   }
@@ -1039,7 +1081,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   // ====== CARGA DE REPUESTOS ======
   cargarRepuestosDisponibles(): void {
     this.cargandoRepuestosDisponibles = true;
-    
+
     this.repuestoService.getRepuestos(1, 100).subscribe({
       next: (response: any) => {
         this.repuestosDisponibles = response.data || response;
@@ -1057,7 +1099,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   cargarRepuestosAsignados(reparacionId: number): void {
     this.cargandoRepuestosAsignados = true;
-    
+
     this.repService.getRepuestosAsignados(reparacionId).subscribe({
       next: (response: any) => {
         this.repuestosAsignados = response.data || response;
@@ -1086,7 +1128,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.repService.assignRepuesto(this.reparacionSeleccionada.id, repuesto.id, cantidadFinal).subscribe({
       next: (response: any) => {
         this.alertService.closeLoading();
-        
+
         const repuestoIndex = this.repuestosDisponibles.findIndex(r => r.id === repuesto.id);
         if (repuestoIndex !== -1) {
           this.repuestosDisponibles[repuestoIndex].stock -= cantidadFinal;
@@ -1112,7 +1154,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.repService.removeRepuesto(this.reparacionSeleccionada.id, repuestoAsignado.pivot.id).subscribe({
       next: (response: any) => {
         this.alertService.closeLoading();
-        
+
         const repuestoIndex = this.repuestosDisponibles.findIndex(r => r.id === repuestoAsignado.id);
         if (repuestoIndex !== -1) {
           this.repuestosDisponibles[repuestoIndex].stock += repuestoAsignado.pivot.cantidad;
@@ -1135,18 +1177,18 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.repService.getRepuestosAsignados(this.reparacionSeleccionada.id).subscribe({
       next: (response: any) => {
         const repuestosActualizados = response.data || response;
-        
+
         const indexAll = this.reparacionesAll.findIndex(r => r.id === this.reparacionSeleccionada!.id);
         if (indexAll !== -1) {
           this.reparacionesAll[indexAll].repuestos = repuestosActualizados;
         }
-        
+
         const indexFiltradas = this.reparacionesFiltradas.findIndex(r => r.id === this.reparacionSeleccionada!.id);
         if (indexFiltradas !== -1) {
           this.reparacionesFiltradas[indexFiltradas].repuestos = repuestosActualizados;
         }
       },
-      error: (error) => {}
+      error: (error) => { }
     });
   }
 
@@ -1157,7 +1199,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
         next: (response: any) => {
           const repuestos = response.data || response;
           const repuestosMostrar = Array.isArray(repuestos) ? repuestos : [];
-          
+
           if (!this.repuestoCrearSelector.searchTerm || this.repuestoCrearSelector.searchTerm.length < 2) {
             this.repuestoCrearSelector.updateSuggestions(repuestosMostrar);
           }
@@ -1171,23 +1213,23 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   buscarRepuestosCrear(termino: string): void {
     const terminoLimpio = (termino || '').trim();
-        
+
     if (!terminoLimpio || terminoLimpio.length < 2) {
       this.repuestoCrearSelector.updateSuggestions([]);
       return;
     }
 
     this.repuestoService.getRepuestos(1, 100, terminoLimpio).subscribe({
-      next: (response: any) => {        
+      next: (response: any) => {
         let repuestosArray = [];
-        
+
         if (response && response.data) {
           repuestosArray = response.data;
         } else if (Array.isArray(response)) {
           repuestosArray = response;
         }
-        
-        
+
+
         if (repuestosArray.length > 0) {
           this.repuestoCrearSelector.updateSuggestions(repuestosArray);
         } else {
@@ -1254,12 +1296,12 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     if (!this.isFormValid()) {
       return 'Completa todos los campos';
     }
-    
+
     const totalRepuestos = this.repuestosSeleccionadosCrear.length;
     if (totalRepuestos > 0) {
       return `Guardar Reparación (${totalRepuestos} repuesto${totalRepuestos !== 1 ? 's' : ''})`;
     }
-    
+
     return 'Guardar Reparación';
   }
 
@@ -1267,7 +1309,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     if (!reparacion.repuestos || reparacion.repuestos.length === 0) {
       return 0;
     }
-    
+
     return reparacion.repuestos.reduce((total, repuesto) => {
       const cantidad = repuesto.pivot?.cantidad || 1;
       const costo = repuesto.pivot?.costo_unitario || repuesto.costo_base || 0;
@@ -1276,7 +1318,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
   }
   getNombreDisplayCliente(cliente: any): string {
     if (!cliente) return 'No seleccionado';
-    
+
     if (cliente.nombre) {
       return cliente.nombre;
     } else if (cliente.name) {
@@ -1290,7 +1332,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   getNombreDisplayEquipo(equipo: any): string {
     if (!equipo) return 'No seleccionado';
-    
+
     if (equipo.descripcion) {
       return equipo.descripcion;
     } else if (equipo.nombre) {
@@ -1304,7 +1346,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
 
   getNombreDisplayTecnico(tecnico: any): string {
     if (!tecnico) return 'No seleccionado';
-    
+
     if (tecnico.nombre) {
       return tecnico.nombre;
     } else if (tecnico.name) {

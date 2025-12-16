@@ -229,7 +229,7 @@ class ReparacionController extends Controller
             'usuario_id' => 'required|exists:usuario,id',
             'descripcion' => 'required|string',
             'fecha' => 'required|date',
-            'estado' => 'required|string|in:pendiente,en_proceso,completada,cancelada',
+            'estado' => 'required|string|in:pendiente,en_proceso,finalizada,cancelada',
             'fecha_estimada' => 'nullable|date',
             'presupuesto_id' => 'nullable|exists:presupuestos,id'
         ]);
@@ -369,18 +369,18 @@ class ReparacionController extends Controller
             $data = $request->only($allowedFields);
             
             if (isset($data['estado'])) {
-                $estadosValidos = ['pendiente', 'en_proceso', 'completada', 'cancelada'];
+                $estadosValidos = ['pendiente', 'en_proceso', 'finalizada', 'cancelada'];
                 if (!in_array($data['estado'], $estadosValidos)) {
                     return response()->json([
                         'error' => 'Estado no válido. Opciones: ' . implode(', ', $estadosValidos)
                     ], 400);
                 }
                 
-                if ($data['estado'] === 'completada') {
+                if ($data['estado'] === 'finalizada') {
                     $factura = $reparacion->factura ?? null;
                     if (!$factura) {
                         return response()->json([
-                            'error' => 'No se puede marcar como completada sin factura generada'
+                            'error' => 'No se puede marcar como finalizada sin factura generada'
                         ], 400);
                     }
                 }
@@ -389,7 +389,7 @@ class ReparacionController extends Controller
         } else {
             $data = $request->all();
             
-            if (isset($data['estado']) && !in_array($data['estado'], ['pendiente', 'en_proceso', 'completada', 'cancelada'])) {
+            if (isset($data['estado']) && !in_array($data['estado'], ['pendiente', 'en_proceso', 'finalizada', 'cancelada'])) {
                 return response()->json(['error' => 'Estado no válido'], 400);
             }
         }

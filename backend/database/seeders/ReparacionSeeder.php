@@ -40,7 +40,7 @@ class ReparacionSeeder extends Seeder
                 'usuario_id'  => $tecnicos[0]->id,
                 'descripcion' => 'Cambio de bujía, limpieza profunda del carburador y revisión de filtro de aire en motoguadaña industrial.',
                 'fecha'       => Carbon::now()->subDays(1),
-                'estado'      => 'finalizado', // <-- CORREGIDO
+                'estado'      => 'finalizada',
             ]
         ];
 
