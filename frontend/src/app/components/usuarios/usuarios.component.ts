@@ -6,6 +6,7 @@ import { AlertService } from '../../services/alert.service';
 import { UsuarioService } from '../../services/usuario.service';
 import { Usuario } from '../../services/usuario.service';
 
+
 @Component({
   selector: 'app-usuarios',
   standalone: true,
@@ -18,7 +19,6 @@ export class UsuariosComponent implements OnInit {
   mostrarFormulario = false;
   editandoUsuario: Usuario | null = null;
   
-  private searchSub!: Subscription;
 
   usuarioEditado = {
     nombre: '',
@@ -40,25 +40,8 @@ export class UsuariosComponent implements OnInit {
 
   ngOnInit() {
     this.cargarUsuarios();
-    this.configurarBusquedaGlobal();
   }
 
-  ngOnDestroy() {
-    if (this.searchSub) {
-      this.searchSub.unsubscribe();
-    }
-    this.searchService.clearSearch();
-  }
-
-  private configurarBusquedaGlobal(): void {
-    this.searchService.setCurrentComponent('usuarios');
-    
-    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
-      if (term) {
-        this.searchService.clearSearch();
-      }
-    });
-  }
 
   cargarUsuarios() {
     this.usuarioService.getUsuariosPaginados(1, 50).subscribe({
