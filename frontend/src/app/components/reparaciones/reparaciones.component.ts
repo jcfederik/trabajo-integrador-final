@@ -578,8 +578,7 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
     this.equipoEditSeleccionado = null;
     this.tecnicoEditSeleccionado = null;
   }
-  saveEdit(id: number): void {
-
+  
   async saveEdit(id: number) {
     if (this.editBuffer.fecha && new Date(this.editBuffer.fecha) < new Date(this.getToday())) {
       this.alertService.showGenericError('La fecha no puede ser anterior al día de hoy.');
