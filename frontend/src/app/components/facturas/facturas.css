@@ -15,68 +15,6 @@
   flex-wrap: wrap;
 }
 
-.action-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
-  border-radius: 50px;
-  font-weight: 500;
-  font-size: 0.95rem;
-  border: 2px solid #dee2e6;
-  background-color: white;
-  color: #495057;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.action-pill:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  border-color: #adb5bd;
-}
-
-.action-pill.active {
-  background-color: var(--bs-primary);
-  border-color: var(--bs-primary);
-  color: white;
-}
-
-.action-pill.success {
-  background-color: var(--bs-success);
-  border-color: var(--bs-success);
-  color: white;
-}
-
-.action-pill.success:hover {
-  background-color: #198754;
-  border-color: #198754;
-}
-
-.action-pill.warning {
-  background-color: var(--bs-warning);
-  border-color: var(--bs-warning);
-  color: #212529;
-}
-
-.action-pill.warning:hover {
-  background-color: #ffca2c;
-  border-color: #ffca2c;
-}
-
-.action-pill:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.action-pill i {
-  font-size: 1rem;
-}
-
 /* =============== FIN BOTONES PASTILLA =============== */
 
 /* Títulos de sección */
@@ -763,11 +701,6 @@
     gap: 0.5rem;
   }
   
-  .action-pill {
-    padding: 0.45rem 0.8rem;
-    font-size: 0.875rem;
-  }
-  
   .empty-state {
     padding: 2rem 0.75rem;
   }
@@ -972,38 +905,7 @@
 
 /* =============== MEJORAS ADICIONALES =============== */
 
-/* Gradientes para botones success */
-.action-pill.success,
-.boton-enviar:not(:disabled) {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  border: none;
-}
 
-.action-pill.success:hover,
-.boton-enviar:hover:not(:disabled) {
-  background: linear-gradient(135deg, #218838, #1e7e34);
-}
-
-/* Botones en estados vacíos */
-.empty-actions .action-pill {
-  min-width: 180px;
-  justify-content: center;
-}
-
-.empty-actions .action-pill.success {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  border: none;
-}
-
-.empty-actions .action-pill:not(.success) {
-  background: white;
-  border-color: #adb5bd;
-}
-
-.empty-actions .action-pill:not(.success):hover {
-  background: #f8f9fa;
-  border-color: #6c757d;
-}
 
 /* Efectos de hover mejorados para botones de acción */
 .boton-editar:hover,

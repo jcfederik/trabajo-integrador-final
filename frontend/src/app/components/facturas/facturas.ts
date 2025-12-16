@@ -1087,4 +1087,43 @@ export class FacturasComponent implements OnInit, OnDestroy {
               return 'estado-desconocido';
       }
   }
+
+
+
+
+  // ASEGURAR QUE EL PRESUPUESTO TENGA REPARACIÓN
+private asegurarReparacion(
+  presupuesto: PresupuestoConReparacion
+): Observable<PresupuestoConReparacion> {
+
+  // 1️⃣ Si ya tiene reparación → listo
+  if (presupuesto.reparacion) {
+    return of(presupuesto);
+  }
+
+  // 2️⃣ Si está en cache → usarla
+  const reparacionCache = this.reparacionesCache.get(presupuesto.reparacion_id);
+  if (reparacionCache) {
+    presupuesto.reparacion = reparacionCache;
+    return of(presupuesto);
+  }
+
+  // 3️⃣ Pedirla al backend
+  return this.reparacionService.show(presupuesto.reparacion_id).pipe(
+    map((reparacion: Reparacion) => {
+      presupuesto.reparacion = reparacion;
+
+      // Guardar en cache
+      this.reparacionesCache.set(presupuesto.reparacion_id, reparacion);
+      this.presupuestosCache.set(presupuesto.id, presupuesto);
+
+      return presupuesto;
+    }),
+    catchError(() => {
+      // Si falla, devolvemos igual el presupuesto sin romper el flujo
+      return of(presupuesto);
+    })
+  );
+}
+
 }

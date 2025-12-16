@@ -413,9 +413,12 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       const reparacionCompleta = await this.repService.show(nuevaReparacion.id).toPromise();
       
       if (reparacionCompleta) {
-        this.reparacionesAll.unshift(reparacionCompleta);
-        this.applyFilterLocal();
-        this.prepararDatosParaBusquedaGlobal();
+      // Volver al listado
+      this.selectedAction = 'listar';
+
+      // Resetear y recargar desde backend
+      this.resetList();
+
       }
 
       this.nuevo = {
