@@ -346,7 +346,7 @@
     <h4 class="text-center mb-4">Registrar Reparación</h4>
     
     <!-- Grid de búsquedas -->
-    <div class="search-selectors-grid">
+<div class="search-selectors-grid justify-content-center">
       <!-- Cliente -->
       <div class="search-selector-column">
         <label class="form-label fw-semibold">Cliente</label>
@@ -433,8 +433,11 @@
 
     <!-- Detalles de la reparación -->
     <div class="reparacion-details">
-      <h5 class="mb-3">Detalles de la Reparación</h5>
-      
+    <hr class="my-4">
+
+    <h5 class="text-center mb-3">
+      Detalles de la reparación
+    </h5>      
       <form (ngSubmit)="crear()" class="row g-3">
         <!-- Descripción -->
         <div class="col-12">
@@ -451,42 +454,59 @@
         </div>
 
         <!-- Fecha (no editable, ya que debe ser hoy) -->
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6 mx-auto text-center">
           <label class="form-label fw-semibold">Fecha</label>
-          <input 
-            type="date" 
-            class="form-control" 
-            [(ngModel)]="nuevo.fecha" 
-            name="fecha" 
-            required 
-            [min]="getToday()"
-          />
+
+          <div class="date-input-wrapper mx-auto">
+            <i class="bi bi-calendar-event"></i>
+            <input 
+              type="date" 
+              class="form-control date-input date-input-compact" 
+              [(ngModel)]="nuevo.fecha" 
+              name="fecha" 
+              required 
+              [min]="getToday()"
+            />
+          </div>
         </div>
 
-        <div class="col-12 col-md-6">
+
+
+        <div class="col-12 col-md-6 mx-auto text-center">
           <label class="form-label fw-semibold">Fecha Estimada (opcional)</label>
-          <input 
-            type="date" 
-            class="form-control" 
-            [(ngModel)]="nuevo.fecha_estimada" 
-            name="fecha_estimada"
-            [min]="getToday()"
-          />
-          <small class="text-muted">Esta fecha es opcional. No puede ser anterior a hoy.</small>
-        </div>
-        
-        <div class="col-12 col-md-6" >
-          <label class="form-label fw-semibold">Estado</label>
-          <select 
-            class="form-control text-center fw-bold bg-light"
-            [(ngModel)]="nuevo.estado"
-            name="estado"
-            required
-          >
-            <option value="pendiente">Pendiente</option>
-            <option value="en proceso">En proceso</option>
-          </select>
 
+          <div class="date-input-wrapper">
+            <i class="bi bi-calendar-check"></i>
+            <input 
+              type="date" 
+              class="form-control date-input" 
+              [(ngModel)]="nuevo.fecha_estimada" 
+              name="fecha_estimada"
+              [min]="getToday()"
+            />
+          </div>
+
+          <small class="text-muted">
+            Esta fecha es opcional. No puede ser anterior a hoy.
+          </small>
+        </div>
+
+        
+        <div class="col-12 col-md-6 mx-auto">
+          <div class="form-control text-center fw-bold bg-light">
+            Pendiente
+          </div>
+
+          <!-- Input oculto para que el valor se envíe igual -->
+          <input 
+            type="hidden"
+            name="estado"
+            [(ngModel)]="nuevo.estado"
+          />
+
+          <small class="text-muted d-block mt-1 text-center">
+            El estado inicial de una reparación es siempre <strong>Pendiente</strong>.
+          </small>
         </div>
 
         <!-- Repuestos a asignar -->

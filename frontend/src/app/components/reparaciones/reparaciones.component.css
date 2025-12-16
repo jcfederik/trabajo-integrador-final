@@ -232,3 +232,80 @@ input[type="date"]:invalid:focus {
   color: #dc3545;
   margin-top: 0.25rem;
 }
+
+.search-selectors-grid {
+  gap: 1.25rem;
+}
+
+/* ===== DATE INPUTS MEJORADOS ===== */
+
+.date-input-wrapper {
+  position: relative;
+}
+
+.date-input-wrapper i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  pointer-events: none;
+  font-size: 1.1rem;
+}
+
+.date-input {
+  padding-left: 2.5rem;
+  height: 42px;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+/* Hover */
+.date-input:hover {
+  border-color: #adb5bd;
+}
+
+/* Focus */
+.date-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+/* Estado inválido */
+.date-input:invalid {
+  border-color: #dc3545;
+  background-color: #fff8f8;
+}
+
+.date-input:invalid:focus {
+  box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.2);
+}
+
+/* Ícono en inválido */
+.date-input:invalid + i,
+.date-input-wrapper:has(input:invalid) i {
+  color: #dc3545;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .date-input {
+    height: 40px;
+  }
+}
+
+/* ===== DATE INPUT COMPACTO ===== */
+
+.date-input-wrapper {
+  max-width: 220px;        /* ⬅ ancho ideal para fechas */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.date-input-compact {
+  text-align: center;
+  padding-left: 2.4rem;
+  height: 40px;
+  font-size: 0.9rem;
+}
