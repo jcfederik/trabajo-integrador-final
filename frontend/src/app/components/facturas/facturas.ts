@@ -786,6 +786,7 @@ export class FacturasComponent implements OnInit, OnDestroy {
         this.selectedAction = 'listar';
         
         this.alertService.showFacturaCreada();
+        this.resetLista();
       },
       error: (e) => {
         this.alertService.closeLoading();
