@@ -384,11 +384,27 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
   
   // UTILIDADES
   getTipoColor(tipo: string): string {
-    return this.tiposMovCache.get(tipo)?.color || 'secondary';
+      const colores: { [key: string]: string } = {
+          'COMPRA': 'success',
+          'VENTA': 'primary',
+          'ASIGNACION_REPUESTO': 'info',
+          'AJUSTE': 'warning',
+          'DEVOLUCION': 'secondary',
+          'BAJA': 'danger'
+      };
+      return colores[tipo] || 'secondary';
   }
-  
+
   getTipoIcono(tipo: string): string {
-    return this.tiposMovCache.get(tipo)?.icono || 'bi-circle';
+      const iconos: { [key: string]: string } = {
+          'COMPRA': 'bi-cart-plus',
+          'VENTA': 'bi-cart-dash',
+          'ASIGNACION_REPUESTO': 'bi-tools',
+          'AJUSTE': 'bi-arrow-left-right',
+          'DEVOLUCION': 'bi-arrow-counterclockwise', 
+          'BAJA': 'bi-trash'
+      };
+      return iconos[tipo] || 'bi-circle';
   }
   
   getRepuestoNombre(repuestoId: number): string {
