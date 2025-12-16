@@ -351,61 +351,48 @@ export class FacturasComponent implements OnInit, OnDestroy {
   }
 
   // BUSCAR PRESUPUESTOS
+
   private buscarPresupuestos(termino: string): void {
     const terminoLimpio = termino.trim();
-    
+
     if (!terminoLimpio) {
       this.presupuestosSugeridos = [];
       this.mostrandoPresupuestos = false;
       return;
     }
 
+    const ahora = Date.now();
+    const cacheEntry = this.busquedaPresupuestoCache.get(terminoLimpio);
+    const cacheTime = this.busquedaPresupuestoTiempo.get(terminoLimpio);
 
+    if (cacheEntry && cacheTime && (ahora - cacheTime < 30000)) {
+      this.presupuestosSugeridos = cacheEntry;
+      this.mostrandoPresupuestos = true;
+      this.buscandoPresupuestos = false;
+      return;
+    }
 
-  private buscarPresupuestos(termino: string): void {
-  const terminoLimpio = termino.trim();
+    this.buscandoPresupuestos = true;
 
-  if (!terminoLimpio) {
-    this.presupuestosSugeridos = [];
-    this.mostrandoPresupuestos = false;
-    return;
-  }
+    this.presupuestoService.buscarPresupuestos(terminoLimpio).pipe(
 
-  const ahora = Date.now();
-  const cacheEntry = this.busquedaPresupuestoCache.get(terminoLimpio);
-  const cacheTime = this.busquedaPresupuestoTiempo.get(terminoLimpio);
+      switchMap((presupuestos: Presupuesto[]) => {
+        const facturables = this.filtrarPresupuestosFacturables(presupuestos);
+        return this.verificarPresupuestosConFactura(facturables);
+      }),
 
-  if (cacheEntry && cacheTime && (ahora - cacheTime < 30000)) {
-    this.presupuestosSugeridos = cacheEntry;
-    this.mostrandoPresupuestos = true;
-    this.buscandoPresupuestos = false;
-    return;
-  }
+      switchMap((presupuestos: PresupuestoConFactura[]) => {
+        if (!presupuestos.length) {
+          return of([]);
+        }
 
-  this.buscandoPresupuestos = true;
+        const observables = presupuestos.map(p =>
+          this.asegurarReparacion(p as PresupuestoConReparacion)
+        );
 
-  this.presupuestoService.buscarPresupuestos(terminoLimpio).pipe(
-
-    // 1️⃣ Filtrar solo presupuestos válidos
-    switchMap((presupuestos: Presupuesto[]) => {
-      const facturables = this.filtrarPresupuestosFacturables(presupuestos);
-      return this.verificarPresupuestosConFactura(facturables);
+        return forkJoin(observables);
     }),
 
-    // 2️⃣ Asegurar reparación en TODOS
-    switchMap((presupuestos: PresupuestoConFactura[]) => {
-      if (!presupuestos.length) {
-        return of([]);
-      }
-
-      const observables = presupuestos.map(p =>
-        this.asegurarReparacion(p as PresupuestoConReparacion)
-      );
-
-      return forkJoin(observables);
-    }),
-
-    // 3️⃣ Formatear para dropdown
     map((presupuestosConReparacion: PresupuestoConReparacion[]) => {
       const formateados = this.formatearPresupuestosParaDropdown(presupuestosConReparacion);
 
