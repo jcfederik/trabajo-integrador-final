@@ -171,9 +171,9 @@
                     <div class="search-selector-column text-center">
                       <label class="form-label small fw-semibold">Equipo</label>
                       <div class="search-selector-container mx-auto" 
-                           [class.invalid]="clienteEditSeleccionado && !equipoEditSeleccionado"
-                           [class.valid]="equipoEditSeleccionado"
-                           style="max-width: 300px;">
+                          [class.invalid]="clienteEditSeleccionado && !equipoEditSeleccionado"
+                          [class.valid]="equipoEditSeleccionado"
+                          style="max-width: 300px;">
                         <app-search-selector
                           #equipoEditSelector
                           type="equipo"
@@ -195,7 +195,7 @@
                       </div>
                       
                       <div *ngIf="clienteEditSeleccionado && !equipoEditSeleccionado && hasEquipoEditSelectorMessage()" 
-                           class="no-equipos-message text-center">
+                          class="no-equipos-message text-center">
                         <i class="bi bi-search"></i>
                         {{ getEquipoEditSelectorMessage() }}
                       </div>
@@ -263,7 +263,7 @@
                   [(ngModel)]="editBuffer.estado"
                 >
                   <option value="pendiente">Pendiente</option>
-                  <option value="en proceso">En proceso</option>
+                  <option value="en_proceso">En proceso</option>
                   <option value="finalizada">Finalizada</option>
                   <option value="cancelada">Cancelada</option>  
                 </select>
@@ -503,6 +503,7 @@
             name="estado"
             [(ngModel)]="nuevo.estado"
           />
+
 
           <small class="text-muted d-block mt-1 text-center">
             El estado inicial de una reparación es siempre <strong>Pendiente</strong>.
