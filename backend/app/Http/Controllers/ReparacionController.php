@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Reparacion;
 use App\Models\Repuesto;
 use App\Models\Presupuesto;
+use App\Models\HistorialStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -640,7 +641,6 @@ class ReparacionController extends Controller
             }
         }
 
-
         $request->validate([
             'repuesto_id' => 'required|exists:repuesto,id',
             'cantidad' => 'required|integer|min:1'
@@ -664,18 +664,46 @@ class ReparacionController extends Controller
                 ->first();
 
             if ($existingRelation) {
+                $nuevaCantidad = $existingRelation->cantidad + $request->cantidad;
+                
                 DB::table('reparacion_repuesto')
                     ->where('id', $existingRelation->id)
                     ->update([
-                        'cantidad' => $existingRelation->cantidad + $request->cantidad,
+                        'cantidad' => $nuevaCantidad,
                         'updated_at' => now()
                     ]);
+                    
+                HistorialStock::create([
+                    'repuesto_id' => $repuesto->id,
+                    'tipo_mov' => 'ASIGNACION_REPUESTO',
+                    'cantidad' => -$request->cantidad,
+                    'stock_anterior' => $repuesto->stock,
+                    'stock_nuevo' => $repuesto->stock - $request->cantidad,
+                    'descripcion' => "Incremento en reparación #{$reparacion->id}: {$reparacion->descripcion}",
+                    'referencia_id' => $reparacion->id,
+                    'referencia_type' => 'App\Models\Reparacion',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
             } else {
                 DB::table('reparacion_repuesto')->insert([
                     'reparacion_id' => $reparacionId,
                     'repuesto_id' => $request->repuesto_id,
                     'cantidad' => $request->cantidad,
                     'costo_unitario' => $repuesto->costo_base,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                
+                HistorialStock::create([
+                    'repuesto_id' => $repuesto->id,
+                    'tipo_mov' => 'ASIGNACION_REPUESTO',
+                    'cantidad' => -$request->cantidad,
+                    'stock_anterior' => $repuesto->stock,
+                    'stock_nuevo' => $repuesto->stock - $request->cantidad,
+                    'descripcion' => "Asignado a reparación #{$reparacion->id}: {$reparacion->descripcion}",
+                    'referencia_id' => $reparacion->id,
+                    'referencia_type' => 'App\Models\Reparacion',
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
@@ -745,7 +773,6 @@ class ReparacionController extends Controller
             }
         }
 
-
         try {
             DB::beginTransaction();
 
@@ -758,8 +785,23 @@ class ReparacionController extends Controller
                 return response()->json(['error' => 'Repuesto no encontrado en esta reparación'], 404);
             }
 
+            $reparacion = Reparacion::find($reparacionId);
             $repuesto = Repuesto::find($pivot->repuesto_id);
+            
             if ($repuesto) {
+                HistorialStock::create([
+                    'repuesto_id' => $repuesto->id,
+                    'tipo_mov' => 'DEVOLUCION', 
+                    'cantidad' => $pivot->cantidad,
+                    'stock_anterior' => $repuesto->stock,
+                    'stock_nuevo' => $repuesto->stock + $pivot->cantidad,
+                    'descripcion' => "Removido de reparación #{$reparacionId}: {$reparacion->descripcion}",
+                    'referencia_id' => $reparacion->id,
+                    'referencia_type' => 'App\Models\Reparacion',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                
                 $repuesto->increment('stock', $pivot->cantidad);
             }
 
