@@ -1,5 +1,5 @@
-import { Component, Output, EventEmitter, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Output, EventEmitter, OnInit, signal, computed } from '@angular/core';
+import { CommonModule, TitleCasePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 
@@ -11,7 +11,7 @@ interface Especializacion {
 @Component({
   selector: 'app-logout-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TitleCasePipe],
   templateUrl: './logout-modal.component.html',
   styleUrls: ['./logout-modal.component.css']
 })
@@ -20,6 +20,30 @@ export class LogoutModalComponent implements OnInit {
   
   currentUser = signal<any>(null);
   mostrarConfirmacion = false;
+
+  // Variables computadas para controlar la vista
+  mostrarEspecializaciones = computed(() => {
+    const user = this.currentUser();
+    return user && user.tipo !== 'usuario';
+  });
+
+  esAdministrador = computed(() => {
+    const user = this.currentUser();
+    return user && user.tipo === 'administrador';
+  });
+
+  esTecnico = computed(() => {
+    const user = this.currentUser();
+    return user && user.tipo === 'tecnico';
+  });
+
+  tieneEspecializaciones = computed(() => {
+    const user = this.currentUser();
+    return user && 
+           user.especializaciones && 
+           Array.isArray(user.especializaciones) && 
+           user.especializaciones.length > 0;
+  });
 
   constructor(
     private authService: AuthService,
@@ -62,5 +86,37 @@ export class LogoutModalComponent implements OnInit {
   // CANCELAR
   cancelar() {
     this.closed.emit();
+  }
+
+  // Método helper
+  getTipoUsuarioColor(tipo: string): string {
+    switch (tipo?.toLowerCase()) {
+      case 'administrador':
+        return 'danger'; 
+      case 'tecnico':
+        return 'primary'; 
+      case 'secretario':
+        return 'success'; 
+      case 'usuario':
+        return 'secondary';
+      default:
+        return 'secondary';
+    }
+  }
+
+  // Método para obtener icono según tipo de usuario
+  getTipoUsuarioIcono(tipo: string): string {
+    switch (tipo?.toLowerCase()) {
+      case 'administrador':
+        return 'bi-shield-check';
+      case 'tecnico':
+        return 'bi-tools';
+      case 'secretario':
+        return 'bi-person-badge';
+      case 'usuario':
+        return 'bi-person';
+      default:
+        return 'bi-person';
+    }
   }
 }
