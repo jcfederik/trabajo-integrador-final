@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../services/alert.service';
+import { SearchService } from '../../services/busquedaglobal';
+import { Subscription } from 'rxjs';
 
 interface User {
   id: number;
@@ -18,11 +20,13 @@ interface User {
   templateUrl: './usuarios.component.html',
   styleUrls: ['./usuarios.component.css']
 })
-export class UsuariosComponent implements OnInit {
+export class UsuariosComponent implements OnInit, OnDestroy {
   usuarios: User[] = [];
   mostrarFormulario = false;
   editandoUsuario: User | null = null;
   
+  private searchSub!: Subscription;
+
   usuarioEditado = {
     nombre: '',
     tipo: 'usuario',
@@ -37,19 +41,37 @@ export class UsuariosComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private searchService: SearchService
   ) {}
 
-  // LIFECYCLE HOOKS
   ngOnInit() {
     this.cargarUsuarios();
+    this.configurarBusquedaGlobal();
   }
 
-  // CARGA DE DATOS
+  ngOnDestroy() {
+    if (this.searchSub) {
+      this.searchSub.unsubscribe();
+    }
+    this.searchService.clearSearch();
+  }
+
+  private configurarBusquedaGlobal(): void {
+    this.searchService.setCurrentComponent('usuarios');
+    
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      if (term) {
+        this.searchService.clearSearch();
+      }
+    });
+  }
+
   cargarUsuarios() {
     this.http.get<any>('http://127.0.0.1:8000/api/users').subscribe({
       next: (response) => {
         this.usuarios = response.data || [];
+        this.searchService.setSearchData([]);
       },
       error: (error) => {
         this.alertService.showGenericError('Error al cargar usuarios');
@@ -57,7 +79,6 @@ export class UsuariosComponent implements OnInit {
     });
   }
 
-  // CREACIÓN DE USUARIO
   async crearUsuario() {
     if (!this.nuevoUsuario.nombre || !this.nuevoUsuario.password) {
       this.alertService.showRequiredFieldError('nombre y contraseña');
@@ -81,7 +102,6 @@ export class UsuariosComponent implements OnInit {
     });
   }
 
-  // ELIMINACIÓN DE USUARIO
   async eliminarUsuario(id: number, usuarioNombre: string) {
     const usuario = this.usuarios.find(u => u.id === id);
     if (usuario?.tipo === 'administrador') {
@@ -107,13 +127,11 @@ export class UsuariosComponent implements OnInit {
     });
   }
 
-  // GESTIÓN DEL FORMULARIO DE CREACIÓN
   cancelarCreacion() {
     this.mostrarFormulario = false;
     this.nuevoUsuario = { nombre: '', tipo: 'usuario', password: '' };
   }
 
-  // EDICIÓN DE USUARIO
   iniciarEdicion(usuario: User) {
     this.editandoUsuario = usuario;
     this.usuarioEditado = {

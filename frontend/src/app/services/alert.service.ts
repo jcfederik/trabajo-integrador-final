@@ -1,19 +1,16 @@
-// alert.service.ts - VERSIÓN MEJORADA
 import { Injectable } from '@angular/core';
 import Swal, { SweetAlertIcon, SweetAlertResult, SweetAlertOptions } from 'sweetalert2';
 
+// ====== INTERFACES ======
 export type AlertOptions = {
   swal?: SweetAlertOptions;
   customProperty?: string;
 };
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AlertService {
   
-  // ========== MÉTODOS GENÉRICOS ==========
-  
+  // ====== MÉTODOS GENÉRICOS ======
   showAlert(title: string, text: string = '', icon: SweetAlertIcon = 'info'): Promise<SweetAlertResult> {
     return Swal.fire({
       title,
@@ -102,8 +99,7 @@ export class AlertService {
     Toast.fire({ icon, title });
   }
 
-  // ========== MÉTODOS ESPECÍFICOS PARA CRUD ==========
-  
+  // ====== MÉTODOS ESPECÍFICOS PARA CRUD ======
   async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     const text = itemName 
       ? `¿Estás seguro de eliminar "${itemName}"?` 
@@ -153,9 +149,7 @@ export class AlertService {
     this.showError('Error', message);
   }
 
-  // ========== MÉTODOS ESPECÍFICOS POR COMPONENTE ==========
-
-  // Para ClientesComponent
+  // ====== MÉTODOS ESPECÍFICOS POR COMPONENTE ======
   async confirmDeleteCliente(clienteNombre: string): Promise<boolean> {
     return this.confirmDelete('cliente', clienteNombre);
   }
@@ -172,7 +166,6 @@ export class AlertService {
     this.showDeleteSuccess('Cliente', clienteNombre);
   }
 
-  // Para EquiposComponent
   async confirmDeleteEquipo(equipoDescripcion: string): Promise<boolean> {
     return this.confirmDelete('equipo', equipoDescripcion);
   }
@@ -189,7 +182,6 @@ export class AlertService {
     this.showDeleteSuccess('Equipo');
   }
 
-  // Para FacturasComponent
   async confirmDeleteFactura(numeroFactura: string): Promise<boolean> {
     return this.confirmDelete('factura', `Factura ${numeroFactura}`);
   }
@@ -206,7 +198,6 @@ export class AlertService {
     this.showDeleteSuccess('Factura');
   }
 
-  // Para PresupuestosComponent
   async confirmDeletePresupuesto(id: number): Promise<boolean> {
     return this.confirmDelete('presupuesto', `Presupuesto #${id}`);
   }
@@ -223,7 +214,6 @@ export class AlertService {
     this.showDeleteSuccess('Presupuesto');
   }
 
-  // Para ReparacionesComponent
   async confirmDeleteReparacion(descripcion: string): Promise<boolean> {
     return this.confirmDelete('reparación', descripcion);
   }
@@ -240,7 +230,6 @@ export class AlertService {
     this.showDeleteSuccess('Reparación');
   }
 
-  // Para RepuestosComponent
   async confirmDeleteRepuesto(repuestoNombre: string): Promise<boolean> {
     return this.confirmDelete('repuesto', repuestoNombre);
   }
@@ -257,7 +246,6 @@ export class AlertService {
     this.showDeleteSuccess('Repuesto', repuestoNombre);
   }
 
-  // Para ProveedoresComponent
   async confirmDeleteProveedor(razonSocial: string): Promise<boolean> {
     return this.confirmDelete('proveedor', razonSocial);
   }
@@ -274,7 +262,6 @@ export class AlertService {
     this.showDeleteSuccess('Proveedor', razonSocial);
   }
 
-  // Para MediosCobroComponent
   async confirmDeleteMedioCobro(medioNombre: string): Promise<boolean> {
     return this.confirmDelete('medio de cobro', medioNombre);
   }
@@ -291,7 +278,6 @@ export class AlertService {
     this.showDeleteSuccess('Medio de cobro', medioNombre);
   }
 
-  // Para ExportModalComponent
   showExportSuccess(archivoNombre: string): void {
     this.showToast(`Reporte "${archivoNombre}" generado exitosamente`, 'success');
   }
@@ -300,7 +286,6 @@ export class AlertService {
     this.showError('Error al exportar', 'No se pudo generar el reporte');
   }
 
-  // Para FacturaReportComponent
   showReportLoading(): void {
     this.showLoading('Generando reporte...');
   }
@@ -315,8 +300,7 @@ export class AlertService {
     this.showError('Error', 'No se pudo generar el reporte');
   }
 
-  // ========== MÉTODOS DE VALIDACIÓN ESPECÍFICOS ==========
-
+  // ====== MÉTODOS DE VALIDACIÓN ESPECÍFICOS ======
   showRequiredFieldError(fieldName: string): void {
     this.showValidationError(fieldName);
   }
@@ -329,8 +313,7 @@ export class AlertService {
     this.showError('Error de validación', 'El email ingresado no es válido');
   }
 
-  // ========== MÉTODOS DE NOTIFICACIÓN RÁPIDA ==========
-  
+  // ====== MÉTODOS DE NOTIFICACIÓN RÁPIDA ======
   success(message: string): void {
     this.showToast(message, 'success');
   }
@@ -346,4 +329,4 @@ export class AlertService {
   info(message: string): void {
     this.showToast(message, 'info');
   }
-} 
+}

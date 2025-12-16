@@ -493,11 +493,7 @@ export class PresupuestosComponent implements OnInit, OnDestroy {
     if (this.loading || this.lastPage) return;
     this.loading = true;
 
-    this.svc.listOptimizado(this.page, this.perPage, this.searchTerm).pipe(
-      catchError((error) => {
-        return this.svc.list(this.page, this.perPage);
-      })
-    ).subscribe({
+    this.svc.list(this.page, this.perPage).subscribe({
       next: (res: Paginated<Presupuesto>) => {
         const batch = res.data ?? [];
         
