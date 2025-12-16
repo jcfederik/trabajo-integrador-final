@@ -283,7 +283,6 @@ class FacturaController extends Controller
             try {
                 $data = $validator->validated();
 
-                // Validar estado de la reparación si se cambia el presupuesto
                 if (isset($data['presupuesto_id']) && $data['presupuesto_id'] != $factura->presupuesto_id) {
                     $presupuesto = Presupuesto::with('reparacion')->find($data['presupuesto_id']);
                     if ($presupuesto && $presupuesto->reparacion) {
