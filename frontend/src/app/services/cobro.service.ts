@@ -1,8 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
+import { AlertService } from './alert.service';
 
+// ====== INTERFACES ======
 export interface MedioCobro {
     id: number;
     nombre: string;
@@ -41,29 +43,41 @@ export interface NewCobro {
     fecha?: string;
 }
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class CobroService {
     private http = inject(HttpClient);
+    private alertService = inject(AlertService);
     private apiUrl = 'http://127.0.0.1:8000/api';
     private cobrosUrl = `${this.apiUrl}/cobros`;
     private mediosCobroUrl = `${this.apiUrl}/medios-cobro`;
 
-    constructor() { }
-
+    // ====== OPERACIONES CRUD ======
     getListaCobros(page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Cobro>> {
         const params = { page: page.toString(), per_page: perPage.toString() };
-        return this.http.get<PaginatedResponse<Cobro>>(this.cobrosUrl, { params });
+        return this.http.get<PaginatedResponse<Cobro>>(this.cobrosUrl, { params }).pipe(
+            catchError(error => {
+                this.alertService.showError('Error', 'No se pudieron cargar los cobros');
+                throw error;
+            })
+        );
     }
 
     registrarCobro(cobroData: NewCobro): Observable<any> {
-        return this.http.post<any>(this.cobrosUrl, cobroData);
+        return this.http.post<any>(this.cobrosUrl, cobroData).pipe(
+            catchError(error => {
+                this.alertService.showError('Error', 'No se pudo registrar el cobro');
+                throw error;
+            })
+        );
     }
 
     getMediosCobro(): Observable<MedioCobro[]> {
         return this.http.get<PaginatedResponse<MedioCobro>>(this.mediosCobroUrl + '?per_page=999').pipe(
-            map(response => response.data)
+            map(response => response.data),
+            catchError(error => {
+                this.alertService.showError('Error', 'No se pudieron cargar los medios de cobro');
+                throw error;
+            })
         );
     }
 }

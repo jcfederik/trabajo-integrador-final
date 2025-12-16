@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { AlertService } from '../../services/alert.service';
+import { SearchService } from '../../services/busquedaglobal';
+import { Subscription } from 'rxjs';
 
 interface Especializacion {
   id: number;
@@ -27,12 +29,14 @@ interface Tecnico {
   templateUrl: './especializaciones.component.html',
   styleUrls: ['./especializaciones.component.css']
 })
-export class EspecializacionesComponent implements OnInit {
+export class EspecializacionesComponent implements OnInit, OnDestroy {
   especializaciones: Especializacion[] = [];
   tecnicos: Tecnico[] = [];
   mostrarFormulario = false;
   editandoEspecializacion: Especializacion | null = null;
   asignandoTecnicos: Especializacion | null = null;
+
+  private searchSub!: Subscription;
 
   nuevaEspecializacion = {
     nombre: ''
@@ -48,16 +52,34 @@ export class EspecializacionesComponent implements OnInit {
     private http: HttpClient,
     private router: Router,
     public authService: AuthService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private searchService: SearchService
   ) { }
 
   ngOnInit() {
     this.verificarPermisos();
     this.cargarEspecializaciones();
     this.cargarTecnicos();
+    this.configurarBusquedaGlobal();
   }
 
-  // VERIFICAR PERMISOS
+  ngOnDestroy() {
+    if (this.searchSub) {
+      this.searchSub.unsubscribe();
+    }
+    this.searchService.clearSearch();
+  }
+
+  private configurarBusquedaGlobal(): void {
+    this.searchService.setCurrentComponent('especializaciones');
+    
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      if (term) {
+        this.searchService.clearSearch();
+      }
+    });
+  }
+
   private verificarPermisos(): void {
     if (!this.authService.isAuthenticated()) {
       this.alertService.showError('Acceso denegado', 'Debes iniciar sesión para acceder a esta página');
@@ -85,11 +107,11 @@ export class EspecializacionesComponent implements OnInit {
     return this.authService.canAssignEspecializaciones();
   }
 
-  // CARGAR ESPECIALIZACIONES
   cargarEspecializaciones() {
     this.http.get<any>('http://127.0.0.1:8000/api/especializaciones').subscribe({
       next: (response) => {
         this.especializaciones = response.data || [];
+        this.searchService.setSearchData([]);
       },
       error: (error) => {
         if (error.status === 403) {
@@ -106,7 +128,6 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
-  // CARGAR TÉCNICOS
   cargarTecnicos() {
     this.http.get<any>('http://127.0.0.1:8000/api/usuarios').subscribe({
       next: (response) => {
@@ -120,7 +141,6 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
-  // CREAR ESPECIALIZACIÓN
   crearEspecializacion() {
     if (!this.puedeCrearOEditar()) {
       this.alertService.showError('Permisos insuficientes', 'No tienes permisos para crear especializaciones');
@@ -149,7 +169,6 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
-  // INICIAR EDICIÓN
   iniciarEdicion(especializacion: Especializacion) {
     if (!this.puedeCrearOEditar()) {
       this.alertService.showError('Permisos insuficientes', 'No tienes permisos para editar especializaciones');
@@ -160,7 +179,6 @@ export class EspecializacionesComponent implements OnInit {
     this.especializacionEditada = { nombre: especializacion.nombre };
   }
 
-  // GUARDAR EDICIÓN
   guardarEdicion() {
     if (!this.editandoEspecializacion || !this.puedeCrearOEditar()) return;
 
@@ -188,13 +206,11 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
-  // CANCELAR EDICIÓN
   cancelarEdicion() {
     this.editandoEspecializacion = null;
     this.especializacionEditada = { nombre: '' };
   }
 
-  // ELIMINAR ESPECIALIZACIÓN
   async eliminarEspecializacion(id: number) {
     if (!this.puedeEliminar()) return;
 
@@ -216,7 +232,6 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
-  // INICIAR ASIGNACIÓN
   iniciarAsignacion(especializacion: Especializacion) {
     if (!this.puedeAsignarTecnicos()) return;
 
@@ -224,7 +239,6 @@ export class EspecializacionesComponent implements OnInit {
     this.cargarTecnicosAsignados(especializacion.id);
   }
 
-  // CARGAR TÉCNICOS ASIGNADOS
   cargarTecnicosAsignados(especializacionId: number) {
     this.http.get<any>('http://127.0.0.1:8000/api/users').subscribe({
       next: (response) => {
@@ -243,7 +257,6 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
-  // GUARDAR ASIGNACIÓN
   async guardarAsignacion() {
     if (!this.asignandoTecnicos || !this.puedeAsignarTecnicos()) return;
 
@@ -265,7 +278,6 @@ export class EspecializacionesComponent implements OnInit {
     }
   }
 
-  // ASIGNAR ESPECIALIZACIÓN ADMIN
   asignarEspecializacionAdmin(tecnicoId: number, especializacionId: number): Promise<void> {
     return new Promise((resolve, reject) => {
       this.http.post(`http://127.0.0.1:8000/api/admin/users/${tecnicoId}/especializaciones`, {
@@ -282,13 +294,11 @@ export class EspecializacionesComponent implements OnInit {
     });
   }
 
-  // CANCELAR ASIGNACIÓN
   cancelarAsignacion() {
     this.asignandoTecnicos = null;
     this.tecnicosSeleccionados = [];
   }
 
-  // TOGGLE TÉCNICO
   toggleTecnico(tecnicoId: number) {
     const index = this.tecnicosSeleccionados.indexOf(tecnicoId);
     if (index > -1) {
@@ -298,18 +308,15 @@ export class EspecializacionesComponent implements OnInit {
     }
   }
 
-  // ESTÁ SELECCIONADO
   estaSeleccionado(tecnicoId: number): boolean {
     return this.tecnicosSeleccionados.includes(tecnicoId);
   }
 
-  // CANCELAR CREACIÓN
   cancelarCreacion() {
     this.mostrarFormulario = false;
     this.nuevaEspecializacion = { nombre: '' };
   }
 
-  // CONTAR TÉCNICOS POR ESPECIALIZACIÓN
   contarTecnicosPorEspecializacion(especializacionId: number): number {
     if (!especializacionId) return 0;
     
@@ -319,7 +326,6 @@ export class EspecializacionesComponent implements OnInit {
     ).length;
   }
 
-  // AUTO ASIGNAR ESPECIALIZACIÓN
   autoAsignarEspecializacion(especializacionId: number): void {
     if (!this.authService.canSelfAssignEspecializaciones()) {
       this.alertService.showError('Permisos insuficientes', 'No tienes permisos para auto-asignarte especializaciones');

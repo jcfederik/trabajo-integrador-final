@@ -1,8 +1,9 @@
-// src/app/services/search.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
+// ====== INTERFACES ======
 export interface Factura {
   id: number;
   presupuesto_id: number;
@@ -25,42 +26,28 @@ export interface Paginated<T> {
 
 export interface SearchableItem {
   id: number;
-  // Campos comunes para Cliente
   nombre?: string;
   email?: string;
   telefono?: string;
-  
-  // Campos para Equipo
   descripcion?: string;
   marca?: string;
   modelo?: string;
   nro_serie?: string;
-  
-  // Campos para Reparación
   estado?: string;
   tecnico_nombre?: string;
   equipo_nombre?: string;
   reparacion_nombre?: string;
   fecha?: string;
-  // Campos para Factura
   numero?: string;
   letra?: string;
   monto_total?: number | null;
   detalle?: string;
-  
-  // Campos para Presupuesto
   aceptado?: boolean;
-  
-  // Campos para Proveedor
   razon_social?: string;
   cuit?: string;
   direccion?: string;
-  
-  // Campos para Repuesto
   stock?: number;
   costo_base?: number;
-  
-  // Campos para CompraRepuesto
   numero_comprobante?: string;
   total?: number;
 }
@@ -72,7 +59,6 @@ export interface ServerSearchParams {
   perPage?: number;
 }
 
-// 🔥 NUEVA INTERFAZ para respuesta de búsqueda global
 export interface GlobalSearchResult {
   component: string;
   data: any[];
@@ -81,26 +67,22 @@ export interface GlobalSearchResult {
   last_page: number;
 }
 
-// 🔥 NUEVA INTERFAZ para búsqueda global unificada
 export interface GlobalSearchResponse {
   success: boolean;
   results: GlobalSearchResult[];
   total_results: number;
 }
 
-// 🔥 Nueva interfaz para búsqueda de componentes del dashboard
 export interface DashboardComponent {
   title: string;
   icon: string;
   description: string;
   route?: string;
   disabled?: boolean;
-  type: string; // Tipo para búsqueda
+  type: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class SearchService {
   private apiBaseUrl = 'http://127.0.0.1:8000/api';
 
@@ -118,6 +100,7 @@ export class SearchService {
 
   constructor(private http: HttpClient){}
 
+  // ====== GESTIÓN DE ESTADO ======
   setCurrentComponent(component: string) {
     this.currentComponent.next(component);
   }
@@ -150,6 +133,7 @@ export class SearchService {
     this.globalSearchTerm.next('');
   }
 
+  // ====== BÚSQUEDA EN DASHBOARD ======
   searchDashboardComponents(components: DashboardComponent[], searchTerm: string): DashboardComponent[] {
     if (!searchTerm) return components;
     
@@ -162,7 +146,7 @@ export class SearchService {
     );
   }
 
-  // 🔥 MÉTODO MEJORADO - Búsqueda universal por componente
+  // ====== BÚSQUEDA UNIVERSAL ======
   search<T extends SearchableItem>(items: T[], term: string, componentType: string): T[] {
     if (!term) return items;
     
@@ -170,24 +154,19 @@ export class SearchService {
     
     if (!normalizedTerm) return items;
     
-    // Dividir el término de búsqueda en palabras individuales
     const searchWords = normalizedTerm.split(/\s+/).filter(word => word.length > 0);
     
-    // Si no hay palabras después de dividir, retornar todos los items
     if (searchWords.length === 0) return items;
     
     return items.filter(item => {
-      // Obtener campos específicos según el tipo de componente
       const searchableFields = this.getSearchableFields(item, componentType);
       
-      // Crear un string con todos los campos buscables
       const searchableText = searchableFields
-        .filter(Boolean) // Remover valores null/undefined
-        .join(' ') // Unir con espacios
+        .filter(Boolean)
+        .join(' ')
         .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remover acentos
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       
-      // Verificar que TODAS las palabras estén presentes en el texto buscable
       return searchWords.every(word => {
         const cleanWord = word.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         return searchableText.includes(cleanWord);
@@ -195,7 +174,6 @@ export class SearchService {
     });
   }
 
-  // 🔍 Método para determinar qué campos buscar según el componente
   private getSearchableFields(item: SearchableItem, componentType: string): string[] {
     const fields: string[] = [];
 
@@ -281,6 +259,7 @@ export class SearchService {
     return fields;
   }
 
+  // ====== BÚSQUEDA POR CAMPO ESPECÍFICO ======
   searchByField<T extends SearchableItem>(
     items: T[], 
     term: string, 
@@ -298,6 +277,7 @@ export class SearchService {
     });
   }
 
+  // ====== BÚSQUEDA AVANZADA ======
   advancedSearch<T extends SearchableItem>(
     items: T[], 
     searchCriteria: Partial<SearchableItem>
@@ -314,21 +294,19 @@ export class SearchService {
     });
   }
   
+  // ====== BÚSQUEDA EN SERVIDOR ======
   searchOnServer(component: string, term: string, page: number = 1, perPage: number = 10): Observable<any> {
     if (!term.trim()) {
       const url = `${this.apiBaseUrl}/${component}?page=${page}&per_page=${perPage}`;
       return this.http.get<any>(url);
     }
 
-
     const url = `${this.apiBaseUrl}/${component}?search=${encodeURIComponent(term)}&page=${page}&per_page=${perPage}`;
-    
-    console.log(`🔍 Búsqueda en servidor [${component}]:`, term, 'URL:', url);
-    
+        
     return this.http.get<any>(url);
   }
 
-  // MÉTODOS ESPECÍFICOS PARA CADA COMPONENTE
+  // ====== MÉTODOS ESPECÍFICOS POR COMPONENTE ======
   searchFacturas(term: string, page: number = 1, perPage: number = 10): Observable<any> {
     return this.searchOnServer('facturas', term, page, perPage);
   }
@@ -340,7 +318,6 @@ export class SearchService {
   searchRepuestos(term: string, page: number = 1, perPage: number = 10): Observable<any> {
     return this.searchOnServer('repuestos', term, page, perPage);
   }
-
 
   searchClientes(term: string, page: number = 1, perPage: number = 10): Observable<any> {
     return this.searchOnServer('clientes', term, page, perPage);
@@ -358,6 +335,7 @@ export class SearchService {
     return this.searchOnServer('presupuestos', term, page, perPage);
   }
 
+  // ====== BÚSQUEDA GLOBAL ======
   globalSearch(term: string, components: string[] = ['clientes', 'equipos', 'reparaciones', 'facturas', 'presupuestos', 'proveedores', 'repuestos']): Observable<GlobalSearchResponse> {
     if (!term.trim()) {
       return new Observable(observer => {
@@ -372,16 +350,23 @@ export class SearchService {
       components: components
     };
 
-    return this.http.post<GlobalSearchResponse>(url, body);
+    return this.http.post<GlobalSearchResponse>(url, body).pipe(
+      catchError(() => {
+        return new Observable<GlobalSearchResponse>(observer => {
+          observer.next({ success: false, results: [], total_results: 0 });
+          observer.complete();
+        });
+      })
+    );
   }
 
-  // 🔥 MÉTODO PARA OBTENER SUGERENCIAS RÁPIDAS
+  // ====== SUGERENCIAS RÁPIDAS ======
   getQuickSuggestions(term: string, component: string, limit: number = 5): Observable<any> {
     const url = `${this.apiBaseUrl}/${component}?search=${encodeURIComponent(term)}&per_page=${limit}&page=1`;
     return this.http.get<any>(url);
   }
 
-  // 🔥 MÉTODO ORIGINAL (se mantiene por compatibilidad)
+  // ====== MÉTODO COMPATIBILIDAD ======
   searchFacturasOnServer(term: string, page = 1, perPage = 10): Observable<Paginated<Factura>> {
     return this.http.get<Paginated<Factura>>(
       `${this.apiBaseUrl}/facturas/search?q=${encodeURIComponent(term)}&page=${page}&per_page=${perPage}`

@@ -3,7 +3,9 @@ import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { SearchableItem } from './busquedaglobal';
+import { AlertService } from './alert.service';
 
+// ====== INTERFACES ======
 export interface Presupuesto extends SearchableItem {
   id: number;
   reparacion_id: number;
@@ -42,9 +44,12 @@ export interface Paginated<T> {
 export class PresupuestoService {
   private base = 'http://127.0.0.1:8000/api/presupuestos';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private alertService: AlertService
+  ) {}
 
-  // ====== MÉTODO AUXILIAR PARA OBTENER HEADERS ======
+  // ====== MÉTODO AUXILIAR PARA HEADERS ======
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
     return new HttpHeaders({
@@ -54,7 +59,7 @@ export class PresupuestoService {
     });
   }
 
-  // ====== CRUD OPERATIONS ======
+  // ====== OPERACIONES CRUD ======
   list(page = 1, perPage = 10): Observable<Paginated<Presupuesto>> {
     const params = new HttpParams()
       .set('page', page.toString())
@@ -65,34 +70,59 @@ export class PresupuestoService {
     return this.http.get<Paginated<Presupuesto>>(this.base, { 
       params, 
       headers: this.getHeaders() 
-    });
+    }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudieron cargar los presupuestos');
+        throw error;
+      })
+    );
   }
 
   show(id: number): Observable<Presupuesto> {
     return this.http.get<Presupuesto>(`${this.base}/${id}`, { 
       headers: this.getHeaders() 
-    });
+    }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo cargar el presupuesto');
+        throw error;
+      })
+    );
   }
 
   create(payload: Partial<Presupuesto>) {
     return this.http.post(this.base, payload, { 
       headers: this.getHeaders() 
-    });
+    }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo crear el presupuesto');
+        throw error;
+      })
+    );
   }
 
   update(id: number, payload: Partial<Presupuesto>) {
     return this.http.put(`${this.base}/${id}`, payload, { 
       headers: this.getHeaders() 
-    });
+    }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo actualizar el presupuesto');
+        throw error;
+      })
+    );
   }
 
   delete(id: number) {
     return this.http.delete(`${this.base}/${id}`, { 
       headers: this.getHeaders() 
-    });
+    }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo eliminar el presupuesto');
+        throw error;
+      })
+    );
   }
 
-  // ====== SEARCH OPERATIONS ======
+  // ====== OPERACIONES DE BÚSQUEDA ======
   buscarGlobal(termino: string): Observable<Presupuesto[]> {
     if (!termino.trim()) return of([]);
 
@@ -113,10 +143,7 @@ export class PresupuestoService {
         }
         return this.formatearPresupuestosParaBusqueda(presupuestos);
       }),
-      catchError((error) => {
-        console.error('Error en buscarGlobal:', error);
-        return this.buscarPresupuestosFallback(termino);
-      })
+      catchError(() => this.buscarPresupuestosFallback(termino))
     );
   }
 
@@ -132,18 +159,13 @@ export class PresupuestoService {
       headers: this.getHeaders() 
     }).pipe(
       map(response => {
-        console.log('Respuesta de /buscar:', response);
         const presupuestos = Array.isArray(response) ? response : [];
         return this.formatearPresupuestosParaBusqueda(presupuestos);
       }),
-      catchError((error) => {
-        console.error('Error en buscarPresupuestos:', error);
-        return this.buscarPresupuestosFallback(termino);
-      })
+      catchError(() => this.buscarPresupuestosFallback(termino))
     );
   }
 
-  // NUEVO MÉTODO: Buscar presupuestos por reparación
   buscarPorReparacion(reparacionId: number): Observable<Presupuesto[]> {
     if (!reparacionId) return of([]);
 
@@ -165,11 +187,7 @@ export class PresupuestoService {
         }
         return this.formatearPresupuestosParaBusqueda(presupuestos);
       }),
-      catchError((error) => {
-        console.error('Error en buscarPorReparacion:', error);
-        // Fallback: buscar todos y filtrar por reparacion_id
-        return this.buscarPresupuestosFallbackPorReparacion(reparacionId);
-      })
+      catchError(() => this.buscarPresupuestosFallbackPorReparacion(reparacionId))
     );
   }
 
@@ -197,7 +215,6 @@ export class PresupuestoService {
         const terminoLower = termino.toLowerCase();
         
         const presupuestosFiltrados = todosLosPresupuestos.filter((presupuesto: Presupuesto) => {
-          // Buscar en propiedades del presupuesto
           const enPropiedadesPresupuesto = (
             presupuesto.id.toString().includes(termino) ||
             (presupuesto.monto_total && presupuesto.monto_total.toString().includes(termino)) ||
@@ -205,7 +222,6 @@ export class PresupuestoService {
             presupuesto.fecha.includes(termino)
           );
 
-          // Buscar en información de la reparación asociada
           let enReparacion = false;
           if (presupuesto.reparacion) {
             const reparacion = presupuesto.reparacion;
@@ -228,7 +244,7 @@ export class PresupuestoService {
     );
   }
 
-  // ====== DATA FORMATTING ======
+  // ====== FORMATEO DE DATOS ======
   private formatearPresupuestosParaBusqueda(presupuestos: any[]): Presupuesto[] {
     return presupuestos.map(presupuesto => ({
       ...presupuesto,
@@ -254,7 +270,7 @@ export class PresupuestoService {
     return `Presupuesto #${presupuesto.id} | ${monto} | ${estado} | ${fecha} | ${reparacionDesc}`;
   }
 
-  // ====== RELATED DATA OPERATIONS ======
+  // ====== OPERACIONES RELACIONADAS ======
   cargarInformacionReparacion(presupuestoId: number): Observable<any> {
     return this.show(presupuestoId).pipe(
       map(presupuesto => presupuesto.reparacion),
@@ -266,33 +282,15 @@ export class PresupuestoService {
     return of(new Map());
   }
 
-  listOptimizado(page = 1, perPage = 10, search: string = ''): Observable<Paginated<Presupuesto>> {
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('per_page', perPage.toString());
-
-    if (search.trim()) {
-      params = params.set('search', search.trim());
-    }
-
-    return this.http.get<Paginated<Presupuesto>>(`${this.base}/listado-optimizado`, { 
-      params, 
-      headers: this.getHeaders() 
-    });
-  }
-
-  // NUEVO MÉTODO: Obtener presupuesto aprobado para una reparación
   obtenerPresupuestoAprobado(reparacionId: number): Observable<Presupuesto | null> {
     return this.buscarPorReparacion(reparacionId).pipe(
       map(presupuestos => {
-        // Buscar el primer presupuesto aprobado
         const presupuestoAprobado = presupuestos.find(p => p.aceptado === true);
         
         if (presupuestoAprobado) {
           return presupuestoAprobado;
         }
         
-        // Si no hay aprobado, buscar el más reciente
         const presupuestoReciente = presupuestos.sort((a, b) => {
           const dateA = new Date(a.fecha);
           const dateB = new Date(b.fecha);
@@ -305,12 +303,9 @@ export class PresupuestoService {
     );
   }
 
-  // NUEVO MÉTODO: Verificar si una reparación tiene presupuesto aprobado
   tienePresupuestoAprobado(reparacionId: number): Observable<boolean> {
     return this.buscarPorReparacion(reparacionId).pipe(
-      map(presupuestos => {
-        return presupuestos.some(p => p.aceptado === true);
-      }),
+      map(presupuestos => presupuestos.some(p => p.aceptado === true)),
       catchError(() => of(false))
     );
   }

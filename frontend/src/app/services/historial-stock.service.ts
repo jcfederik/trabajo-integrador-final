@@ -3,7 +3,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { SearchableItem } from './busquedaglobal';
+import { AlertService } from './alert.service';
 
+// ====== INTERFACES ======
 export interface HistorialStock extends SearchableItem {
   id: number;
   repuesto_id: number;
@@ -50,9 +52,12 @@ export interface HistorialStockFilters {
 export class HistorialStockService {
   private base = 'http://127.0.0.1:8000/api/historial-stock';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private alertService: AlertService
+  ) {}
 
-  // ====== CRUD OPERATIONS ======
+  // ====== OPERACIONES CRUD ======
   list(page = 1, perPage = 20, filters?: HistorialStockFilters): Observable<Paginated<HistorialStock>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -77,17 +82,25 @@ export class HistorialStockService {
     }
 
     return this.http.get<any>(this.base, { params }).pipe(
-      map(response => this.formatearRespuestaPaginated(response))
+      map(response => this.formatearRespuestaPaginated(response)),
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo cargar el historial de stock');
+        throw error;
+      })
     );
   }
 
   show(id: number): Observable<HistorialStock> {
     return this.http.get<any>(`${this.base}/${id}`).pipe(
-      map(item => this.formatearItemParaDisplay(item))
+      map(item => this.formatearItemParaDisplay(item)),
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo cargar el registro de historial');
+        throw error;
+      })
     );
   }
 
-  // ====== SEARCH OPERATIONS ======
+  // ====== OPERACIONES DE BÚSQUEDA ======
   buscarGlobal(termino: string): Observable<HistorialStock[]> {
     if (!termino.trim()) return of([]);
 
@@ -150,7 +163,7 @@ export class HistorialStockService {
     );
   }
 
-  // ====== HELPER METHODS FOR RESPONSE HANDLING ======
+  // ====== MÉTODOS AUXILIARES ======
   private extraerDatosDeRespuesta(response: any): any[] {
     if (!response) return [];
     
@@ -166,7 +179,6 @@ export class HistorialStockService {
       return response.historial;
     }
     
-    console.warn('Estructura de respuesta no reconocida:', response);
     return [];
   }
 
@@ -185,9 +197,8 @@ export class HistorialStockService {
     };
   }
 
-  // ====== FILTER OPTIONS ======
+  // ====== OPCIONES DE FILTRO ======
   getTiposMovimiento(): Observable<string[]> {
-    // Tipos de movimiento predefinidos según el controlador PHP
     return of([
       'COMPRA',
       'ASIGNACION_REPUESTO',
@@ -198,10 +209,9 @@ export class HistorialStockService {
     ]);
   }
 
-  // ====== DATA FORMATTING ======
+  // ====== FORMATEO DE DATOS ======
   private formatearHistorialParaDisplay(items: any[]): HistorialStock[] {
     if (!items || !Array.isArray(items)) {
-      console.warn('formatearHistorialParaDisplay: items no es un array', items);
       return [];
     }
     
@@ -210,7 +220,6 @@ export class HistorialStockService {
 
   private formatearHistorialParaBusqueda(items: any[]): HistorialStock[] {
     if (!items || !Array.isArray(items)) {
-      console.warn('formatearHistorialParaBusqueda: items no es un array', items);
       return [];
     }
     
@@ -224,7 +233,6 @@ export class HistorialStockService {
 
   private formatearItemParaDisplay(item: any): HistorialStock {
     if (!item) {
-      console.warn('formatearItemParaDisplay: item es null/undefined');
       return {} as HistorialStock;
     }
     
@@ -253,7 +261,7 @@ export class HistorialStockService {
     return `#${item.id || '?'} | ${fecha} | ${repuestoNombre} | ${item.tipo_mov || 'SIN_TIPO'} ${cantidad || 0} | ${stock}`;
   }
 
-  // ====== HELPER METHODS ======
+  // ====== MÉTODOS DE UTILIDAD ======
   getTipoMovimientoColor(tipo: string): string {
     const colores: { [key: string]: string } = {
       'COMPRA': 'success',

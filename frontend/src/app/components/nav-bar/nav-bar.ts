@@ -23,12 +23,19 @@ export class NavBar implements OnInit, OnDestroy {
   userTipo: string = 'Usuario';
   isDashboard: boolean = false;
   mostrarModalLogout: boolean = false;
+  searchDisabled: boolean = false;
 
   // PROPIEDADES PRIVADAS
   private backspacePresionado = false;
   private searchSubscription!: Subscription;
   private componentSubscription!: Subscription;
   private routerSubscription!: Subscription;
+
+  private readonly componentesBloqueados: string[] = [
+    'historial_stock',
+    'usuarios',
+    'especializaciones'
+  ];
 
   // CONSTRUCTOR
   constructor(
@@ -62,6 +69,8 @@ export class NavBar implements OnInit, OnDestroy {
     this.componentSubscription = this.searchService.currentComponent$.subscribe(component => {
       setTimeout(() => {
         this.placeholder = this.getPlaceholder(component);
+        
+        this.searchDisabled = this.componentesBloqueados.includes(component);
       });
     });
 
@@ -132,10 +141,18 @@ export class NavBar implements OnInit, OnDestroy {
     for (let key in map) {
       if (currentPath.includes(key)) {
         this.placeholder = map[key];
+        
+        this.searchDisabled = currentPath.includes('usuarios') || 
+                              currentPath.includes('especializaciones') || 
+                              currentPath.includes('historial-stock');
         return;
       }
     }
 
+    this.searchDisabled = currentPath.includes('usuarios') || 
+                          currentPath.includes('especializaciones') || 
+                          currentPath.includes('historial-stock');
+    
     this.placeholder = this.isDashboard ? 'Buscar módulos...' : 'Buscar...';
   }
 
@@ -166,6 +183,10 @@ export class NavBar implements OnInit, OnDestroy {
 
   // GESTIÓN DE BÚSQUEDA
   onSearch() {
+    if (this.searchDisabled) {
+      return;
+    }
+
     this.searchService.setGlobalSearchTerm(this.searchTerm);
 
     if (this.isDashboard) {
@@ -176,6 +197,10 @@ export class NavBar implements OnInit, OnDestroy {
   }
 
   clearSearch() {
+    if (this.searchDisabled) {
+      return;
+    }
+
     this.searchTerm = '';
     this.searchService.clearGlobalSearch();
     this.searchService.clearSearch();
@@ -194,10 +219,11 @@ export class NavBar implements OnInit, OnDestroy {
       'presupuestos': 'Buscar presupuestos...',
       'reparaciones': 'Buscar reparaciones...',
       'cobros': 'Buscar cobros...',
-      'usuarios': 'Buscar usuarios...',
-      'especializaciones': 'Buscar especializaciones...',
       'detalles-cobro': 'Buscar detalles de cobro...',
-      'dashboard': 'Buscar módulos...'
+      'dashboard': 'Buscar módulos...',
+      'historial_stock': 'Búsqueda deshabilitada - Use filtros internos',
+      'usuarios': 'Búsqueda deshabilitada - Gestione usuarios directamente',
+      'especializaciones': 'Búsqueda deshabilitada - Gestione especializaciones directamente'
     };
   
     return placeholders[component] || 'Buscar...';
