@@ -533,8 +533,8 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   }
 
   limpiarBusqueda() {
-    this.searchService.setSearchTerm('');
     this.searchTerm = '';
+    this.searchService.setSearchTerm('');
     this.page = 1;
     this.lastPage = false;
     this.repuestosAll = [];
