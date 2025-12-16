@@ -8,6 +8,7 @@ import { RepuestoService, Repuesto, PaginatedResponse } from '../../services/rep
 import { ProveedoresService, Proveedor } from '../../services/proveedores.service';
 import { SearchService } from '../../services/busquedaglobal';
 import { SearchSelectorComponent, SearchResult } from '../../components/search-selector/search-selector.component';
+import { AlertService } from '../../services/alert.service'; // Asegúrate de importar AlertService
 
 type Accion = 'listar' | 'comprar';
 
@@ -69,7 +70,8 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     private repuestoService: RepuestoService,
     private proveedoresService: ProveedoresService,
     public searchService: SearchService,
-    private cdRef: ChangeDetectorRef
+    private cdRef: ChangeDetectorRef,
+    private alertService: AlertService
   ) { }
 
   // LIFECYCLE HOOKS
@@ -129,6 +131,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       },
       error: (e) => {
         this.loading = false;
+        this.alertService.showGenericError('Error al cargar los repuestos');
       }
     });
   }
@@ -165,17 +168,17 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     }
 
     if (!nombreRepuesto.trim()) {
-      alert('Completá el nombre del repuesto.');
+      this.alertService.showError('Error', 'Completá el nombre del repuesto.');
       return;
     }
     
     if (!this.nuevo.cantidad || this.nuevo.cantidad <= 0) {
-      alert('La cantidad debe ser mayor a 0.');
+      this.alertService.showError('Error', 'La cantidad debe ser mayor a 0.');
       return;
     }
     
     if (this.nuevo.costo_base === undefined || this.nuevo.costo_base < 0) {
-      alert('El costo base no puede ser negativo.');
+      this.alertService.showError('Error', 'El costo base no puede ser negativo.');
       return;
     }
 
@@ -197,27 +200,39 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       payload.repuesto_id = repuestoId;
     }
 
+    console.log('Enviando compra:', payload);
+
+    this.alertService.showLoading('Realizando compra...');
+
     this.repuestoService.comprarRepuesto(payload).subscribe({
       next: (response: any) => {
+        this.alertService.closeLoading();
+        console.log('Respuesta de compra:', response);
+
         this.resetFormularioCompra();
         this.resetLista();
         
         let mensaje = '¡Compra realizada exitosamente!';
+        let detalles = '';
         
         if (response.repuesto) {
-          mensaje += `\nRepuesto: ${response.repuesto.nombre}`;
-          mensaje += `\nStock actual: ${response.repuesto.stock} unidades`;
+          detalles += `• Repuesto: ${response.repuesto.nombre}<br>`;
+          detalles += `• Stock actual: ${response.repuesto.stock} unidades`;
         }
         
         if (response.historial) {
-          mensaje += `\nStock anterior: ${response.historial.stock_anterior}`;
-          mensaje += `\nStock nuevo: ${response.historial.stock_nuevo}`;
+          detalles += detalles ? '<br>' : '';
+          detalles += `• Stock anterior: ${response.historial.stock_anterior}<br>`;
+          detalles += `• Stock nuevo: ${response.historial.stock_nuevo}`;
         }
         
-        alert(mensaje);
+        this.alertService.showAlert('Compra exitosa', detalles, 'success').then(() => {
+          this.alertService.showRepuestoCreado(response.repuesto?.nombre || nombreRepuesto);
+        });
       },
       error: (e) => {
-        this.manejarError(e, 'comprar repuesto');
+        this.alertService.closeLoading();
+        this.manejarErrorSweetAlert(e, 'realizar la compra');
       }
     });
   }
@@ -294,7 +309,8 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // CONVERSIÓN DE DATOS A SEARCHRESULT
+  // ====== CONVERSIÓN DE DATOS A SEARCHRESULT ======
+  
   private proveedorToSearchResult(proveedor: Proveedor): SearchResult {
     return {
       id: proveedor.id!,
@@ -382,19 +398,29 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.proveedoresSugeridos = [];
   }
 
-  // ELIMINAR REPUESTO
-  eliminar(id: number): void {
-    if (!confirm('¿Eliminar este repuesto?')) return;
+  // ====== ELIMINAR REPUESTO ======
+  async eliminar(id: number): Promise<void> {
+    const repuesto = this.repuestosAll.find(x => x.id === id);
+    const repuestoNombre = repuesto?.nombre || `Repuesto #${id}`;
+    
+    const confirmed = await this.alertService.confirmDeleteRepuesto(repuestoNombre);
+    if (!confirmed) return;
+
+    this.alertService.showLoading('Eliminando repuesto...');
 
     this.repuestoService.deleteRepuesto(id).subscribe({
       next: () => {
+        this.alertService.closeLoading();
+        
         this.repuestosAll = this.repuestosAll.filter(x => x.id !== id);
         this.repuestos = this.repuestos.filter(x => x.id !== id);
         this.searchService.setSearchData(this.repuestosAll);
-        alert('Repuesto eliminado exitosamente!');
+        
+        this.alertService.showRepuestoEliminado(repuestoNombre);
       },
       error: (e) => {
-        alert('Error al eliminar el repuesto');
+        this.alertService.closeLoading();
+        this.manejarErrorSweetAlert(e, 'eliminar el repuesto');
       }
     });
   }
@@ -414,12 +440,19 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.editBuffer = {};
   }
 
-  saveEdit(id: number): void {
+  async saveEdit(id: number): Promise<void> {
     const payload = this.limpiarPayload(this.editBuffer);
-    if (!this.validarPayload(payload)) return;
+    if (!this.validarPayloadSweetAlert(payload)) return;
+
+    console.log('Actualizando repuesto:', id, payload);
+
+    this.alertService.showLoading('Actualizando repuesto...');
 
     this.repuestoService.updateRepuesto(id, payload).subscribe({
       next: (response: any) => {
+        this.alertService.closeLoading();
+        console.log('Respuesta de actualización:', response);
+
         const repuestoActualizado = response.repuesto || response.data || response;
 
         const updateLocal = (arr: Repuesto[]) => {
@@ -437,20 +470,13 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
         this.searchService.setSearchData(this.repuestosAll);
         this.cancelEdit();
-        alert('Repuesto actualizado exitosamente!');
+        
+        const repuestoNombre = payload.nombre || this.repuestosAll.find(x => x.id === id)?.nombre || 'Repuesto';
+        this.alertService.showRepuestoActualizado(repuestoNombre);
       },
       error: (e) => {
-        let mensajeError = 'No se pudo actualizar el repuesto';
-
-        if (e.error?.error) {
-          mensajeError = e.error.error;
-        } else if (e.error?.message) {
-          mensajeError = e.error.message;
-        } else if (e.message) {
-          mensajeError = e.message;
-        }
-
-        alert(mensajeError);
+        this.alertService.closeLoading();
+        this.manejarErrorSweetAlert(e, 'actualizar el repuesto');
       }
     });
   }
@@ -466,15 +492,31 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   private validarPayload(p: any): boolean {
     if (!p.nombre || p.nombre.trim() === '') {
-      alert('Completá el nombre del repuesto.');
+      this.alertService.showValidationError('nombre del repuesto');
       return false;
     }
     if (p.stock === null || p.stock === undefined || p.stock < 0) {
-      alert('El stock no puede ser negativo.');
+      this.alertService.showError('Error', 'El stock no puede ser negativo.');
       return false;
     }
     if (p.costo_base === null || p.costo_base === undefined || p.costo_base < 0) {
-      alert('El costo base no puede ser negativo.');
+      this.alertService.showError('Error', 'El costo base no puede ser negativo.');
+      return false;
+    }
+    return true;
+  }
+
+  private validarPayloadSweetAlert(p: any): boolean {
+    if (!p.nombre || p.nombre.trim() === '') {
+      this.alertService.showValidationError('nombre del repuesto');
+      return false;
+    }
+    if (p.stock === null || p.stock === undefined || p.stock < 0) {
+      this.alertService.showError('Error', 'El stock no puede ser negativo.');
+      return false;
+    }
+    if (p.costo_base === null || p.costo_base === undefined || p.costo_base < 0) {
+      this.alertService.showError('Error', 'El costo base no puede ser negativo.');
       return false;
     }
     return true;
@@ -491,7 +533,23 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       mensajeError = error.message;
     }
 
-    alert(mensajeError);
+    this.alertService.showError('Error', mensajeError);
+  }
+
+  private manejarErrorSweetAlert(error: any, operacion: string): void {
+    console.error(`Error completo al ${operacion}:`, error);
+
+    let mensajeError = `Error al ${operacion}`;
+
+    if (error.error?.error) {
+      mensajeError = error.error.error;
+    } else if (error.error?.message) {
+      mensajeError = error.error.message;
+    } else if (error.message) {
+      mensajeError = error.message;
+    }
+
+    this.alertService.showError('Error', mensajeError);
   }
 
   // UTILITIES
