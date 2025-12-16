@@ -156,7 +156,7 @@
                               <div *ngIf="presupuesto.yaFacturado && presupuesto.facturaExistente" 
                                    class="info-line warning-line">
                                 <i class="bi bi-exclamation-triangle small-icon"></i>
-                                <span>Factura: {{ presupuesto.facturaExistente?.numero }}{{ presupuesto.facturaExistente?.letra ? ' (' + presupuesto.facturaExistente?.letra + ')' : '' }}</span>
+                                <span>Factura: {{ presupuesto.facturaExistente.numero }}{{ presupuesto.facturaExistente.letra ? ' (' + presupuesto.facturaExistente.letra + ')' : '' }}</span>
                               </div>
                               
                               <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
@@ -389,7 +389,7 @@
                   <div *ngIf="presupuesto.yaFacturado && presupuesto.facturaExistente" 
                        class="info-line warning-line">
                     <i class="bi bi-exclamation-triangle small-icon"></i>
-                    <span>Factura: {{ presupuesto.facturaExistente?.numero }}{{ presupuesto.facturaExistente?.letra ? ' (' + presupuesto.facturaExistente?.letra + ')' : '' }}</span>
+                    <span>Factura: {{ presupuesto.facturaExistente.numero }}{{ presupuesto.facturaExistente.letra ? ' (' + presupuesto.facturaExistente.letra + ')' : '' }}</span>
                   </div>
                   
                   <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
@@ -450,7 +450,7 @@
               Monto: {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}
             </small>
             <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'Desconocido'">
-              | Estado reparación: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) }}
+              | Estado reparación: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
             </small>
           </div>
         </div>
@@ -551,35 +551,36 @@
           <li *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada'">
             La reparación está en estado: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
           </li>
-          <li *ngIf="nuevo.presupuestoSeleccionado?.yaFacturado">
-            Este presupuesto ya tiene una factura asociada
-            <span *ngIf="nuevo.presupuestoSeleccionado?.facturaExistente">
-              : {{ nuevo.presupuestoSeleccionado?.facturaExistente?.numero }}{{ nuevo.presupuestoSeleccionado?.facturaExistente?.letra ? ' (' + nuevo.presupuestoSeleccionado?.facturaExistente?.letra + ')' : '' }}
-            </span>
+          <li *ngIf="nuevo.presupuestoSeleccionado && nuevo.presupuestoSeleccionado.yaFacturado">
+              Este presupuesto ya tiene una factura asociada
+              <span *ngIf="nuevo.presupuestoSeleccionado.facturaExistente">
+                  : {{ nuevo.presupuestoSeleccionado.facturaExistente.numero }}{{ nuevo.presupuestoSeleccionado.facturaExistente.letra ? ' (' + nuevo.presupuestoSeleccionado.facturaExistente.letra + ')' : '' }}
+              </span>
           </li>
         </ul>
       </div>
 
       <button class="boton-enviar" type="submit" 
           [disabled]="!nuevo.presupuesto_id || 
-           !nuevo.presupuestoSeleccionado?.aceptado || 
-           getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'finalizada' ||
-           nuevo.presupuestoSeleccionado?.yaFacturado">        
+          !nuevo.presupuestoSeleccionado?.aceptado || 
+          getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'finalizada' ||
+          nuevo.presupuestoSeleccionado?.yaFacturado">
+          
           <i class="bi bi-check2-circle icono-boton"></i> 
-        <ng-container *ngIf="nuevo.presupuestoSeleccionado">
-          <span *ngIf="nuevo.presupuestoSeleccionado.aceptado && 
-                       getEstadoReparacion(nuevo.presupuestoSeleccionado.id) === 'finalizada' &&
-                       !nuevo.presupuestoSeleccionado.yaFacturado">
-            Guardar Factura
-          </span>
-          <span *ngIf="!nuevo.presupuestoSeleccionado.aceptado || 
-                       getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada' ||
-                       nuevo.presupuestoSeleccionado.yaFacturado">
-            No cumple requisitos para facturar
-          </span>
-        </ng-container>
-      </button>
-      
+          <ng-container *ngIf="nuevo.presupuestoSeleccionado">
+              <span *ngIf="nuevo.presupuestoSeleccionado.aceptado && 
+                          getEstadoReparacion(nuevo.presupuestoSeleccionado.id) === 'finalizada' &&
+                          !nuevo.presupuestoSeleccionado.yaFacturado">
+                  Guardar Factura
+              </span>
+              <span *ngIf="!nuevo.presupuestoSeleccionado.aceptado || 
+                          getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada' ||
+                          nuevo.presupuestoSeleccionado.yaFacturado">
+                  No cumple requisitos para facturar
+              </span>
+          </ng-container>
+      </button>      
+
       <app-presupuesto-picker 
           *ngIf="mostrandoPresupuestos"
           (closed)="ocultarPresupuestos()"

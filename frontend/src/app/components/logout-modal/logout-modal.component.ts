@@ -30,37 +30,36 @@ export class LogoutModalComponent implements OnInit {
     this.cargarDatosUsuario();
   }
 
+  // CARGAR DATOS USUARIO
   cargarDatosUsuario() {
-    // Usar getCurrentUser que ya existe en tu AuthService
     const user = this.authService.getCurrentUser();
     this.currentUser.set(user);
-    
-    console.log('🔍 Usuario en modal:', user);
-    console.log('🎯 Especializaciones:', user?.especializaciones);
   }
 
-  // Mostrar confirmación de logout
+  // MOSTRAR LOGOUT
   mostrarLogout() {
     this.mostrarConfirmacion = true;
   }
 
-  // Volver al perfil
+  // VOLVER AL PERFIL
   volverAlPerfil() {
     this.mostrarConfirmacion = false;
   }
 
-  // Ir a la página de especializaciones
+  // IR A ESPECIALIZACIONES
   irAEspecializaciones() {
     this.closed.emit();
     this.router.navigate(['/especializaciones']);
   }
 
+  // CONFIRMAR LOGOUT
   confirmarLogout() {
     this.authService.logout();
     this.router.navigate(['/login']);
     this.closed.emit();
   }
 
+  // CANCELAR
   cancelar() {
     this.closed.emit();
   }

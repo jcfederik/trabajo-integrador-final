@@ -32,7 +32,6 @@ interface FiltrosComponente {
   styleUrls: ['./historial-stock.component.css']
 })
 export class HistorialStockComponent implements OnInit, OnDestroy {
-  // =============== ESTADO DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
   
   private itemsAll: HistorialStock[] = [];
@@ -43,7 +42,6 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
   loading = false;
   loadingTipos = false;
   
-  // =============== BÚSQUEDA Y FILTROS ===============
   searchTerm = '';
   mostrandoSugerencias = false;
   buscandoHistorial = false;
@@ -53,7 +51,6 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
   private busquedaHistorial = new Subject<string>();
   private searchSub!: Subscription;
   
-  // Filtros
   filtros: FiltrosComponente = {};
   tiposMovimiento: string[] = [];
   repuestosSugeridos: any[] = [];
@@ -61,7 +58,6 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
   mostrandoRepuestos = false;
   private busquedaRepuesto = new Subject<string>();
   
-  // Cache
   private repuestosInfoCache = new Map<number, any>();
   private tiposMovCache = new Map<string, { color: string, icono: string }>();
   
@@ -72,7 +68,7 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
     private alertService: AlertService
   ) {}
   
-  // =============== LIFECYCLE ===============
+  // LIFECYCLE
   ngOnInit(): void {
     this.cargar();
     this.cargarTiposMovimiento();
@@ -91,7 +87,7 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
   
-  // =============== CONFIGURACIÓN DE BÚSQUEDAS ===============
+  // CONFIGURACIÓN DE BÚSQUEDAS
   private configurarBusquedaGlobal(): void {
     this.searchService.setCurrentComponent('historial_stock');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -123,7 +119,7 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
     });
   }
   
-  // =============== CARGA DE DATOS ===============
+  // CARGA DE DATOS
   private cargarTiposMovimiento(): void {
     this.loadingTipos = true;
     this.svc.getTiposMovimiento().subscribe({
@@ -158,7 +154,6 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
       next: (res: Paginated<HistorialStock>) => {
         const batch = res.data ?? [];
         
-        // Actualizar cache de repuestos
         batch.forEach(item => {
           if (item.repuesto && !this.repuestosInfoCache.has(item.repuesto_id)) {
             this.repuestosInfoCache.set(item.repuesto_id, item.repuesto);
@@ -185,14 +180,13 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: (error) => { 
-        console.error('Error cargando historial de stock:', error);
         this.loading = false; 
         this.alertService.showGenericError('Error al cargar el historial de stock');
       }
     });
   }
   
-  // =============== BÚSQUEDA ===============
+  // BÚSQUEDA
   onBuscarHistorial(termino: string): void {
     const terminoLimpio = (termino || '').trim();
     
@@ -276,7 +270,7 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
     this.cargar();
   }
   
-  // =============== FILTROS ===============
+  // FILTROS
   aplicarFiltros(): void {
     this.itemsAll = [];
     this.items = [];
@@ -291,7 +285,7 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
     this.aplicarFiltros();
   }
   
-  // =============== BÚSQUEDA DE REPUESTOS PARA FILTRO ===============
+  // BÚSQUEDA DE REPUESTOS PARA FILTRO
   onBuscarRepuesto(termino: string): void {
     this.busquedaRepuesto.next(termino);
   }
@@ -342,7 +336,7 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
     }, 200);
   }
   
-  // =============== SCROLL INFINITO ===============
+  // SCROLL INFINITO
   onScroll = () => {
     const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 120;
     
@@ -388,7 +382,7 @@ export class HistorialStockComponent implements OnInit, OnDestroy {
     });
   }
   
-  // =============== UTILIDADES ===============
+  // UTILIDADES
   getTipoColor(tipo: string): string {
     return this.tiposMovCache.get(tipo)?.color || 'secondary';
   }

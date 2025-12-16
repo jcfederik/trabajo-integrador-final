@@ -21,15 +21,12 @@ type Accion = 'listar' | 'comprar';
 })
 export class RepuestosComponent implements OnInit, OnDestroy {
   selectedAction: Accion = 'listar';
+  
   @ViewChild('ProveedorSelector', { static: false })
   searchSelectorProveedor?: SearchSelectorComponent;
   
   @ViewChild('RepuestoSelector', { static: false })
   searchSelectorComponent?: SearchSelectorComponent;
-  
-  ngAfterViewInit() {
-    this.cdRef.detectChanges();
-  }
 
   repuestosAll: Repuesto[] = [];
   repuestos: Repuesto[] = [];
@@ -40,11 +37,11 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   lastPage = false;
   loading = false;
 
-  // Búsqueda global
+  // BÚSQUEDA GLOBAL
   private searchSub?: Subscription;
   searchTerm = '';
 
-  // Edición inline
+  // EDICIÓN INLINE
   editingId: number | null = null;
   editBuffer: Partial<Repuesto> = {
     nombre: '',
@@ -52,13 +49,11 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     costo_base: 0
   };
 
-  // ====== CAMPOS PARA COMPRA ======
+  // CAMPOS PARA COMPRA
   modoCompra: 'nuevo' | 'existente' = 'nuevo';
-
   repuestoExistenteSeleccionado: SearchResult | null = null;
   repuestosSugeridos: SearchResult[] = [];
   buscandoRepuestos = false;
-
   proveedorSeleccionado: SearchResult | null = null;
   proveedoresSugeridos: SearchResult[] = [];
   buscandoProveedores = false;
@@ -79,7 +74,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     private alertService: AlertService
   ) { }
 
-  // ====== CICLO DE VIDA ======
+  // LIFECYCLE HOOKS
   ngOnInit(): void {
     this.resetLista();
     this.configurarBusqueda();
@@ -92,7 +87,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // ====== CONFIGURACIÓN DE BÚSQUEDA ======
+  // CONFIGURACIÓN DE BÚSQUEDA
   configurarBusqueda() {
     this.searchService.setCurrentComponent('repuestos');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
@@ -113,7 +108,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== LISTA / PAGINACIÓN ======
+  // LISTA / PAGINACIÓN
   private fetch(page = 1): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -135,7 +130,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: (e) => {
-        console.error('Error al obtener repuestos', e);
         this.loading = false;
         this.alertService.showGenericError('Error al cargar los repuestos');
       }
@@ -161,7 +155,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  // ====== COMPRAR REPUESTO ======
+  // COMPRAR REPUESTO
   comprar(): void {
     let nombreRepuesto = '';
     let repuestoId: number | undefined;
@@ -243,10 +237,8 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== BÚSQUEDA DE PROVEEDORES (PARA SEARCH-SELECTOR) ======
+  // BÚSQUEDA DE PROVEEDORES
   buscarProveedores(termino: string): void {
-    console.log('🔍 Buscando proveedores con término:', termino);
-    
     if (!termino || termino.length < 2) {
       this.proveedoresSugeridos = [];
       if (this.searchSelectorProveedor) {
@@ -259,14 +251,10 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     
     this.proveedoresService.buscarProveedoresRapido(termino).subscribe({
       next: (proveedores) => {
-        console.log('✅ Proveedores encontrados:', proveedores);
-        
-        // Convertir Proveedor[] a SearchResult[]
         this.proveedoresSugeridos = proveedores.map(prov => 
           this.proveedorToSearchResult(prov)
         );
         
-        // Actualizar el search-selector si usas @ViewChild
         if (this.searchSelectorProveedor) {
           this.searchSelectorProveedor.updateSuggestions(this.proveedoresSugeridos);
         }
@@ -274,7 +262,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         this.buscandoProveedores = false;
       },
       error: (error) => {
-        console.error('❌ Error buscando proveedores:', error);
         this.buscandoProveedores = false;
         this.proveedoresSugeridos = [];
         
@@ -285,7 +272,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ===== BÚSQUEDA DE REPUESTOS EXISTENTES (PARA SEARCH-SELECTOR) ======
+  // BÚSQUEDA DE REPUESTOS EXISTENTES
   buscarRepuestosExistentes(termino: string): void {
     if (!termino || termino.length < 2) {
       this.repuestosSugeridos = [];
@@ -299,17 +286,11 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     
     this.repuestoService.buscarRepuestos(termino).subscribe({
       next: (response: any) => {
-        console.log('Respuesta completa del backend:', response);
-        
         const repuestos = response?.data || [];
-        
-        console.log('Repuestos extraídos:', repuestos);
         
         this.repuestosSugeridos = repuestos.map((rep: any) => 
           this.repuestoToSearchResult(rep)
         );
-        
-        console.log('SearchResults convertidos:', this.repuestosSugeridos);
         
         if (this.searchSelectorComponent) {
           this.searchSelectorComponent.updateSuggestions(this.repuestosSugeridos);
@@ -318,7 +299,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         this.buscandoRepuestos = false;
       },
       error: (error) => {
-        console.error('Error buscando repuestos:', error);
         this.buscandoRepuestos = false;
         this.repuestosSugeridos = [];
         
@@ -366,8 +346,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     };
   }
 
-  // ====== MANEJO DE SELECCIONES DEL SEARCH-SELECTOR ======
-  
+  // MANEJO DE SELECCIONES DEL SEARCH-SELECTOR
   seleccionarProveedor(proveedor: SearchResult): void {
     this.proveedorSeleccionado = proveedor;
   }
@@ -378,7 +357,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   seleccionarRepuestoExistente(repuesto: SearchResult): void {
     this.repuestoExistenteSeleccionado = repuesto;
-    // Pre-cargar el costo base actual como sugerencia
     this.nuevo.costo_base = repuesto.costo_actual || repuesto.costo_base || 0;
   }
 
@@ -387,7 +365,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.nuevo.costo_base = 0;
   }
 
-  // ====== CAMBIAR MODO DE COMPRA ======
+  // CAMBIAR MODO DE COMPRA
   cambiarModoCompra(modo: 'nuevo' | 'existente'): void {
     this.modoCompra = modo;
     
@@ -395,21 +373,19 @@ export class RepuestosComponent implements OnInit, OnDestroy {
       this.limpiarRepuestoExistente();
       this.nuevo.nombre = '';
     } else {
-      // En modo existente, si no hay repuesto seleccionado, limpiar nombre
       if (!this.repuestoExistenteSeleccionado) {
         this.nuevo.nombre = '';
       }
     }
   }
 
-  // ====== RESETEAR FORMULARIO DE COMPRA ======
+  // RESETEAR FORMULARIO DE COMPRA
   private resetFormularioCompra(): void {
     this.selectedAction = 'listar';
     this.modoCompra = 'nuevo';
     this.repuestoExistenteSeleccionado = null;
     this.proveedorSeleccionado = null;
     
-    // Resetear todo el objeto nuevo
     this.nuevo = {
       nombre: '',
       cantidad: 1,
@@ -449,7 +425,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== EDICIÓN INLINE ======
+  // EDICIÓN INLINE
   startEdit(item: Repuesto): void {
     this.editingId = item.id!;
     this.editBuffer = {
@@ -505,7 +481,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ====== HELPERS ======
+  // HELPERS
   private limpiarPayload(obj: Partial<Repuesto>): Partial<Repuesto> {
     return {
       nombre: obj.nombre?.toString().trim(),
@@ -547,8 +523,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   }
 
   private manejarError(error: any, operacion: string): void {
-    console.error(`Error completo al ${operacion}:`, error);
-
     let mensajeError = `Error al ${operacion}`;
 
     if (error.error?.error) {
@@ -578,7 +552,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.alertService.showError('Error', mensajeError);
   }
 
-  // ====== UTILITIES ======
+  // UTILITIES
   getStockClass(stock: number): string {
     if (stock === 0) {
       return 'text-danger fw-bold';
@@ -599,7 +573,6 @@ export class RepuestosComponent implements OnInit, OnDestroy {
   seleccionarAccion(a: Accion) {
     this.selectedAction = a;
     if (a === 'comprar') {
-      // Resetear formulario al cambiar a comprar
       this.resetFormularioCompra();
       this.selectedAction = 'comprar';
     }
@@ -616,8 +589,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  // ====== MÉTODOS PARA TEMPLATE ======
-  
+  // MÉTODOS PARA TEMPLATE
   getInfoRepuestoSeleccionado(): string {
     if (!this.repuestoExistenteSeleccionado) return '';
     
