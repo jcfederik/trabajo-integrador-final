@@ -214,7 +214,7 @@ export class ProveedoresComponent implements OnInit, OnDestroy {
   }
 
   limpiarBusqueda() {
-    this.searchService.clearSearch();
+    this.searchService.setSearchTerm('');
   }
 
   // CREACIÓN

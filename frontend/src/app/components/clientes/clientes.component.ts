@@ -62,6 +62,16 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.searchService.setCurrentComponent('clientes');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       this.searchTerm = (term || '').trim();
+
+      if (!this.searchTerm) {
+      this.clientesAll = [];
+      this.clientes = [];
+      this.page = 1;
+      this.lastPage = false;
+      this.serverSearchPage = 1;
+      this.serverSearchLastPage = false;
+      this.isServerSearch = false;
+    }
       this.applyFilter();
     });
   }
@@ -78,7 +88,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
   }
 
   limpiarBusqueda() {
-    this.searchService.clearSearch();
+    this.searchService.setSearchTerm(''); 
   }
 
   // CARGA Y PAGINACIÓN
@@ -137,6 +147,10 @@ export class ClientesComponent implements OnInit, OnDestroy {
       this.serverSearchPage = 1;
       this.serverSearchLastPage = false;
       this.mostrandoSugerencias = false;
+
+      if (this.clientesAll.length === 0) {
+      this.cargar();
+      }
       return;
     }
 

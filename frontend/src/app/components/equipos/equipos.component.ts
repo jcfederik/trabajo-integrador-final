@@ -98,7 +98,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
       if (this.searchTerm) {
         this.onBuscarEquipos(this.searchTerm);
       } else {
-        this.resetBusqueda();
+        this.resetLista();
       }
     });
   }
@@ -557,7 +557,7 @@ export class EquiposComponent implements OnInit, OnDestroy {
   }
 
   limpiarBusqueda(): void {
-    this.searchService.clearSearch();
+    this.searchService.setSearchTerm('');
   }
 
   isListar(): boolean {
