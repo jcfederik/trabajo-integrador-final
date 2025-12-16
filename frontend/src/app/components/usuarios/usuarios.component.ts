@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -18,6 +18,8 @@ export class UsuariosComponent implements OnInit {
   mostrarFormulario = false;
   editandoUsuario: Usuario | null = null;
   
+  private searchSub!: Subscription;
+
   usuarioEditado = {
     nombre: '',
     tipo: 'usuario',
@@ -36,12 +38,28 @@ export class UsuariosComponent implements OnInit {
     private usuarioService: UsuarioService
   ) {}
 
-  // LIFECYCLE HOOKS
   ngOnInit() {
     this.cargarUsuarios();
+    this.configurarBusquedaGlobal();
   }
 
-  // CARGA DE DATOS
+  ngOnDestroy() {
+    if (this.searchSub) {
+      this.searchSub.unsubscribe();
+    }
+    this.searchService.clearSearch();
+  }
+
+  private configurarBusquedaGlobal(): void {
+    this.searchService.setCurrentComponent('usuarios');
+    
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      if (term) {
+        this.searchService.clearSearch();
+      }
+    });
+  }
+
   cargarUsuarios() {
     this.usuarioService.getUsuariosPaginados(1, 50).subscribe({
       next: response => {

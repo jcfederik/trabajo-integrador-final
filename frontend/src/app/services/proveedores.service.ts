@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { AlertService } from './alert.service';
 
+// ====== INTERFACES ======
 export interface Proveedor {
   id?: number;
   razon_social: string;
@@ -26,16 +28,16 @@ export interface PaginatedResponse<T> {
   to: number;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class ProveedoresService {
-
   private apiUrl = 'http://localhost:8000/api/proveedores';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private alertService: AlertService
+  ) {}
 
-  // ====== CRUD OPERATIONS ======
+  // ====== OPERACIONES CRUD ======
   getProveedores(page: number = 1, perPage: number = 15, search: string = ''): Observable<PaginatedResponse<Proveedor>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -46,49 +48,58 @@ export class ProveedoresService {
     }
 
     return this.http.get<PaginatedResponse<Proveedor>>(this.apiUrl, { params }).pipe(
-      map(response => this.formatearRespuestaProveedores(response))
+      map(response => this.formatearRespuestaProveedores(response)),
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudieron cargar los proveedores');
+        throw error;
+      })
     );
   }
 
-  /**
-   * Obtener proveedor por ID
-   */
   getProveedor(id: number): Observable<Proveedor> {
-    const url = `${this.apiUrl}/${id}`;    
+    const url = `${this.apiUrl}/${id}`;
     return this.http.get<Proveedor>(url).pipe(
-      map(proveedor => this.formatearProveedorParaDisplay(proveedor))
+      map(proveedor => this.formatearProveedorParaDisplay(proveedor)),
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo cargar el proveedor');
+        throw error;
+      })
     );
   }
-  /**
-   * crear proveedor
-  */
 
   createProveedor(proveedor: Partial<Proveedor>): Observable<Proveedor> {
     const headers = this.getAuthHeaders();
     return this.http.post<Proveedor>(this.apiUrl, proveedor, { headers }).pipe(
-      map(response => this.formatearProveedorParaDisplay(response))
+      map(response => this.formatearProveedorParaDisplay(response)),
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo crear el proveedor');
+        throw error;
+      })
     );
   }
 
-  /**
-   * Editar proveedor
-  */
   updateProveedor(id: number, proveedor: Partial<Proveedor>): Observable<Proveedor> {
     const headers = this.getAuthHeaders();
     return this.http.put<Proveedor>(`${this.apiUrl}/${id}`, proveedor, { headers }).pipe(
-      map(response => this.formatearProveedorParaDisplay(response))
+      map(response => this.formatearProveedorParaDisplay(response)),
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo actualizar el proveedor');
+        throw error;
+      })
     );
   }
 
-  /**
-   * Eliminar proveedor
-   */
   deleteProveedor(id: number): Observable<any> {
     const headers = this.getAuthHeaders();
-    return this.http.delete(`${this.apiUrl}/${id}`, { headers });
+    return this.http.delete(`${this.apiUrl}/${id}`, { headers }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo eliminar el proveedor');
+        throw error;
+      })
+    );
   }
 
-  // ====== SEARCH OPERATIONS ======
+  // ====== OPERACIONES DE BÚSQUEDA ======
   buscarProveedores(termino: string): Observable<Proveedor[]> {
     if (!termino || termino.trim() === '') {
       return of([]);
@@ -113,7 +124,6 @@ export class ProveedoresService {
         return proveedores.map(proveedor => this.formatearProveedorParaBusqueda(proveedor));
       }),
       catchError(error => {
-        console.error('Error buscando proveedores:', error);
         return of([]);
       })
     );
@@ -142,7 +152,7 @@ export class ProveedoresService {
     return this.buscarProveedoresRapido(termino, 100);
   }
 
-  // ====== HELPER METHODS ======
+  // ====== MÉTODOS AUXILIARES ======
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token') || '';
     return new HttpHeaders({
@@ -210,8 +220,7 @@ export class ProveedoresService {
     return proveedorFormateado;
   }
 
-  // ====== UTILITY METHODS ======
-  
+  // ====== MÉTODOS DE UTILIDAD ======
   validarCUIT(cuit: string): boolean {
     if (!cuit) return false;
     const cuitRegex = /^\d{2}-\d{8}-\d{1}$/;
@@ -244,13 +253,11 @@ export class ProveedoresService {
   }
 
   // ====== CACHE / LOCAL STORAGE ======
-  
   guardarCacheProveedores(proveedores: Proveedor[]): void {
     try {
       localStorage.setItem('cache_proveedores', JSON.stringify(proveedores));
       localStorage.setItem('cache_proveedores_timestamp', Date.now().toString());
     } catch (error) {
-      console.warn('No se pudo guardar cache de proveedores:', error);
     }
   }
 
@@ -295,11 +302,12 @@ export class ProveedoresService {
     });
   }
 
-  /**
-   * Obtener todos los proveedores (sin paginación)
-   * Útil para modales de compra de repuestos
-   */
   getAll(): Observable<Proveedor[]> {
-    return this.http.get<Proveedor[]>(`${this.apiUrl}/all`);
+    return this.http.get<Proveedor[]>(`${this.apiUrl}/all`).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudieron cargar todos los proveedores');
+        throw error;
+      })
+    );
   }
 }

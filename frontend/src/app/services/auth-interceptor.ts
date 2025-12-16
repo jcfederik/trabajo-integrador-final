@@ -3,9 +3,11 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
+import { AlertService } from './alert.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
+  const alertService = inject(AlertService);
 
   let token = localStorage.getItem('token') ?? '';
 
@@ -29,7 +31,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (err.status === 401) {
-        console.warn('Token inválido o expirado. Limpiando sesión.');
+        alertService.showError('Sesión expirada', 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.');
 
         localStorage.removeItem('token');
         localStorage.removeItem('user');

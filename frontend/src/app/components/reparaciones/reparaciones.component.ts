@@ -589,7 +589,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    //Validación de campos obligatorios
     if (
       !this.editBuffer.equipo_id ||
       !this.editBuffer.usuario_id ||
@@ -603,11 +602,9 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    //GUARDAR CAMBIOS
     this.repService.update(id, this.editBuffer).subscribe({
       next: (updated) => {
 
-        //Actualizar lista principal
         const indexAll = this.reparacionesAll.findIndex(r => r.id === updated.id);
         if (indexAll !== -1) {
           this.reparacionesAll[indexAll] = {
@@ -616,7 +613,6 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
           };
         }
 
-        //Actualizar lista filtrada
         const indexFiltradas = this.reparacionesFiltradas.findIndex(r => r.id === updated.id);
         if (indexFiltradas !== -1) {
           this.reparacionesFiltradas[indexFiltradas] = {
@@ -625,11 +621,11 @@ export class ReparacionesComponent implements OnInit, OnDestroy {
           };
         }
 
-        //Cerrar edición
         this.editingId = null;
         this.editBuffer = {};
 
         this.alertService.showSuccess('Reparación actualizada correctamente.');
+        this.resetList();
       },
       error: (err) => {
         console.error('❌ Error al actualizar reparación', err);

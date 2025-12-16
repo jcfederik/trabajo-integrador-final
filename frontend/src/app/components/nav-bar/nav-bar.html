@@ -21,11 +21,12 @@
                 type="search"
                 [(ngModel)]="searchTerm"
                 [placeholder]="placeholder"
+                [disabled]="searchDisabled"
                 (keydown)="bloquearBackspaceHold($event)"
                 (input)="onSearch()"
                 aria-label="Buscar"
               />
-              @if (searchTerm) {
+              @if (searchTerm && !searchDisabled) {
                 <button class="search-clear" (click)="clearSearch()" title="Limpiar búsqueda">
                   <i class="bi bi-x-lg"></i>
                 </button>
@@ -53,11 +54,12 @@
               type="search"
               [(ngModel)]="searchTerm"
               [placeholder]="placeholder"
+              [disabled]="searchDisabled"
               (keydown)="bloquearBackspaceHold($event)"
               (input)="onSearch()"
               aria-label="Buscar"
             />
-            @if (searchTerm) {
+            @if (searchTerm && !searchDisabled) { 
               <button class="search-clear" (click)="clearSearch()" title="Limpiar búsqueda">
                 <i class="bi bi-x-lg"></i>
               </button>

@@ -1,19 +1,16 @@
-// alert.service.ts - VERSIÓN MEJORADA
 import { Injectable } from '@angular/core';
 import Swal, { SweetAlertIcon, SweetAlertResult, SweetAlertOptions } from 'sweetalert2';
 
+// ====== INTERFACES ======
 export type AlertOptions = {
   swal?: SweetAlertOptions;
   customProperty?: string;
 };
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AlertService {
   
-  // ========== MÉTODOS GENÉRICOS ==========
-  
+  // ====== MÉTODOS GENÉRICOS ======
   showAlert(title: string, text: string = '', icon: SweetAlertIcon = 'info'): Promise<SweetAlertResult> {
     return Swal.fire({
       title,
@@ -208,9 +205,7 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showError('Error', message);
   }
 
-  // ========== MÉTODOS ESPECÍFICOS POR COMPONENTE ==========
-
-  // Para ClientesComponent
+  // ====== MÉTODOS ESPECÍFICOS POR COMPONENTE ======
   async confirmDeleteCliente(clienteNombre: string): Promise<boolean> {
     return this.confirmDelete('cliente', clienteNombre);
   }
@@ -227,7 +222,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Cliente', clienteNombre);
   }
 
-  // Para EquiposComponent
   async confirmDeleteEquipo(equipoDescripcion: string): Promise<boolean> {
     return this.confirmDelete('equipo', equipoDescripcion);
   }
@@ -244,7 +238,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Equipo');
   }
 
-  // Para FacturasComponent
   async confirmDeleteFactura(numeroFactura: string): Promise<boolean> {
     return this.confirmDelete('factura', `Factura ${numeroFactura}`);
   }
@@ -261,7 +254,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Factura');
   }
 
-  // Para PresupuestosComponent
   async confirmDeletePresupuesto(id: number): Promise<boolean> {
     return this.confirmDelete('presupuesto', `Presupuesto #${id}`);
   }
@@ -278,7 +270,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Presupuesto');
   }
 
-  // Para ReparacionesComponent
   async confirmDeleteReparacion(descripcion: string): Promise<boolean> {
     return this.confirmDelete('reparación', descripcion);
   }
@@ -295,7 +286,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Reparación');
   }
 
-  // Para RepuestosComponent
   async confirmDeleteRepuesto(repuestoNombre: string): Promise<boolean> {
     return this.confirmDelete('repuesto', repuestoNombre);
   }
@@ -312,7 +302,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Repuesto', repuestoNombre);
   }
 
-  // Para ProveedoresComponent
   async confirmDeleteProveedor(razonSocial: string): Promise<boolean> {
     return this.confirmDelete('proveedor', razonSocial);
   }
@@ -329,7 +318,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Proveedor', razonSocial);
   }
 
-  // Para MediosCobroComponent
   async confirmDeleteMedioCobro(medioNombre: string): Promise<boolean> {
     return this.confirmDelete('medio de cobro', medioNombre);
   }
@@ -346,7 +334,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showDeleteSuccess('Medio de cobro', medioNombre);
   }
 
-  // Para ExportModalComponent
   showExportSuccess(archivoNombre: string): void {
     this.showToast(`Reporte "${archivoNombre}" generado exitosamente`, 'success');
   }
@@ -355,7 +342,6 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showError('Error al exportar', 'No se pudo generar el reporte');
   }
 
-  // Para FacturaReportComponent
   showReportLoading(): void {
     this.showLoading('Generando reporte...');
   }
@@ -370,8 +356,7 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showError('Error', 'No se pudo generar el reporte');
   }
 
-  // ========== MÉTODOS DE VALIDACIÓN ESPECÍFICOS ==========
-
+  // ====== MÉTODOS DE VALIDACIÓN ESPECÍFICOS ======
   showRequiredFieldError(fieldName: string): void {
     this.showValidationError(fieldName);
   }
@@ -384,8 +369,7 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
     this.showError('Error de validación', 'El email ingresado no es válido');
   }
 
-  // ========== MÉTODOS DE NOTIFICACIÓN RÁPIDA ==========
-  
+  // ====== MÉTODOS DE NOTIFICACIÓN RÁPIDA ======
   success(message: string): void {
     this.showToast(message, 'success');
   }
@@ -401,4 +385,4 @@ async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
   info(message: string): void {
     this.showToast(message, 'info');
   }
-} 
+}

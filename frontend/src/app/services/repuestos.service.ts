@@ -2,8 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { AlertService } from './alert.service';
 
-
+// ====== INTERFACES ======
 export interface Repuesto {
   id: number;
   nombre: string;
@@ -31,15 +32,16 @@ export interface PaginatedResponse<T> {
   to: number;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class RepuestoService {
   private apiUrl = 'http://localhost:8000/api/repuestos';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private alertService: AlertService
+  ) {}
 
-  // ====== CRUD OPERATIONS ======
+  // ====== OPERACIONES CRUD ======
   getRepuestos(page: number = 1, perPage: number = 15, search: string = ''): Observable<PaginatedResponse<Repuesto>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -49,34 +51,54 @@ export class RepuestoService {
       params = params.set('search', search.trim());
     }
 
-    return this.http.get<PaginatedResponse<Repuesto>>(this.apiUrl, { params });
+    return this.http.get<PaginatedResponse<Repuesto>>(this.apiUrl, { params }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudieron cargar los repuestos');
+        throw error;
+      })
+    );
   }
 
   createRepuesto(repuesto: Partial<Repuesto>): Observable<any> {
-    return this.http.post(this.apiUrl, repuesto);
+    return this.http.post(this.apiUrl, repuesto).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo crear el repuesto');
+        throw error;
+      })
+    );
   }
 
   updateRepuesto(id: number, repuesto: Partial<Repuesto>): Observable<any> {
-    return this.http.put(`${this.apiUrl}/${id}`, repuesto);
+    return this.http.put(`${this.apiUrl}/${id}`, repuesto).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo actualizar el repuesto');
+        throw error;
+      })
+    );
   }
 
   deleteRepuesto(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/${id}`);
+    return this.http.delete(`${this.apiUrl}/${id}`).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudo eliminar el repuesto');
+        throw error;
+      })
+    );
   }
 
   comprarRepuesto(compra: CompraRepuesto): Observable<any> {
     const headers = this.getAuthHeaders();
     return this.http.post(`${this.apiUrl}/comprar`, compra, { headers }).pipe(
       catchError(error => {
-        console.error('Error al comprar repuesto:', error);
+        this.alertService.showError('Error', 'No se pudo comprar el repuesto');
         throw error;
       })
     );
   }
 
-  // ====== HELPER ======
+  // ====== MÉTODOS AUXILIARES ======
   private getAuthHeaders() {
-    const token = localStorage.getItem('token'); // o donde guardes tu token
+    const token = localStorage.getItem('token');
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -84,7 +106,7 @@ export class RepuestoService {
     });
   }
 
-  // ====== SEARCH OPERATIONS ======
+  // ====== OPERACIONES DE BÚSQUEDA ======
   buscarRepuestos(termino: string): Observable<any> {
     if (!termino || termino.trim() === '') {
       return of([]);
@@ -100,19 +122,12 @@ export class RepuestoService {
       params, 
       headers
     }).pipe(
-      map(response => {
-        console.log('Respuesta completa del backend:', response);
-        return response;
-      }),
-      catchError(error => {
-        console.error('Error buscando repuestos:', error);
-        return of({
-          data: [],
-          current_page: 1,
-          last_page: 1,
-          total: 0
-        });
-      })
+      catchError(() => of({
+        data: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0
+      }))
     );
   }
 }

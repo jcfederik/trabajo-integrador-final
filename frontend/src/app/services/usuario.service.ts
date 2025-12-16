@@ -3,7 +3,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { SearchResult } from '../components/search-selector/search-selector.component';
+import { AlertService } from './alert.service';
 
+// ====== INTERFACES ======
 export interface Usuario {
   id: number;
   name: string;
@@ -34,57 +36,55 @@ export interface PaginatedResponse<T> {
 export class UsuarioService {
   private apiUrl = 'http://127.0.0.1:8000/api/usuarios'; 
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private alertService: AlertService
+  ) {}
 
-  // Buscar usuarios/técnicos por nombre
+  // ====== OPERACIONES DE BÚSQUEDA ======
   buscarUsuarios(termino: string): Observable<Usuario[]> {
     const params = new HttpParams().set('q', termino);
-    return this.http.get<Usuario[]>(`${this.apiUrl}/buscar`, { params });
-  }
-
-  // 🔹 Buscar específicamente técnicos
-  buscarTecnicos(termino: string): Observable<SearchResult[]> {
-  if (!termino.trim()) {
-    // Si no hay término, cargar primeros técnicos
-    return this.getTecnicos(1, 10).pipe(
-      map(response => response.data.map(usuario => this.mapUsuarioToSearchResult(usuario))),
+    return this.http.get<Usuario[]>(`${this.apiUrl}/buscar`, { params }).pipe(
       catchError(() => of([]))
     );
   }
 
-  // Usar el endpoint que SÍ existe
-  return this.buscarUsuarios(termino).pipe(
-    map(usuarios => {
-      // Filtrar solo técnicos del resultado
-      const tecnicos = usuarios.filter(usuario => 
-        usuario.tipo?.toLowerCase() === 'tecnico'
+  buscarTecnicos(termino: string): Observable<SearchResult[]> {
+    if (!termino.trim()) {
+      return this.getTecnicos(1, 10).pipe(
+        map(response => response.data.map(usuario => this.mapUsuarioToSearchResult(usuario))),
+        catchError(() => of([]))
       );
-      return tecnicos.map(usuario => this.mapUsuarioToSearchResult(usuario));
-    }),
-    catchError(error => {
-      console.warn('Error en búsqueda específica de técnicos:', error);
-      // Fallback: usar listado general y filtrar
-      return this.getUsuariosPaginados(1, 50).pipe(
-        map(response => {
-          const usuarios = response.data;
-          const t = termino.toLowerCase();
-          
-          // Filtrar por término y tipo técnico
-          const filtrados = usuarios.filter(usuario =>
-            usuario.tipo?.toLowerCase() === 'tecnico' &&
-            (usuario.nombre?.toLowerCase().includes(t) ||
-             usuario.email?.toLowerCase().includes(t) ||
-             usuario.tipo?.toLowerCase().includes(t))
-          );
-          
-          return filtrados.map(usuario => this.mapUsuarioToSearchResult(usuario));
-        })
-      );
-    })
-  );
-}
+    }
 
-  // 🔹 Obtener técnicos paginados
+    return this.buscarUsuarios(termino).pipe(
+      map(usuarios => {
+        const tecnicos = usuarios.filter(usuario => 
+          usuario.tipo?.toLowerCase() === 'tecnico'
+        );
+        return tecnicos.map(usuario => this.mapUsuarioToSearchResult(usuario));
+      }),
+      catchError(() => {
+        return this.getUsuariosPaginados(1, 50).pipe(
+          map(response => {
+            const usuarios = response.data;
+            const t = termino.toLowerCase();
+            
+            const filtrados = usuarios.filter(usuario =>
+              usuario.tipo?.toLowerCase() === 'tecnico' &&
+              (usuario.nombre?.toLowerCase().includes(t) ||
+               usuario.email?.toLowerCase().includes(t) ||
+               usuario.tipo?.toLowerCase().includes(t))
+            );
+            
+            return filtrados.map(usuario => this.mapUsuarioToSearchResult(usuario));
+          })
+        );
+      })
+    );
+  }
+
+  // ====== OBTENCIÓN DE TÉCNICOS ======
   getTecnicos(page: number = 1, perPage: number = 10): Observable<PaginatedResponse<Usuario>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -92,16 +92,13 @@ export class UsuarioService {
 
     return this.http.get<PaginatedResponse<Usuario>>(this.apiUrl, { params }).pipe(
       map(response => {
-        // Filtrar solo técnicos del listado general
         const tecnicos = {
           ...response,
           data: response.data.filter(usuario => usuario.tipo?.toLowerCase() === 'tecnico')
         };
         return tecnicos;
       }),
-      catchError(error => {
-        console.error('Error cargando técnicos:', error);
-        // Devolver estructura vacía en caso de error
+      catchError(() => {
         return of({
           data: [],
           current_page: 1,
@@ -115,21 +112,30 @@ export class UsuarioService {
     );
   }
 
-  // Obtener todos los usuarios (para cuando no hay término)
+  // ====== OBTENCIÓN DE USUARIOS ======
   getUsuarios(): Observable<Usuario[]> {
-    return this.http.get<Usuario[]>(this.apiUrl);
+    return this.http.get<Usuario[]>(this.apiUrl).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudieron cargar los usuarios');
+        throw error;
+      })
+    );
   }
 
-  // 🔹 Obtener usuarios paginados
   getUsuariosPaginados(page: number = 1, perPage: number = 15): Observable<PaginatedResponse<Usuario>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('per_page', perPage.toString());
 
-    return this.http.get<PaginatedResponse<Usuario>>(this.apiUrl, { params });
+    return this.http.get<PaginatedResponse<Usuario>>(this.apiUrl, { params }).pipe(
+      catchError(error => {
+        this.alertService.showError('Error', 'No se pudieron cargar los usuarios');
+        throw error;
+      })
+    );
   }
 
-  // 🔹 Cargar usuarios iniciales (para precarga)
+  // ====== CARGA INICIAL ======
   cargarUsuariosIniciales(limit: number = 5): Observable<SearchResult[]> {
     const params = new HttpParams()
       .set('per_page', limit.toString())
@@ -138,7 +144,6 @@ export class UsuarioService {
     return this.http.get<PaginatedResponse<Usuario>>(this.apiUrl, { params }).pipe(
       map(response => {
         const usuarios = response.data;
-        // Filtrar solo técnicos para la precarga
         const tecnicos = usuarios.filter(usuario => usuario.tipo?.toLowerCase() === 'tecnico');
         return tecnicos.map(usuario => this.mapUsuarioToSearchResult(usuario));
       }),
@@ -146,11 +151,11 @@ export class UsuarioService {
     );
   }
 
-  // 🔹 Mapear Usuario a SearchResult
+  // ====== MAPEO DE DATOS ======
   private mapUsuarioToSearchResult(usuario: Usuario): SearchResult {
     return {
       id: usuario.id,
-      nombre: usuario.nombre || usuario.name, // Usar nombre o name como fallback
+      nombre: usuario.nombre || usuario.name,
       email: usuario.email,
       tipo: usuario.tipo
     };
