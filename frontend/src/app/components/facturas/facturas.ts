@@ -350,17 +350,6 @@ export class FacturasComponent implements OnInit, OnDestroy {
     }
   }
 
-  // BUSCAR PRESUPUESTOS
-  private buscarPresupuestos(termino: string): void {
-    const terminoLimpio = termino.trim();
-    
-    if (!terminoLimpio) {
-      this.presupuestosSugeridos = [];
-      this.mostrandoPresupuestos = false;
-      return;
-    }
-
-
 
   private buscarPresupuestos(termino: string): void {
   const terminoLimpio = termino.trim();
