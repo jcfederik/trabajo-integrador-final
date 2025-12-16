@@ -8,7 +8,7 @@ import { RepuestoService, Repuesto, PaginatedResponse } from '../../services/rep
 import { ProveedoresService, Proveedor } from '../../services/proveedores.service';
 import { SearchService } from '../../services/busquedaglobal';
 import { SearchSelectorComponent, SearchResult } from '../../components/search-selector/search-selector.component';
-import { AlertService } from '../../services/alert.service'; // Asegúrate de importar AlertService
+import { AlertService } from '../../services/alert.service';
 
 type Accion = 'listar' | 'comprar';
 
@@ -155,7 +155,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     this.fetch(1);
   }
 
-  // COMPRAR REPUESTO
+  // COMPRAR REPUESTO - CORREGIDO (SOLO UN ALERT)
   comprar(): void {
     let nombreRepuesto = '';
     let repuestoId: number | undefined;
@@ -212,23 +212,9 @@ export class RepuestosComponent implements OnInit, OnDestroy {
         this.resetFormularioCompra();
         this.resetLista();
         
-        let mensaje = '¡Compra realizada exitosamente!';
-        let detalles = '';
-        
-        if (response.repuesto) {
-          detalles += `• Repuesto: ${response.repuesto.nombre}<br>`;
-          detalles += `• Stock actual: ${response.repuesto.stock} unidades`;
-        }
-        
-        if (response.historial) {
-          detalles += detalles ? '<br>' : '';
-          detalles += `• Stock anterior: ${response.historial.stock_anterior}<br>`;
-          detalles += `• Stock nuevo: ${response.historial.stock_nuevo}`;
-        }
-        
-        this.alertService.showAlert('Compra exitosa', detalles, 'success').then(() => {
-          this.alertService.showRepuestoCreado(response.repuesto?.nombre || nombreRepuesto);
-        });
+        // SOLO UN ALERT - CORREGIDO
+        const repuestoNombre = response.repuesto?.nombre || nombreRepuesto;
+        this.alertService.showRepuestoCreado(repuestoNombre);
       },
       error: (e) => {
         this.alertService.closeLoading();
@@ -442,7 +428,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
 
   async saveEdit(id: number): Promise<void> {
     const payload = this.limpiarPayload(this.editBuffer);
-    if (!this.validarPayloadSweetAlert(payload)) return;
+    if (!this.validarPayload(payload)) return;
 
     console.log('Actualizando repuesto:', id, payload);
 
@@ -481,7 +467,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // HELPERS
+  // HELPERS - MANTENIDOS (SOLO UNO DE CADA)
   private limpiarPayload(obj: Partial<Repuesto>): Partial<Repuesto> {
     return {
       nombre: obj.nombre?.toString().trim(),
@@ -506,39 +492,7 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  private validarPayloadSweetAlert(p: any): boolean {
-    if (!p.nombre || p.nombre.trim() === '') {
-      this.alertService.showValidationError('nombre del repuesto');
-      return false;
-    }
-    if (p.stock === null || p.stock === undefined || p.stock < 0) {
-      this.alertService.showError('Error', 'El stock no puede ser negativo.');
-      return false;
-    }
-    if (p.costo_base === null || p.costo_base === undefined || p.costo_base < 0) {
-      this.alertService.showError('Error', 'El costo base no puede ser negativo.');
-      return false;
-    }
-    return true;
-  }
-
-  private manejarError(error: any, operacion: string): void {
-    let mensajeError = `Error al ${operacion}`;
-
-    if (error.error?.error) {
-      mensajeError = error.error.error;
-    } else if (error.error?.message) {
-      mensajeError = error.error.message;
-    } else if (error.message) {
-      mensajeError = error.message;
-    }
-
-    this.alertService.showError('Error', mensajeError);
-  }
-
   private manejarErrorSweetAlert(error: any, operacion: string): void {
-    console.error(`Error completo al ${operacion}:`, error);
-
     let mensajeError = `Error al ${operacion}`;
 
     if (error.error?.error) {
@@ -625,5 +579,10 @@ export class RepuestosComponent implements OnInit, OnDestroy {
     const costoValido = !!(this.nuevo.costo_base !== undefined && this.nuevo.costo_base >= 0);
     
     return nombreValido && cantidadValida && costoValido;
+  }
+
+  // Método para detectar cambios en la vista
+  ngAfterViewInit() {
+    this.cdRef.detectChanges();
   }
 }
