@@ -11,6 +11,9 @@ return new class extends Migration {
             $table->string('nombre', 120);
             $table->string('tipo', 40);
             $table->string('password', 255);
+
+
+            $table->softDeletes(); // deleted_at
         });
     }
 

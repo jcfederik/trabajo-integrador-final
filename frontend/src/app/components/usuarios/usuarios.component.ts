@@ -3,13 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AlertService } from '../../services/alert.service';
-
-interface User {
-  id: number;
-  nombre: string;
-  tipo: string;
-  especializaciones?: any[];
-}
+import { UsuarioService } from '../../services/usuario.service';
+import { Usuario } from '../../services/usuario.service';
 
 @Component({
   selector: 'app-usuarios',
@@ -19,9 +14,9 @@ interface User {
   styleUrls: ['./usuarios.component.css']
 })
 export class UsuariosComponent implements OnInit {
-  usuarios: User[] = [];
+  usuarios: Usuario[] = [];
   mostrarFormulario = false;
-  editandoUsuario: User | null = null;
+  editandoUsuario: Usuario | null = null;
   
   usuarioEditado = {
     nombre: '',
@@ -37,7 +32,8 @@ export class UsuariosComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private usuarioService: UsuarioService
   ) {}
 
   // LIFECYCLE HOOKS
@@ -47,45 +43,24 @@ export class UsuariosComponent implements OnInit {
 
   // CARGA DE DATOS
   cargarUsuarios() {
-    this.http.get<any>('http://127.0.0.1:8000/api/users').subscribe({
-      next: (response) => {
-        this.usuarios = response.data || [];
+    this.usuarioService.getUsuariosPaginados(1, 50).subscribe({
+      next: response => {
+        this.usuarios = response.data;
       },
-      error: (error) => {
+      error: () => {
         this.alertService.showGenericError('Error al cargar usuarios');
       }
     });
   }
 
-  // CREACIÓN DE USUARIO
-  async crearUsuario() {
-    if (!this.nuevoUsuario.nombre || !this.nuevoUsuario.password) {
-      this.alertService.showRequiredFieldError('nombre y contraseña');
-      return;
-    }
-
-    this.alertService.showLoading('Creando usuario...');
-
-    this.http.post('http://127.0.0.1:8000/api/users', this.nuevoUsuario).subscribe({
-      next: (response: any) => {
-        this.alertService.closeLoading();
-        this.mostrarFormulario = false;
-        this.nuevoUsuario = { nombre: '', tipo: 'usuario', password: '' };
-        this.cargarUsuarios();
-        this.alertService.showSuccess('Usuario creado exitosamente');
-      },
-      error: (error) => {
-        this.alertService.closeLoading();
-        this.alertService.showGenericError(error.error?.message || 'Error al crear usuario');
-      }
-    });
-  }
-
-  // ELIMINACIÓN DE USUARIO
-  async eliminarUsuario(id: number, usuarioNombre: string) {
+    async eliminarUsuario(id: number, usuarioNombre: string) {
     const usuario = this.usuarios.find(u => u.id === id);
+
     if (usuario?.tipo === 'administrador') {
-      this.alertService.showError('No se puede eliminar', 'Los usuarios administradores no pueden ser eliminados');
+      this.alertService.showError(
+        'No permitido',
+        'Los usuarios administradores no pueden ser eliminados'
+      );
       return;
     }
 
@@ -94,7 +69,7 @@ export class UsuariosComponent implements OnInit {
 
     this.alertService.showLoading('Eliminando usuario...');
 
-    this.http.delete(`http://127.0.0.1:8000/api/users/${id}`).subscribe({
+    this.usuarioService.deleteUsuario(id).subscribe({
       next: () => {
         this.alertService.closeLoading();
         this.cargarUsuarios();
@@ -102,10 +77,53 @@ export class UsuariosComponent implements OnInit {
       },
       error: (error) => {
         this.alertService.closeLoading();
-        this.alertService.showGenericError(error.error?.message || 'Error al eliminar usuario');
+        this.alertService.showGenericError(
+          error.error?.message || 'Error al eliminar usuario'
+        );
       }
     });
   }
+
+
+  // CREACIÓN DE USUARIO
+  async crearUsuario() {
+  if (!this.nuevoUsuario.nombre || !this.nuevoUsuario.password) {
+    this.alertService.showRequiredFieldError('nombre y contraseña');
+    return;
+  }
+
+  this.alertService.showLoading('Creando usuario...');
+
+  this.usuarioService.crearUsuario(this.nuevoUsuario).subscribe({
+    next: (usuario) => {
+      this.alertService.closeLoading();
+
+      // Reset formulario
+      this.mostrarFormulario = false;
+      this.nuevoUsuario = {
+        nombre: '',
+        tipo: 'usuario',
+        password: ''
+      };
+
+      // Recargar listado
+      this.cargarUsuarios();
+
+      this.alertService.showSuccess(
+        `Usuario "${usuario.nombre ?? usuario.name}" creado exitosamente`
+      );
+    },
+    error: (error) => {
+      this.alertService.closeLoading();
+      this.alertService.showGenericError(
+        error.error?.message || 'Error al crear usuario'
+      );
+    }
+  });
+}
+
+
+
 
   // GESTIÓN DEL FORMULARIO DE CREACIÓN
   cancelarCreacion() {
@@ -114,14 +132,15 @@ export class UsuariosComponent implements OnInit {
   }
 
   // EDICIÓN DE USUARIO
-  iniciarEdicion(usuario: User) {
+  iniciarEdicion(usuario: Usuario) {
     this.editandoUsuario = usuario;
     this.usuarioEditado = {
-      nombre: usuario.nombre,
-      tipo: usuario.tipo,
+      nombre: usuario.nombre ?? usuario.name ?? '',
+      tipo: usuario.tipo ?? 'usuario',
       password: ''
     };
   }
+
 
   cancelarEdicion() {
     this.editandoUsuario = null;

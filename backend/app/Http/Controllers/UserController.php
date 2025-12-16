@@ -246,21 +246,47 @@ class UserController extends Controller
         return response()->json($tecnicos);
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/api/profile/{id}",
-     *     summary="NO PERMITIDO - Eliminar usuario",
-     *     tags={"Usuario"},
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Response(
-     *         response=405,
-     *         description="Método no permitido"
-     *     )
-     * )
-     */
-    public function destroy($id)
-    {
-        return response()->json(['error' => 'Método no permitido'], 405);
+/**
+ * @OA\Delete(
+ *     path="/api/usuarios/{id}",
+ *     summary="Eliminar usuario (soft delete)",
+ *     tags={"Usuario"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(response=200, description="Usuario eliminado"),
+ *     @OA\Response(response=403, description="No autorizado"),
+ *     @OA\Response(response=404, description="Usuario no encontrado")
+ * )
+ */
+public function destroy($id)
+{
+    $currentUser = JWTAuth::user();
+
+    if (!$currentUser || !$currentUser->isAdmin()) {
+        return response()->json([
+            'error' => 'No tenés permisos para eliminar usuarios'
+        ], 403);
     }
-    
+
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->json([
+            'error' => 'Usuario no encontrado'
+        ], 404);
+    }
+
+    // Evitar autodestrucción
+    if ($user->id === $currentUser->id) {
+        return response()->json([
+            'error' => 'No podés eliminar tu propio usuario'
+        ], 400);
+    }
+
+    $user->delete(); // 👈 soft delete
+
+    return response()->json([
+        'message' => 'Usuario eliminado correctamente'
+    ]);
+}
+
 }

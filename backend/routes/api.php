@@ -99,7 +99,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::middleware(['admin'])->group(function () {
         Route::put('/especializaciones/{id}', [EspecializacionController::class, 'update']);
         Route::delete('/especializaciones/{id}', [EspecializacionController::class, 'destroy']);
-        
+        Route::delete('/usuarios/{id}', [UserController::class, 'destroy']);
+
         Route::apiResource('users', AdminUserController::class);
         Route::post('/admin/users/{id}/especializaciones', [AdminUserController::class, 'asignarEspecializacionesUsuario']);
     });

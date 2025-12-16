@@ -12,6 +12,13 @@ export interface Usuario {
   tipo?: string;
   nombre?: string;
 }
+// Payload para crear usuario
+export interface CrearUsuarioPayload {
+  nombre: string;
+  tipo: string;
+  password: string;
+}
+
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -148,4 +155,13 @@ export class UsuarioService {
       tipo: usuario.tipo
     };
   }
+  crearUsuario(payload: CrearUsuarioPayload): Observable<Usuario> {
+  return this.http.post<Usuario>(this.apiUrl, payload);
+}
+
+
+  deleteUsuario(id: number) {
+  return this.http.delete(`${this.apiUrl}/${id}`);
+}
+
 }

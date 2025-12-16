@@ -7,17 +7,24 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Http\Controllers\AuthController;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable implements JWTSubject
 {
     public $timestamps = false;
 
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     protected $table = 'usuario';
     protected $fillable = ['nombre', 'tipo', 'password'];
     protected $hidden = ['password', 'remember_token'];
 
+    protected $dates = ['deleted_at']; // importante
+
+
+
+
+    
     protected function casts(): array
     {
         return [
