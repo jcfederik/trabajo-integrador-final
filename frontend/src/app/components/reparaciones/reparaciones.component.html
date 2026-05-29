@@ -7,9 +7,9 @@
     <button class="action-pill success" 
             (click)="seleccionarAccion('crear')" 
             [class.active]="isCrear()"
-            [disabled]="!canCreate()">
+            [disabled]="canCreate()">
       <i class="bi bi-plus-circle"></i> Crear
-      <span *ngIf="!canCreate()" class="badge bg-secondary ms-1" title="Sin permisos">
+      <span *ngIf="canCreate()" class="badge bg-secondary ms-1" title="Sin permisos">
         <i class="bi bi-lock"></i>
       </span>
     </button>
