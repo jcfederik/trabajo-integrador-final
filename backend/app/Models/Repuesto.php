@@ -28,4 +28,16 @@ class Repuesto extends Model
     {
         return $this->hasMany(CompraRepuesto::class, 'repuesto_id');
     }
+
+    public function historialStock()
+{
+    return $this->hasMany(HistorialStock::class, 'repuesto_id');
+}
+
+
+     public function proveedores()
+    {
+        return $this->belongsToMany(Proveedor::class, 'proveedor_repuesto')
+                    ->withPivot('precio', 'activo');
+    }
 }

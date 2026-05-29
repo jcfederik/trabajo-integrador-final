@@ -9,22 +9,62 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+
+            // ============================================
+            // 🔐 USUARIOS Y PERMISOS
+            // ============================================
             AdminUserSeeder::class,
+            UserSeeder::class,
             EspecializacionSeeder::class,
-            UserSeeder::class, // <-- NUEVO: debe ir ANTES de UsuarioEspecializacionSeeder
-            ClienteSeeder::class,
-            ProveedorSeeder::class,
-            EquipoSeeder::class,
-            RepuestoSeeder::class,
-            MedioCobroSeeder::class,
             UsuarioEspecializacionSeeder::class,
+
+            // ============================================
+            // 📁 CLIENTES Y EQUIPOS
+            // ============================================
+            ClienteSeeder::class,
+            EquipoSeeder::class,
+
+            // ============================================
+            // 📦 REPUESTOS Y PROVEEDORES
+            // ============================================
+            ProveedorSeeder::class,
+            RepuestoSeeder::class,
+
+            // Pivot proveedor ↔ repuestos (antes de compras)
+            ProveedorRepuestoSeeder::class,
+
+            // ============================================
+            // 💳 MEDIOS DE COBRO
+            // ============================================
+            MedioCobroSeeder::class,
+
+            // ============================================
+            // 🛠 REPARACIONES Y ASIGNACIONES DE REPUESTOS
+            // ============================================
             ReparacionSeeder::class,
             ReparacionRepuestoSeeder::class,
+
+            // ============================================
+            // 🧾 PRESUPUESTOS
+            // ============================================
             PresupuestoSeeder::class,
+
+            // ============================================
+            // 🛒 COMPRAS → actualizan stock + historial
+            // ============================================
             CompraRepuestoSeeder::class,
-            // CobroSeeder::class, // Depende de Presupuesto
-            // DetalleCobroSeeder::class, // Depende de Cobro y MedioCobro
-            // FacturaSeeder::class, // Depende de Presupuesto
+
+            // ============================================
+            // 🧮 HISTORIAL DE STOCK 
+            // ============================================
+            HistorialStockSeeder::class, // opcional
+
+            // ============================================
+            // 💸 COBROS Y FACTURACIÓN 
+            // ============================================
+            // CobroSeeder::class,
+            // DetalleCobroSeeder::class,
+            // FacturaSeeder::class,
         ]);
     }
 }

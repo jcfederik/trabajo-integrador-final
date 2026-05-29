@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 import { AlertService } from '../../services/alert.service';
+import { SearchService } from '../../services/busquedaglobal';
+import { Subscription } from 'rxjs';
 
 interface Especializacion {
   id: number;
@@ -27,12 +29,14 @@ interface Tecnico {
   templateUrl: './especializaciones.component.html',
   styleUrls: ['./especializaciones.component.css']
 })
-export class EspecializacionesComponent implements OnInit {
+export class EspecializacionesComponent implements OnInit, OnDestroy {
   especializaciones: Especializacion[] = [];
   tecnicos: Tecnico[] = [];
   mostrarFormulario = false;
   editandoEspecializacion: Especializacion | null = null;
   asignandoTecnicos: Especializacion | null = null;
+
+  private searchSub!: Subscription;
 
   nuevaEspecializacion = {
     nombre: ''
@@ -48,13 +52,32 @@ export class EspecializacionesComponent implements OnInit {
     private http: HttpClient,
     private router: Router,
     public authService: AuthService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private searchService: SearchService
   ) { }
 
   ngOnInit() {
     this.verificarPermisos();
     this.cargarEspecializaciones();
     this.cargarTecnicos();
+    this.configurarBusquedaGlobal();
+  }
+
+  ngOnDestroy() {
+    if (this.searchSub) {
+      this.searchSub.unsubscribe();
+    }
+    this.searchService.clearSearch();
+  }
+
+  private configurarBusquedaGlobal(): void {
+    this.searchService.setCurrentComponent('especializaciones');
+    
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      if (term) {
+        this.searchService.clearSearch();
+      }
+    });
   }
 
   private verificarPermisos(): void {
@@ -88,6 +111,7 @@ export class EspecializacionesComponent implements OnInit {
     this.http.get<any>('http://127.0.0.1:8000/api/especializaciones').subscribe({
       next: (response) => {
         this.especializaciones = response.data || [];
+        this.searchService.setSearchData([]);
       },
       error: (error) => {
         if (error.status === 403) {
@@ -112,9 +136,7 @@ export class EspecializacionesComponent implements OnInit {
         );
       },
       error: (error) => {
-        if (error.status === 403) {
-          console.warn('Usuario no tiene permisos para ver los técnicos');
-        }
+        if (error.status === 403) {}
       }
     });
   }
@@ -231,9 +253,7 @@ export class EspecializacionesComponent implements OnInit {
           }
         });
       },
-      error: (error) => {
-        console.error('Error cargando técnicos asignados:', error);
-      }
+      error: (error) => {}
     });
   }
 

@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\Factura;
+use App\Models\Presupuesto;
 
 /**
  * @OA\Tag(
@@ -75,7 +75,6 @@ class FacturaController extends Controller
             $facturas = $q->paginate($perPage, ['*'], 'page', $page);
             return response()->json($facturas, 200);
         } catch (\Throwable $e) {
-            \Log::error('Error listando facturas', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al obtener las facturas', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -115,7 +114,22 @@ class FacturaController extends Controller
         $table = (new Factura)->getTable();
 
         $validator = Validator::make($request->all(), [
-            'presupuesto_id' => 'required|exists:presupuesto,id',
+            'presupuesto_id' => [
+                'required',
+                'exists:presupuesto,id',
+                function ($attribute, $value, $fail) {
+                    $facturaExistente = Factura::where('presupuesto_id', $value)->first();
+                    if ($facturaExistente) {
+                        $fail("El presupuesto #{$value} ya tiene una factura asignada (#{$facturaExistente->numero}{$facturaExistente->letra})");
+                    }
+                },
+                function ($attribute, $value, $fail) {
+                    $presupuesto = Presupuesto::find($value);
+                    if ($presupuesto && !$presupuesto->aceptado) {
+                        $fail("El presupuesto #{$value} no está aceptado");
+                    }
+                }
+            ],
             'numero'         => ['required', 'string', 'max:50', Rule::unique($table, 'numero')],
             'letra'          => 'required|string|in:A,B,C',
             'monto_total'    => 'required|numeric|min:0',
@@ -129,7 +143,16 @@ class FacturaController extends Controller
         try {
             $data = $validator->validated();
 
-            // Fecha automática
+            $presupuesto = Presupuesto::with('reparacion')->find($data['presupuesto_id']);
+            if ($presupuesto && $presupuesto->reparacion) {
+                if (strtolower($presupuesto->reparacion->estado) !== 'finalizada') {
+                    return response()->json([
+                        'error' => 'No se puede facturar',
+                        'detalle' => 'La reparación asociada no está finalizada'
+                    ], 400);
+                }
+            }
+
             $data['fecha'] = now()->format('Y-m-d H:i:s');
 
             $factura = Factura::create($data);
@@ -139,7 +162,6 @@ class FacturaController extends Controller
                 'factura' => $factura
             ], 201);
         } catch (\Throwable $e) {
-            \Log::error('Error creando factura', ['err' => $e->getMessage()]);
             return response()->json([
                 'error' => 'Error al crear la factura',
                 'detalle' => $e->getMessage()
@@ -221,45 +243,74 @@ class FacturaController extends Controller
      * )
      */
     public function update(Request $request, $id)
-    {
-        $factura = Factura::find($id);
-        if (!$factura) return response()->json(['error' => 'Factura no encontrada'], 404);
+        {
+            $factura = Factura::find($id);
+            if (!$factura) return response()->json(['error' => 'Factura no encontrada'], 404);
 
-        $table = (new Factura)->getTable();
+            $table = (new Factura)->getTable();
 
-        $validator = Validator::make($request->all(), [
-            'presupuesto_id' => 'sometimes|required|exists:presupuesto,id',
-            'numero'         => ['sometimes', 'required', 'string', 'max:50', Rule::unique($table, 'numero')->ignore($id)],
-            'letra'          => 'sometimes|required|string|in:A,B,C',
-            'fecha'          => 'sometimes|required|date',
-            'monto_total'    => 'sometimes|required|numeric|min:0',
-            'detalle'        => 'nullable|string',
-        ]);
+            $validator = Validator::make($request->all(), [
+                'presupuesto_id' => [
+                    'sometimes',
+                    'required',
+                    'exists:presupuesto,id',
+                    function ($attribute, $value, $fail) use ($id) {
+                        $facturaExistente = Factura::where('presupuesto_id', $value)
+                            ->where('id', '!=', $id)
+                            ->first();
+                        if ($facturaExistente) {
+                            $fail("El presupuesto #{$value} ya tiene una factura asignada (#{$facturaExistente->numero}{$facturaExistente->letra})");
+                        }
+                    },
+                    function ($attribute, $value, $fail) {
+                        $presupuesto = Presupuesto::find($value);
+                        if ($presupuesto && !$presupuesto->aceptado) {
+                            $fail("El presupuesto #{$value} no está aceptado");
+                        }
+                    }
+                ],
+                'numero'         => ['sometimes', 'required', 'string', 'max:50', Rule::unique($table, 'numero')->ignore($id)],
+                'letra'          => 'sometimes|required|string|in:A,B,C',
+                'fecha'          => 'sometimes|required|date',
+                'monto_total'    => 'sometimes|required|numeric|min:0',
+                'detalle'        => 'nullable|string',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
-        }
-
-        try {
-            $data = $validator->validated();
-
-            if (array_key_exists('fecha', $data) && $data['fecha']) {
-                $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
+            if ($validator->fails()) {
+                return response()->json(['error' => 'Datos inválidos', 'detalles' => $validator->errors()], 400);
             }
 
-            $factura->update($data);
+            try {
+                $data = $validator->validated();
 
-            return response()->json([
-                'mensaje' => 'Factura actualizada correctamente',
-                'factura' => $factura
-            ], 200);
-        } catch (\Throwable $e) {
-            \Log::error('Error actualizando factura', ['err' => $e->getMessage()]);
-            return response()->json([
-                'error'   => 'Error al actualizar la factura',
-                'detalle' => $e->getMessage()
-            ], 500);
-        }
+                if (isset($data['presupuesto_id']) && $data['presupuesto_id'] != $factura->presupuesto_id) {
+                    $presupuesto = Presupuesto::with('reparacion')->find($data['presupuesto_id']);
+                    if ($presupuesto && $presupuesto->reparacion) {
+                        if (strtolower($presupuesto->reparacion->estado) !== 'finalizada') {
+                            return response()->json([
+                                'error' => 'No se puede actualizar',
+                                'detalle' => 'La reparación asociada no está finalizada'
+                            ], 400);
+                        }
+                    }
+                }
+
+                if (array_key_exists('fecha', $data) && $data['fecha']) {
+                    $data['fecha'] = Carbon::parse($data['fecha'])->format('Y-m-d H:i:s');
+                }
+
+                $factura->update($data);
+
+                return response()->json([
+                    'mensaje' => 'Factura actualizada correctamente',
+                    'factura' => $factura
+                ], 200);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'error'   => 'Error al actualizar la factura',
+                    'detalle' => $e->getMessage()
+                ], 500);
+            }
     }
 
     /**
@@ -297,7 +348,6 @@ class FacturaController extends Controller
             $factura->delete();
             return response()->json(['mensaje' => 'Factura eliminada correctamente'], 200);
         } catch (\Throwable $e) {
-            \Log::error('Error eliminando factura', ['err' => $e->getMessage()]);
             return response()->json(['error' => 'Error al eliminar la factura', 'detalle' => $e->getMessage()], 500);
         }
     }
@@ -324,10 +374,8 @@ class FacturaController extends Controller
     public function getSaldoPendiente($id)
     {
         try {
-            // Utilizamos 'with('cobros')' para asegurar que la relación esté cargada para calcular el saldo
             $factura = Factura::with('cobros')->findOrFail($id);
 
-            // Este método asume que has añadido getSaldoPendienteAttribute() al modelo Factura.
             $saldo = $factura->getSaldoPendienteAttribute();
 
             return response()->json([
@@ -335,8 +383,6 @@ class FacturaController extends Controller
                 'saldo_pendiente' => $saldo
             ], 200);
         } catch (\Exception $e) {
-            // Error al no encontrar la factura o cualquier otro problema
-            \Log::error('Error obteniendo saldo de factura', ['id' => $id, 'err' => $e->getMessage()]);
             return response()->json(['error' => 'Factura no encontrada o error de cálculo', 'detalle' => $e->getMessage()], 404);
         }
     }
@@ -357,15 +403,12 @@ class FacturaController extends Controller
     public function getCobrosPorFactura($id)
     {
         try {
-            // Aseguramos que la factura existe
             $factura = Factura::findOrFail($id);
 
-            // Obtenemos los cobros asociados, cargando los detalles (medio de cobro)
             $cobros = $factura->cobros()->with('detalles.medioCobro')->orderByDesc('fecha')->get();
 
             return response()->json($cobros, 200);
         } catch (\Exception $e) {
-            \Log::error('Error obteniendo cobros por factura', ['id' => $id, 'err' => $e->getMessage()]);
             return response()->json(['error' => 'Factura no encontrada o error al obtener cobros', 'detalle' => $e->getMessage()], 404);
         }
     }

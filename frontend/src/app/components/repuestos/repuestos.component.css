@@ -1,0 +1,21 @@
+/* ===== ESTILOS PARA SEARCH-SELECTOR EN REPUESTOS ===== */
+
+/* Contenedor wrapper para manejar z-index */
+.search-selector-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+.search-selector-wrapper-proveedor {
+  position: relative;
+  z-index: 0;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .search-selector-wrapper ::ng-deep .sugerencias-menu {
+    top: 60px !important;
+    width: 95vw !important;
+    max-height: 60vh !important;
+  }
+}

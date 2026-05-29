@@ -79,11 +79,20 @@
                 </div>
                 <div class="factura-info">
                   Fecha: {{ f.fecha | date:'yyyy-MM-dd' }} ·
-                  Monto: {{ (f.monto_total || 0) | number:'1.2-2' }} ·
-                  Presupuesto: {{ f.presupuesto_id }}
+                  Monto: {{ (f.monto_total || 0) | number:'1.2-2' }}
                 </div>
                 <div class="factura-detalle">
-                  <span class="detalle-label">Detalle:</span> {{ f.detalle || '—' }}
+                  <span class="detalle-result">Presupuesto:</span> <span class="detalle-value">#{{ f.presupuesto_id }}</span>
+                </div>
+                <div class="factura-detalle">
+                  <span class="detalle-result">Reparación:</span>
+                  <span class="detalle-value"> {{ getDescripcionReparacion(f.presupuesto_id) }}</span>
+                </div>                
+                <div class="factura-result" *ngIf="getEstadoReparacion(f.presupuesto_id) !== 'Desconocido'">
+                  <span class="detalle-result">Estado reparación:</span> 
+                  <span class="badge-estado" [class]="getEstadoReparacionBadgeClass(getEstadoReparacion(f.presupuesto_id))">
+                    {{ getEstadoReparacion(f.presupuesto_id) }}
+                  </span>
                 </div>
               </ng-container>
 
@@ -102,7 +111,7 @@
                               (input)="onBuscarPresupuesto(editBuffer.presupuestoBusqueda, true)"
                               (focus)="mostrandoPresupuestos = true"
                               (blur)="ocultarPresupuestos()"
-                              placeholder="Buscar presupuesto por ID, reparación, cliente..."
+                              placeholder="Buscar presupuesto aprobado..."
                               name="presupuestoBusquedaEdit"
                               required
                               autocomplete="off" />
@@ -116,7 +125,7 @@
                           <i class="bi bi-x"></i>
                         </button>
 
-                        <!-- Dropdown de sugerencias -->
+                        <!-- DROPDOWN DE SUGERENCIAS -->
                         <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
                             class="menu-sugerencias">
                           <div class="cabecera-sugerencias">
@@ -124,17 +133,58 @@
                             Presupuestos encontrados
                             <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
                           </div>
-                          <div *ngFor="let presupuesto of presupuestosSugeridos" 
-                              class="item-sugerencia"
-                              (mousedown)="seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()">
-                            <div class="contenido-sugerencia">
-                              <strong>{{ presupuesto.displayText }}</strong>
-                              <div class="detalles-sugerencia">
-                                Reparación: {{ presupuesto.reparacion_descripcion }} | 
-                                Estado: {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
+                          <div *ngFor="let presupuesto of presupuestosSugeridos; trackBy: trackByPresupuestoId" 
+                              class="item-sugerencia presupuesto-item"
+                              [class.ya-facturado]="presupuesto.yaFacturado"
+                              (mousedown)="!presupuesto.yaFacturado && seleccionarPresupuesto(presupuesto, true); cerrarMenuSugerencias()">
+                            
+                            <div class="presupuesto-info-simple">
+                              <div class="info-line primary-line">
+                                <strong>Presupuesto #{{ presupuesto.id }}</strong>
+                                <span class="info-separator">|</span>
+                                <i class="bi bi-calendar small-icon"></i>
+                                <span>{{ presupuesto.fecha | date:'dd/MM/yyyy' }}</span>
+                                <span class="info-separator">|</span>
+                                <i class="bi bi-currency-dollar small-icon"></i>
+                                <span>{{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</span>
+                                
+                                <span *ngIf="presupuesto.yaFacturado" class="badge ya-facturado-badge ms-2">
+                                  <i class="bi bi-file-earmark-check"></i> Ya facturado
+                                </span>
+                              </div>
+                              
+                              <div *ngIf="presupuesto.yaFacturado && presupuesto.facturaExistente" 
+                                   class="info-line warning-line">
+                                <i class="bi bi-exclamation-triangle small-icon"></i>
+                                <span>Factura: {{ presupuesto.facturaExistente.numero }}{{ presupuesto.facturaExistente.letra ? ' (' + presupuesto.facturaExistente.letra + ')' : '' }}</span>
+                              </div>
+                              
+                              <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
+                                <i class=" bi bi-tools small-icon"></i>
+                                <span class="info-label">Reparación:</span>
+                                <span class="info-value">{{ presupuesto.reparacion?.descripcion }}</span>
+                              </div>
+                              
+                              <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.estado">
+                                <i class="bi bi-tag small-icon"></i>
+                                <span class="info-label">Estado reparación:</span>
+                                <span class="info-value estado-badge" 
+                                      [class]="getEstadoReparacionBadgeClass(presupuesto.reparacion?.estado)">
+                                  {{ presupuesto.reparacion?.estado }}
+                                </span>
+                              </div>
+                              
+                              <div class="info-line secondary-line">
+                                <span class="presupuesto-estado-indicador" 
+                                      [class.aceptado]="presupuesto.aceptado"
+                                      [class.pendiente]="!presupuesto.aceptado">
+                                  <i class="bi" [class]="presupuesto.aceptado ? 'bi-check-circle' : 'bi-clock'"></i>
+                                  {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
+                                </span>
                               </div>
                             </div>
-                            <i class="bi bi-chevron-right"></i>
+
+                            <i class="bi bi-chevron-right icono-seleccion"></i>
                           </div>
                         </div>
 
@@ -143,12 +193,12 @@
                             class="menu-sugerencias">
                           <div class="cabecera-sugerencias">
                             <i class="bi bi-search"></i>
-                            Sin resultados
+                            Sin presupuestos aprobados
                           </div>
                           <div class="item-sugerencia sin-resultados">
                             <div class="contenido-sugerencia">
                               <i class="bi bi-exclamation-circle icono-advertencia"></i>
-                              No se encontraron presupuestos para "{{ editBuffer.presupuestoBusqueda }}"
+                              No se encontraron presupuestos aprobados para "{{ editBuffer.presupuestoBusqueda }}"
                             </div>
                           </div>
                         </div>
@@ -160,15 +210,38 @@
                       </div>
                       
                       <!-- Badge de selección -->
-                      <div *ngIf="editBuffer.presupuestoSeleccionado" class="badge-seleccion">
+                      <div *ngIf="editBuffer.presupuestoSeleccionado as p" class="badge-seleccion">
                         <i class="bi bi-check-circle"></i>
-                        Presupuesto seleccionado: #{{ editBuffer.presupuestoSeleccionado.id }}
-                        <small class="monto-seleccion">Monto: {{ (editBuffer.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}</small>
+                        Presupuesto seleccionado: #{{ p.id }}
+
+                        <small class="monto-seleccion">
+                          Monto: {{ (p.monto_total ?? 0) | number:'1.2-2' }}
+                        </small>
+
+                        <small class="estado-reparacion-seleccion"
+                              *ngIf="getEstadoReparacion(p.id) !== 'Desconocido'">
+                          | Estado reparación: {{ getEstadoReparacion(p.id) }}
+                        </small>
+                      </div>
+
+                      
+                      <!-- Advertencia si ya está facturado -->
+                      <div *ngIf="editBuffer.presupuestoSeleccionado && editBuffer.presupuestoSeleccionado.yaFacturado" 
+                           class="alert alert-warning mt-2 mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Este presupuesto ya tiene una factura:</strong>
+                          <ng-container *ngIf="editBuffer.presupuestoSeleccionado?.facturaExistente as factura; else yaFacturado">
+                            {{ factura.numero }}{{ factura.letra ? ' (' + factura.letra + ')' : '' }}
+                          </ng-container>
+
+                          <ng-template #yaFacturado>
+                            Ya facturado
+                          </ng-template>
                       </div>
                     </div>
 
                     <div class="campo-grupo">
-                      <label class="etiqueta-campo">Número</label>
+                      <label class="etiqueta-campo">Número Factura</label>
                       <input class="control-formulario" [(ngModel)]="editBuffer.numero" />
                     </div>
                     <div class="campo-grupo">
@@ -176,7 +249,7 @@
                       <input class="control-formulario letra-mayuscula" maxlength="1" [(ngModel)]="editBuffer.letra" />
                     </div>
                     <div class="campo-grupo">
-                      <label class="etiqueta-campo">Fecha</label>
+                      <label class="etiqueta-campo">Fecha Factura</label>
                       <input type="date" class="control-formulario" [(ngModel)]="editBuffer.fecha" />
                     </div>
                     <div class="campo-grupo">
@@ -207,10 +280,16 @@
                 </button>
               </ng-container>
 
-              <!-- Botón para modal de pagos -->
-              <button class="boton-accion boton-cobros" (click)="abrirModalCobros(f)" title="Gestionar pagos">
+              <button class="boton-accion boton-cobros" 
+                      (click)="abrirModalCobros(f)" 
+                      title="Gestionar pagos"
+                      *ngIf="f.id && f.id > 0">
                 <i class="bi bi-wallet2"></i>
               </button>
+
+              <div *ngIf="!f.id || f.id <= 0" class="badge bg-warning ms-1" title="Factura sin ID válido">
+                <i class="bi bi-exclamation-triangle"></i>
+              </div>
 
               <button class="boton-accion boton-eliminar" (click)="eliminar(f.id)" title="Eliminar">
                 <i class="bi bi-trash"></i>
@@ -241,6 +320,17 @@
   <div *ngIf="selectedAction==='crear'">
     <h4 class="titulo-seccion">Registrar Factura</h4>
 
+    <!-- Mensaje de restricciones -->
+    <div class="alert alert-info mb-4">
+      <i class="bi bi-info-circle me-2"></i>
+      <strong>Requisitos para facturar:</strong> 
+      <ul class="mb-0 mt-2">
+        <li>El presupuesto debe estar <strong>aprobado</strong></li>
+        <li>La reparación asociada debe estar <strong>finalizada</strong></li>
+        <li>El presupuesto no debe tener factura previa</li>
+      </ul>
+    </div>
+
     <form (ngSubmit)="crear()" class="formulario-crear">
       <div class="fila-campos">
         
@@ -254,7 +344,7 @@
                    (input)="onBuscarPresupuesto(nuevo.presupuestoBusqueda)"
                    (focus)="mostrandoPresupuestos = true"
                    (blur)="ocultarPresupuestos()"
-                   placeholder="Buscar presupuesto por ID, reparación, cliente..."
+                   placeholder="Buscar presupuesto aprobado..."
                    name="presupuestoBusqueda"
                    required
                    autocomplete="off" />
@@ -268,7 +358,7 @@
               <i class="bi bi-x"></i>
             </button>
 
-            <!-- Dropdown de sugerencias -->
+            <!-- DROPDOWN DE SUGERENCIAS -->
             <div *ngIf="mostrandoPresupuestos && presupuestosSugeridos.length > 0" 
                  class="menu-sugerencias">
               <div class="cabecera-sugerencias">
@@ -276,18 +366,59 @@
                 Presupuestos encontrados
                 <span class="contador-sugerencias">{{ presupuestosSugeridos.length }}</span>
               </div>
-                <div *ngFor="let presupuesto of presupuestosSugeridos" 
-                    class="item-sugerencia"
-                    (mousedown)="seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()">
-                  <div class="contenido-sugerencia">
-                    <strong>{{ presupuesto.displayText }}</strong>
-                    <div class="detalles-sugerencia">
-                      Reparación: {{ presupuesto.reparacion_descripcion }} | 
-                      Estado: {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
-                    </div>
+              <div *ngFor="let presupuesto of presupuestosSugeridos; trackBy: trackByPresupuestoId" 
+                   class="item-sugerencia presupuesto-item"
+                   [class.ya-facturado]="presupuesto.yaFacturado"
+                   (mousedown)="!presupuesto.yaFacturado && seleccionarPresupuesto(presupuesto); cerrarMenuSugerencias()">
+                
+                <div class="presupuesto-info-simple">
+                  <div class="info-line primary-line">
+                    <strong>Presupuesto #{{ presupuesto.id }}</strong>
+                    <span class="info-separator">|</span>
+                    <i class="bi bi-calendar small-icon"></i>
+                    <span>{{ presupuesto.fecha | date:'dd/MM/yyyy' }}</span>
+                    <span class="info-separator">|</span>
+                    <i class="bi bi-currency-dollar small-icon"></i>
+                    <span>{{ (presupuesto.monto_total ?? 0) | number:'1.2-2' }}</span>
+                    
+                    <span *ngIf="presupuesto.yaFacturado" class="badge ya-facturado-badge ms-2">
+                      <i class="bi bi-file-earmark-check"></i> Ya facturado
+                    </span>
                   </div>
-                  <i class="bi bi-chevron-right"></i>
+                  
+                  <div *ngIf="presupuesto.yaFacturado && presupuesto.facturaExistente" 
+                       class="info-line warning-line">
+                    <i class="bi bi-exclamation-triangle small-icon"></i>
+                    <span>Factura: {{ presupuesto.facturaExistente.numero }}{{ presupuesto.facturaExistente.letra ? ' (' + presupuesto.facturaExistente.letra + ')' : '' }}</span>
+                  </div>
+                  
+                  <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.descripcion">
+                    <i class="bi bi-tools small-icon"></i>
+                    <span class="info-label">Reparación:</span>
+                    <span class="info-value">{{ presupuesto.reparacion?.descripcion }}</span>
+                  </div>
+                  
+                  <div class="info-line secondary-line" *ngIf="presupuesto.reparacion?.estado">
+                    <i class="bi bi-tag small-icon"></i>
+                    <span class="info-label">Estado reparación:</span>
+                    <span class="info-value estado-badge" 
+                          [class]="getEstadoReparacionBadgeClass(presupuesto.reparacion?.estado)">
+                      {{ presupuesto.reparacion?.estado }}
+                    </span>
+                  </div>
+                  
+                  <div class="info-line secondary-line">
+                    <span class="presupuesto-estado-indicador" 
+                          [class.aceptado]="presupuesto.aceptado"
+                          [class.pendiente]="!presupuesto.aceptado">
+                      <i class="bi" [class]="presupuesto.aceptado ? 'bi-check-circle' : 'bi-clock'"></i>
+                      {{ presupuesto.aceptado ? 'Aceptado' : 'Pendiente' }}
+                    </span>
+                  </div>
                 </div>
+
+                <i class="bi bi-chevron-right icono-seleccion"></i>
+              </div>
             </div>
 
             <!-- Sin resultados -->
@@ -295,12 +426,12 @@
                  class="menu-sugerencias">
               <div class="cabecera-sugerencias">
                 <i class="bi bi-search"></i>
-                Sin resultados
+                Sin presupuestos aprobados
               </div>
               <div class="item-sugerencia sin-resultados">
                 <div class="contenido-sugerencia">
                   <i class="bi bi-exclamation-circle icono-advertencia"></i>
-                  No se encontraron presupuestos para "{{ nuevo.presupuestoBusqueda }}"
+                  No se encontraron presupuestos aprobados para "{{ nuevo.presupuestoBusqueda }}"
                 </div>
               </div>
             </div>
@@ -315,12 +446,17 @@
           <div *ngIf="nuevo.presupuestoSeleccionado" class="badge-seleccion">
             <i class="bi bi-check-circle"></i>
             Presupuesto seleccionado: #{{ nuevo.presupuestoSeleccionado.id }}
-            <small class="monto-seleccion">Monto: {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}</small>
+            <small class="monto-seleccion">
+              Monto: {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}
+            </small>
+            <small class="estado-reparacion-seleccion" *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'Desconocido'">
+              | Estado reparación: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
+            </small>
           </div>
         </div>
 
         <div class="campo-grupo">
-          <label class="etiqueta-campo">Número</label>
+          <label class="etiqueta-campo">Número Factura</label>
           <input class="control-formulario" [(ngModel)]="nuevo.numero" name="numero" placeholder="F0001-00000001" required />
         </div>
         <div class="campo-grupo">
@@ -328,16 +464,19 @@
           <input class="control-formulario letra-mayuscula" maxlength="1" [(ngModel)]="nuevo.letra" name="letra" required />
         </div>
         <div class="campo-grupo">
-          <label class="etiqueta-campo">Fecha</label>
+          <label class="etiqueta-campo">Fecha Factura</label>
           <input type="date" class="control-formulario" [(ngModel)]="nuevo.fecha" name="fecha" required />
         </div>
         <div class="campo-grupo">
           <label class="etiqueta-campo">Monto total</label>
-          <input type="number" min="0" step="0.01" class="control-formulario" [(ngModel)]="nuevo.monto_total" name="monto_total" required />
+          <input type="number" min="0" step="0.01" class="control-formulario" 
+                 [(ngModel)]="nuevo.monto_total" name="monto_total" 
+                 [readonly]="true" required />
         </div>
         <div class="campo-grupo ancho-completo">
           <label class="etiqueta-campo">Detalle (opcional)</label>
-          <input class="control-formulario" [(ngModel)]="nuevo.detalle" name="detalle" />
+          <input class="control-formulario" [(ngModel)]="nuevo.detalle" name="detalle" 
+                 placeholder="Detalle de la factura..." />
         </div>
 
         <!-- Información del presupuesto seleccionado -->
@@ -350,19 +489,48 @@
               </h6>
               <div class="grid-informacion">
                 <div class="item-informacion">
-                  <strong>ID:</strong> {{ nuevo.presupuestoSeleccionado.id }}
+                  <strong>ID Presupuesto:</strong> {{ nuevo.presupuestoSeleccionado.id }}
                 </div>
                 <div class="item-informacion">
                   <strong>Monto:</strong> {{ (nuevo.presupuestoSeleccionado.monto_total ?? 0) | number:'1.2-2' }}
                 </div>
                 <div class="item-informacion">
-                  <strong>Estado:</strong> 
-                  <span [class]="'badge-estado ' + (nuevo.presupuestoSeleccionado.aceptado ? 'estado-aceptado' : 'estado-pendiente')">
+                  <strong>Estado presupuesto:</strong> 
+                  <span class="badge-estado" [class]="getEstadoReparacionBadgeClass(nuevo.presupuestoSeleccionado.aceptado ? 'finalizada' : 'pendiente')">
                     {{ nuevo.presupuestoSeleccionado.aceptado ? 'Aceptado' : 'Pendiente' }}
                   </span>
                 </div>
+                
+                <div *ngIf="nuevo.presupuestoSeleccionado?.yaFacturado" class="item-informacion">
+                  <strong>Factura existente:</strong> 
+                    <span class="text-danger"
+                          *ngIf="nuevo.presupuestoSeleccionado?.facturaExistente as factura; else yaFacturadoNuevo">
+                      {{ factura.numero }}{{ factura.letra ? ' (' + factura.letra + ')' : '' }}
+                    </span>
+
+                    <ng-template #yaFacturadoNuevo>
+                      Ya facturado
+                    </ng-template>
+
+                </div>
+                
                 <div class="item-informacion">
-                  <strong>Reparación:</strong> {{ getDescripcionReparacion(nuevo.presupuestoSeleccionado.reparacion_id) }}
+                  <strong>ID Reparación:</strong> {{ nuevo.presupuestoSeleccionado.reparacion_id }}
+                </div>
+                <div class="item-informacion">
+                  <strong>Descripción reparación:</strong> {{ getDescripcionReparacion(nuevo.presupuestoSeleccionado.id) }}
+                </div>
+                <div class="item-informacion" *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'Desconocido'">
+                  <strong>Estado reparación:</strong> 
+                  <span class="badge-estado" [class]="getEstadoReparacionBadgeClass(getEstadoReparacion(nuevo.presupuestoSeleccionado.id))">
+                    {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
+                  </span>
+                </div>
+                <div class="item-informacion">
+                  <strong>Cliente:</strong> {{ getInfoCliente(nuevo.presupuestoSeleccionado.id) }}
+                </div>
+                <div class="item-informacion">
+                  <strong>Equipo:</strong> {{ getInfoEquipo(nuevo.presupuestoSeleccionado.id) }}
                 </div>
                 <div class="item-informacion">
                   <strong>Fecha presupuesto:</strong> {{ nuevo.presupuestoSeleccionado.fecha | date:'dd/MM/yyyy' }}
@@ -373,9 +541,51 @@
         </div>
       </div>
 
-      <button class="boton-enviar" type="submit" [disabled]="!nuevo.presupuesto_id">
-        <i class="bi bi-check2-circle icono-boton"></i> Guardar Factura
-      </button>
+      <!-- Mensaje de validación -->
+      <div *ngIf="nuevo.presupuestoSeleccionado && (!nuevo.presupuestoSeleccionado.aceptado || getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada' || nuevo.presupuestoSeleccionado.yaFacturado)" 
+           class="alert alert-warning mb-3">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>No se puede facturar:</strong>
+        <ul class="mb-0 mt-2">
+          <li *ngIf="!nuevo.presupuestoSeleccionado.aceptado">El presupuesto no está aprobado</li>
+          <li *ngIf="getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada'">
+            La reparación está en estado: {{ getEstadoReparacion(nuevo.presupuestoSeleccionado.id) }}
+          </li>
+          <li *ngIf="nuevo.presupuestoSeleccionado && nuevo.presupuestoSeleccionado.yaFacturado">
+              Este presupuesto ya tiene una factura asociada
+              <span *ngIf="nuevo.presupuestoSeleccionado.facturaExistente">
+                  : {{ nuevo.presupuestoSeleccionado.facturaExistente.numero }}{{ nuevo.presupuestoSeleccionado.facturaExistente.letra ? ' (' + nuevo.presupuestoSeleccionado.facturaExistente.letra + ')' : '' }}
+              </span>
+          </li>
+        </ul>
+      </div>
+
+      <button class="boton-enviar" type="submit" 
+          [disabled]="!nuevo.presupuesto_id || 
+          !nuevo.presupuestoSeleccionado?.aceptado || 
+          getEstadoReparacion(nuevo.presupuestoSeleccionado?.id) !== 'finalizada' ||
+          nuevo.presupuestoSeleccionado?.yaFacturado">
+          
+          <i class="bi bi-check2-circle icono-boton"></i> 
+          <ng-container *ngIf="nuevo.presupuestoSeleccionado">
+              <span *ngIf="nuevo.presupuestoSeleccionado.aceptado && 
+                          getEstadoReparacion(nuevo.presupuestoSeleccionado.id) === 'finalizada' &&
+                          !nuevo.presupuestoSeleccionado.yaFacturado">
+                  Guardar Factura
+              </span>
+              <span *ngIf="!nuevo.presupuestoSeleccionado.aceptado || 
+                          getEstadoReparacion(nuevo.presupuestoSeleccionado.id) !== 'finalizada' ||
+                          nuevo.presupuestoSeleccionado.yaFacturado">
+                  No cumple requisitos para facturar
+              </span>
+          </ng-container>
+      </button>      
+
+      <app-presupuesto-picker 
+          *ngIf="mostrandoPresupuestos"
+          (closed)="ocultarPresupuestos()"
+          (select)="seleccionarPresupuestoDelPicker($event)">
+      </app-presupuesto-picker>
     </form>
   </div>
 

@@ -18,23 +18,27 @@
           <div class="d-flex align-items-center mb-3">
             <div class="avatar bg-light text-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
                  style="width: 50px; height: 50px;">
-              <i class="bi bi-person-fill"></i>
+              <i class="bi {{ getTipoUsuarioIcono(currentUser()?.tipo) }}"></i>
             </div>
             <div>
-              <h6 class="mb-0 fw-bold">{{ currentUser()?.nombre }}</h6>
-              <span class="badge bg-secondary">{{ currentUser()?.tipo | titlecase }}</span>
+              <h6 class="mb-0 fw-bold">{{ currentUser()?.nombre || 'Usuario' }}</h6>
+              <span class="badge bg-{{ getTipoUsuarioColor(currentUser()?.tipo) }} d-inline-flex align-items-center">
+                <i class="bi {{ getTipoUsuarioIcono(currentUser()?.tipo) }} me-1"></i>
+                {{ currentUser()?.tipo | titlecase }}
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Especializaciones -->
-        <div class="especializaciones-section">
+        <!-- Sección de especializaciones - SOLO PARA TÉCNICOS Y ADMINISTRADORES -->
+        <div *ngIf="mostrarEspecializaciones()" class="especializaciones-section mb-4">
           <h6 class="fw-bold mb-3 text-primary">
             <i class="bi bi-mortarboard me-2"></i>
             Mis Especializaciones
           </h6>
           
-          <div *ngIf="currentUser()?.especializaciones && currentUser()!.especializaciones.length > 0; else sinEspecializaciones">
+          <!-- Si tiene especializaciones -->
+          <div *ngIf="tieneEspecializaciones(); else sinEspecializaciones">
             <div class="d-flex flex-wrap gap-2 mb-3">
               <span *ngFor="let esp of currentUser()!.especializaciones" 
                     class="badge bg-success">
@@ -46,20 +50,67 @@
             </small>
           </div>
 
+          <!-- Sin especializaciones (solo para técnicos/administradores) -->
           <ng-template #sinEspecializaciones>
             <div class="alert alert-warning py-2 mb-3">
               <small>
                 <i class="bi bi-exclamation-triangle me-1"></i>
-                No tenés especializaciones asignadas
+                <span *ngIf="esTecnico()">No tenés especializaciones asignadas</span>
+                <span *ngIf="esAdministrador()">No tenés especializaciones asignadas como administrador</span>
               </small>
             </div>
           </ng-template>
 
-          <button class="btn btn-outline-primary btn-sm w-100" 
-                  (click)="irAEspecializaciones()">
-            <i class="bi bi-mortarboard me-1"></i>
-            Gestionar especializaciones
+          <!-- Botón para gestionar especializaciones - SOLO PARA ADMINISTRADORES -->
+          <button *ngIf="esAdministrador()" 
+                  class="btn btn-outline-danger btn-sm w-100 mt-2" 
+                  (click)="irAEspecializaciones()"
+                  title="Gestionar especializaciones de todos los técnicos">
+            <i class="bi bi-gear me-1"></i>
+            Gestionar especializaciones del sistema
           </button>
+
+          <!-- Mensaje informativo para técnicos -->
+          <div *ngIf="esTecnico() && !tieneEspecializaciones()" class="alert alert-info mt-2">
+            <small>
+              <i class="bi bi-info-circle me-1"></i>
+              Contactá a un administrador para asignarte especializaciones
+            </small>
+          </div>
+        </div>
+
+        <!-- Información adicional del usuario -->
+        <div class="user-details mt-4 pt-3 border-top">
+          <h6 class="fw-bold mb-3 text-primary">
+            <i class="bi bi-info-circle me-2"></i>
+            Información de contacto
+          </h6>
+          <div class="row small">
+            <div class="col-12 mb-2" *ngIf="currentUser()?.email">
+              <i class="bi bi-envelope me-2 text-muted"></i>
+              <span class="text-muted">Email:</span>
+              <span class="ms-2">{{ currentUser()?.email }}</span>
+            </div>
+            <div class="col-12" *ngIf="currentUser()?.telefono">
+              <i class="bi bi-telephone me-2 text-muted"></i>
+              <span class="text-muted">Teléfono:</span>
+              <span class="ms-2">{{ currentUser()?.telefono }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección de permisos (solo para administradores) -->
+        <div *ngIf="esAdministrador()" class="admin-info mt-4 pt-3 border-top">
+          <h6 class="fw-bold mb-3 text-danger">
+            <i class="bi bi-shield-check me-2"></i>
+            Privilegios de administrador
+          </h6>
+          <div class="alert alert-danger py-2">
+            <small>
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              Tenés acceso completo al sistema incluyendo gestión de usuarios, especializaciones y configuración
+            </small>
+          </div>
         </div>
       </div>
       
@@ -90,7 +141,16 @@
           <i class="bi bi-question-circle text-warning" style="font-size: 3rem;"></i>
         </div>
         <h5 class="mb-3">¿Estás seguro de que querés cerrar sesión?</h5>
-        <p class="text-muted">Serás redirigido al login y deberás ingresar nuevamente.</p>
+        
+        <p class="text-muted mb-0">
+          <span *ngIf="esAdministrador()">
+            <i class="bi bi-exclamation-triangle text-danger me-1"></i>
+            Como administrador, otros usuarios no podrán realizar ciertas operaciones hasta que vuelvas a iniciar sesión.
+          </span>
+          <span *ngIf="!esAdministrador()">
+            Serás redirigido al login y deberás ingresar nuevamente.
+          </span>
+        </p>
       </div>
       
       <div class="modal-footer justify-content-center">

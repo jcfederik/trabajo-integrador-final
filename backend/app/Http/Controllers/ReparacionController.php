@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Reparacion;
 use App\Models\Repuesto;
+use App\Models\Presupuesto;
+use App\Models\HistorialStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @OA\Tag(
@@ -87,12 +89,10 @@ class ReparacionController extends Controller
             });
         }
 
-        // orden
         $sort = $request->get('sort', 'id');
         $direction = $request->get('direction', 'desc');
         $query->orderBy($sort, $direction);
 
-        // paginación
         $perPage = $request->get('size', 10);
         return $query->paginate($perPage);
     }
@@ -135,30 +135,50 @@ class ReparacionController extends Controller
         $perPage = $request->get('per_page', 100);
 
         if (!$termino) {
-            return response()->json([], 200);
+            return response()->json(['data' => []], 200);
         }
 
         try {
+            
             $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
-                ->where(function($query) use ($termino) {
-                    $query->where('descripcion', 'LIKE', "%{$termino}%")
-                          ->orWhere('estado', 'LIKE', "%{$termino}%")
-                          ->orWhereHas('equipo', function($q) use ($termino) {
-                              $q->where('descripcion', 'LIKE', "%{$termino}%")
-                                ->orWhere('marca', 'LIKE', "%{$termino}%")
-                                ->orWhere('modelo', 'LIKE', "%{$termino}%")
-                                ->orWhere('nro_serie', 'LIKE', "%{$termino}%");
-                          })
-                          ->orWhereHas('tecnico', function($q) use ($termino) {
-                              $q->where('nombre', 'LIKE', "%{$termino}%")
-                                ->orWhere('email', 'LIKE', "%{$termino}%");
-                          });
-                })
+                ->where('descripcion', 'LIKE', "%{$termino}%")
                 ->paginate($perPage);
 
-            return response()->json($reparaciones, 200);
+                Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                ->where('descripcion', 'LIKE', "%{$termino}%")
+                ->toSql();
+                        
+            if ($reparaciones->count() === 0) {
+                
+                $reparaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                    ->where(function($query) use ($termino) {
+                        $query->where('descripcion', 'LIKE', "%{$termino}%")
+                            ->orWhere('estado', 'LIKE', "%{$termino}%")
+                            ->orWhere('id', 'LIKE', "%{$termino}%");
+                    })
+                    ->paginate($perPage);
+                    
+                    Reparacion::with(['equipo', 'tecnico', 'repuestos'])
+                    ->where(function($query) use ($termino) {
+                        $query->where('descripcion', 'LIKE', "%{$termino}%")
+                            ->orWhere('estado', 'LIKE', "%{$termino}%")
+                            ->orWhere('id', 'LIKE', "%{$termino}%");
+                    })
+                    ->toSql();
+                }
+            
+            return response()->json([
+                'data' => $reparaciones->items(),
+                'current_page' => $reparaciones->currentPage(),
+                'last_page' => $reparaciones->lastPage(),
+                'per_page' => $reparaciones->perPage(),
+                'total' => $reparaciones->total(),
+                'from' => $reparaciones->firstItem(),
+                'to' => $reparaciones->lastItem()
+            ], 200);
+            
         } catch (\Exception $e) {
-            return response()->json([], 200);
+            return response()->json(['data' => []], 200);
         }
     }
 
@@ -176,7 +196,9 @@ class ReparacionController extends Controller
      *             @OA\Property(property="usuario_id", type="integer", example=5),
      *             @OA\Property(property="descripcion", type="string", example="Reemplazo de placa madre"),
      *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
-     *             @OA\Property(property="estado", type="string", example="pendiente")
+     *             @OA\Property(property="estado", type="string", example="pendiente"),
+     *             @OA\Property(property="fecha_estimada", type="string", format="date", example="2025-10-20"),
+     *             @OA\Property(property="presupuesto_id", type="integer", example=1)
      *         )
      *     ),
      *     @OA\Response(
@@ -189,17 +211,28 @@ class ReparacionController extends Controller
      *     ),
      *     @OA\Response(response=400, description="Datos inválidos"),
      *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=403, description="No tiene permisos o presupuesto no aprobado"),
      *     @OA\Response(response=500, description="Error al crear la reparación")
      * )
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+        
+        if ($user->tipo === 'tecnico') {
+            return response()->json([
+                'error' => 'Los técnicos no pueden crear reparaciones. Solo secretarios o administradores.'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'equipo_id' => 'required|exists:equipo,id',
             'usuario_id' => 'required|exists:usuario,id',
             'descripcion' => 'required|string',
             'fecha' => 'required|date',
-            'estado' => 'required|string|max:50'
+            'estado' => 'required|string|in:pendiente,en_proceso,finalizada,cancelada',
+            'fecha_estimada' => 'nullable|date',
+            'presupuesto_id' => 'nullable|exists:presupuestos,id'
         ]);
 
         if ($validator->fails()) {
@@ -207,7 +240,34 @@ class ReparacionController extends Controller
         }
 
         try {
-            $reparacion = Reparacion::create($validator->validated());
+            $data = $validator->validated();
+            
+            if (isset($data['presupuesto_id'])) {
+                $presupuesto = Presupuesto::find($data['presupuesto_id']);
+                
+                if (!$presupuesto) {
+                    return response()->json([
+                        'error' => 'El presupuesto especificado no existe'
+                    ], 400);
+                }
+                
+                if ($presupuesto->aceptado !== 1) {
+                    return response()->json([
+                        'error' => 'Solo se puede crear reparación con presupuesto aprobado'
+                    ], 400);
+                }
+                
+                $reparacionPresupuesto = $presupuesto->reparacion ?? null;
+                if ($reparacionPresupuesto && $reparacionPresupuesto->equipo_id != $data['equipo_id']) {
+                    return response()->json([
+                        'error' => 'El presupuesto no pertenece al equipo especificado'
+                    ], 400);
+                }
+                
+                $data['presupuesto_id'] = $presupuesto->id;
+            }
+            
+            $reparacion = Reparacion::create($data);
             
             $reparacionConRelaciones = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                 ->find($reparacion->id);
@@ -272,7 +332,8 @@ class ReparacionController extends Controller
      *             @OA\Property(property="usuario_id", type="integer", example=5),
      *             @OA\Property(property="descripcion", type="string", example="Cambio de disco rígido y reinstalación de sistema operativo"),
      *             @OA\Property(property="fecha", type="string", format="date", example="2025-10-11"),
-     *             @OA\Property(property="estado", type="string", example="finalizada")
+     *             @OA\Property(property="estado", type="string", example="finalizada"),
+     *             @OA\Property(property="fecha_estimada", type="string", format="date", example="2025-10-20")
      *         )
      *     ),
      *     @OA\Response(
@@ -284,6 +345,7 @@ class ReparacionController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=403, description="No tiene permisos para editar esta reparación"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
      *     @OA\Response(response=500, description="Error al actualizar la reparación")
      * )
@@ -295,8 +357,46 @@ class ReparacionController extends Controller
             return response()->json(['error' => 'Reparación no encontrada'], 404);
         }
 
+        $user = Auth::user();
+        
+        if ($user->tipo === 'tecnico') {
+            if ($reparacion->usuario_id != $user->id) {
+                return response()->json([
+                    'error' => 'Solo puedes editar reparaciones asignadas a ti'
+                ], 403);
+            }
+            
+            $allowedFields = ['estado', 'descripcion', 'fecha_estimada'];
+            $data = $request->only($allowedFields);
+            
+            if (isset($data['estado'])) {
+                $estadosValidos = ['pendiente', 'en_proceso', 'finalizada', 'cancelada'];
+                if (!in_array($data['estado'], $estadosValidos)) {
+                    return response()->json([
+                        'error' => 'Estado no válido. Opciones: ' . implode(', ', $estadosValidos)
+                    ], 400);
+                }
+                
+                if ($data['estado'] === 'finalizada') {
+                    $factura = $reparacion->factura ?? null;
+                    if (!$factura) {
+                        return response()->json([
+                            'error' => 'No se puede marcar como finalizada sin factura generada'
+                        ], 400);
+                    }
+                }
+            }
+            
+        } else {
+            $data = $request->all();
+            
+            if (isset($data['estado']) && !in_array($data['estado'], ['pendiente', 'en_proceso', 'finalizada', 'cancelada'])) {
+                return response()->json(['error' => 'Estado no válido'], 400);
+            }
+        }
+
         try {
-            $reparacion->update($request->all());
+            $reparacion->update($data);
             
             $reparacionActualizada = Reparacion::with(['equipo', 'tecnico', 'repuestos'])
                 ->find($id);
@@ -331,18 +431,33 @@ class ReparacionController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=401, description="No autorizado"),
+     *     @OA\Response(response=403, description="Solo administradores pueden eliminar reparaciones"),
      *     @OA\Response(response=404, description="Reparación no encontrada"),
      *     @OA\Response(response=500, description="Error al eliminar la reparación")
      * )
      */
     public function destroy($id)
     {
+        $user = Auth::user();
+        
+        if ($user->tipo !== 'administrador') {
+            return response()->json([
+                'error' => 'Solo los administradores pueden eliminar reparaciones'
+            ], 403);
+        }
+
         $reparacion = Reparacion::find($id);
         if (!$reparacion) {
             return response()->json(['error' => 'Reparación no encontrada'], 404);
         }
 
         try {
+            if ($reparacion->factura) {
+                return response()->json([
+                    'error' => 'No se puede eliminar una reparación con factura asociada'
+                ], 400);
+            }
+            
             $reparacion->delete();
             return response()->json(['mensaje' => 'Reparación eliminada correctamente'], 200);
         } catch (\Exception $e) {
@@ -433,40 +548,26 @@ class ReparacionController extends Controller
                 'repuestos'
             ]);
 
-            // Búsqueda
             if ($request->has('search') && $request->search !== '') {
                 $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('descripcion', 'LIKE', "%$search%")
-                    ->orWhere('estado', 'LIKE', "%$search%")
-                    ->orWhere('fecha', 'LIKE', "%$search%")
-                    ->orWhereHas('equipo', function ($q2) use ($search) {
-                        $q2->where('descripcion', 'LIKE', "%$search%")
-                            ->orWhere('marca', 'LIKE', "%$search%")
-                            ->orWhere('modelo', 'LIKE', "%$search%")
-                            ->orWhere('nro_serie', 'LIKE', "%$search%")
-                            ->orWhereHas('cliente', function ($q3) use ($search) {
-                                $q3->where('nombre', 'LIKE', "%$search%")
-                                    ->orWhere('email', 'LIKE', "%$search%")
-                                    ->orWhere('telefono', 'LIKE', "%$search%");
-                            });
-                    })
-                    ->orWhereHas('tecnico', function ($q2) use ($search) {
-                        $q2->where('nombre', 'LIKE', "%$search%")
-                            ->orWhere('email', 'LIKE', "%$search%");
-                    });
-                });
+                $query->where('descripcion', 'LIKE', "%$search%");
             }
 
-            // Orden por defecto
             $query->orderBy('id', 'desc');
 
-            // Paginación
             $perPage = $request->get('per_page', 10);
             $reparaciones = $query->paginate($perPage);
 
-            // Transformar datos para incluir campos calculados
             $reparaciones->getCollection()->transform(function ($reparacion) {
+                $equipoNombre = $reparacion->equipo ? $reparacion->equipo->descripcion : 'Sin equipo';
+                
+                $clienteNombre = 'No especificado';
+                if ($reparacion->equipo && $reparacion->equipo->cliente) {
+                    $clienteNombre = $reparacion->equipo->cliente->nombre;
+                }
+                
+                $tecnicoNombre = $reparacion->tecnico ? $reparacion->tecnico->nombre : 'Sin técnico';
+                
                 return [
                     'id' => $reparacion->id,
                     'descripcion' => $reparacion->descripcion,
@@ -474,9 +575,9 @@ class ReparacionController extends Controller
                     'estado' => $reparacion->estado,
                     'equipo_id' => $reparacion->equipo_id,
                     'usuario_id' => $reparacion->usuario_id,
-                    'equipo_nombre' => $reparacion->equipo->descripcion ?? 'Sin equipo',
-                    'cliente_nombre' => $reparacion->equipo->cliente->nombre ?? 'No especificado',
-                    'tecnico_nombre' => $reparacion->tecnico->nombre ?? 'Sin técnico',
+                    'equipo_nombre' => $equipoNombre,
+                    'cliente_nombre' => $clienteNombre,
+                    'tecnico_nombre' => $tecnicoNombre,
                     'equipo' => $reparacion->equipo,
                     'tecnico' => $reparacion->tecnico,
                     'repuestos' => $reparacion->repuestos
@@ -486,13 +587,13 @@ class ReparacionController extends Controller
             return response()->json($reparaciones);
 
         } catch (\Exception $e) {
-            Log::error('Error en completo método: ' . $e->getMessage());
+
             return response()->json([
-                'error' => 'Error al cargar reparaciones: ' . $e->getMessage()
+                'error' => 'Error al cargar reparaciones',
+                'debug' => env('APP_DEBUG') ? $e->getMessage() : null
             ], 500);
         }
     }
-
     /**
      * @OA\Post(
      *     path="/api/reparaciones/{reparacionId}/repuestos",
@@ -529,7 +630,16 @@ class ReparacionController extends Controller
      */
     public function assignRepuesto(Request $request, $reparacionId)
     {
-        Log::info('AssignRepuesto llamado', ['reparacion_id' => $reparacionId, 'request' => $request->all()]);
+        $user = Auth::user();
+        
+        if ($user->tipo === 'tecnico') {
+            $reparacion = Reparacion::find($reparacionId);
+            if (!$reparacion || $reparacion->usuario_id != $user->id) {
+                return response()->json([
+                    'error' => 'Solo puedes asignar repuestos a reparaciones asignadas a ti'
+                ], 403);
+            }
+        }
 
         $request->validate([
             'repuesto_id' => 'required|exists:repuesto,id',
@@ -542,36 +652,40 @@ class ReparacionController extends Controller
             $reparacion = Reparacion::findOrFail($reparacionId);
             $repuesto = Repuesto::findOrFail($request->repuesto_id);
 
-            Log::info('Encontrados', [
-                'reparacion' => $reparacion->id,
-                'repuesto' => $repuesto->id,
-                'stock_actual' => $repuesto->stock,
-                'cantidad_solicitada' => $request->cantidad
-            ]);
-
-            // Verificar stock
             if ($repuesto->stock < $request->cantidad) {
                 return response()->json([
                     'error' => 'Stock insuficiente. Solo hay ' . $repuesto->stock . ' unidades disponibles.'
                 ], 400);
             }
 
-            // Verificar si ya existe la relación
             $existingRelation = DB::table('reparacion_repuesto')
                 ->where('reparacion_id', $reparacionId)
                 ->where('repuesto_id', $request->repuesto_id)
                 ->first();
 
             if ($existingRelation) {
-                // Actualizar cantidad existente
+                $nuevaCantidad = $existingRelation->cantidad + $request->cantidad;
+                
                 DB::table('reparacion_repuesto')
                     ->where('id', $existingRelation->id)
                     ->update([
-                        'cantidad' => $existingRelation->cantidad + $request->cantidad,
+                        'cantidad' => $nuevaCantidad,
                         'updated_at' => now()
                     ]);
+                    
+                HistorialStock::create([
+                    'repuesto_id' => $repuesto->id,
+                    'tipo_mov' => 'ASIGNACION_REPUESTO',
+                    'cantidad' => -$request->cantidad,
+                    'stock_anterior' => $repuesto->stock,
+                    'stock_nuevo' => $repuesto->stock - $request->cantidad,
+                    'descripcion' => "Incremento en reparación #{$reparacion->id}: {$reparacion->descripcion}",
+                    'referencia_id' => $reparacion->id,
+                    'referencia_type' => 'App\Models\Reparacion',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
             } else {
-                // Crear nueva relación
                 DB::table('reparacion_repuesto')->insert([
                     'reparacion_id' => $reparacionId,
                     'repuesto_id' => $request->repuesto_id,
@@ -580,14 +694,25 @@ class ReparacionController extends Controller
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
+                
+                HistorialStock::create([
+                    'repuesto_id' => $repuesto->id,
+                    'tipo_mov' => 'ASIGNACION_REPUESTO',
+                    'cantidad' => -$request->cantidad,
+                    'stock_anterior' => $repuesto->stock,
+                    'stock_nuevo' => $repuesto->stock - $request->cantidad,
+                    'descripcion' => "Asignado a reparación #{$reparacion->id}: {$reparacion->descripcion}",
+                    'referencia_id' => $reparacion->id,
+                    'referencia_type' => 'App\Models\Reparacion',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
             }
 
-            // Actualizar stock del repuesto
             $repuesto->decrement('stock', $request->cantidad);
 
             DB::commit();
 
-            // Cargar relación actualizada
             $reparacion->load('repuestos');
 
             return response()->json([
@@ -597,10 +722,6 @@ class ReparacionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en assignRepuesto', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             
             return response()->json([
                 'error' => 'Error al asignar repuesto: ' . $e->getMessage()
@@ -641,12 +762,20 @@ class ReparacionController extends Controller
      */
     public function removeRepuesto($reparacionId, $pivotId)
     {
-        Log::info('RemoveRepuesto llamado', ['reparacion_id' => $reparacionId, 'pivot_id' => $pivotId]);
+        $user = Auth::user();
+        
+        if ($user->tipo === 'tecnico') {
+            $reparacion = Reparacion::find($reparacionId);
+            if (!$reparacion || $reparacion->usuario_id != $user->id) {
+                return response()->json([
+                    'error' => 'Solo puedes remover repuestos de reparaciones asignadas a ti'
+                ], 403);
+            }
+        }
 
         try {
             DB::beginTransaction();
 
-            // Obtener el registro pivot
             $pivot = DB::table('reparacion_repuesto')
                 ->where('id', $pivotId)
                 ->where('reparacion_id', $reparacionId)
@@ -656,23 +785,26 @@ class ReparacionController extends Controller
                 return response()->json(['error' => 'Repuesto no encontrado en esta reparación'], 404);
             }
 
-            Log::info('Pivot encontrado', [
-                'repuesto_id' => $pivot->repuesto_id,
-                'cantidad' => $pivot->cantidad
-            ]);
-
-            // Restaurar stock
+            $reparacion = Reparacion::find($reparacionId);
             $repuesto = Repuesto::find($pivot->repuesto_id);
+            
             if ($repuesto) {
-                $repuesto->increment('stock', $pivot->cantidad);
-                Log::info('Stock restaurado', [
+                HistorialStock::create([
                     'repuesto_id' => $repuesto->id,
-                    'cantidad_restaurada' => $pivot->cantidad,
-                    'nuevo_stock' => $repuesto->stock
+                    'tipo_mov' => 'DEVOLUCION', 
+                    'cantidad' => $pivot->cantidad,
+                    'stock_anterior' => $repuesto->stock,
+                    'stock_nuevo' => $repuesto->stock + $pivot->cantidad,
+                    'descripcion' => "Removido de reparación #{$reparacionId}: {$reparacion->descripcion}",
+                    'referencia_id' => $reparacion->id,
+                    'referencia_type' => 'App\Models\Reparacion',
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
+                
+                $repuesto->increment('stock', $pivot->cantidad);
             }
 
-            // Eliminar la relación
             DB::table('reparacion_repuesto')->where('id', $pivotId)->delete();
 
             DB::commit();
@@ -683,11 +815,7 @@ class ReparacionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en removeRepuesto', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+
             return response()->json([
                 'error' => 'Error al remover repuesto: ' . $e->getMessage()
             ], 500);
@@ -720,26 +848,17 @@ class ReparacionController extends Controller
      */
     public function getRepuestosAsignados($reparacionId)
     {
-        Log::info('GetRepuestosAsignados llamado', ['reparacion_id' => $reparacionId]);
 
         try {
             $reparacion = Reparacion::with(['repuestos' => function($query) {
                 $query->withPivot('id', 'cantidad', 'costo_unitario', 'created_at', 'updated_at');
             }])->findOrFail($reparacionId);
-            
-            Log::info('Repuestos asignados encontrados', [
-                'count' => $reparacion->repuestos->count()
-            ]);
 
             return response()->json([
                 'data' => $reparacion->repuestos
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error en getRepuestosAsignados', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             
             return response()->json([
                 'error' => 'Error al cargar repuestos asignados: ' . $e->getMessage()

@@ -1,19 +1,16 @@
-// alert.service.ts - VERSIÓN MEJORADA
 import { Injectable } from '@angular/core';
 import Swal, { SweetAlertIcon, SweetAlertResult, SweetAlertOptions } from 'sweetalert2';
 
+// ====== INTERFACES ======
 export type AlertOptions = {
   swal?: SweetAlertOptions;
   customProperty?: string;
 };
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AlertService {
   
-  // ========== MÉTODOS GENÉRICOS ==========
-  
+  // ====== MÉTODOS GENÉRICOS ======
   showAlert(title: string, text: string = '', icon: SweetAlertIcon = 'info'): Promise<SweetAlertResult> {
     return Swal.fire({
       title,
@@ -104,22 +101,77 @@ export class AlertService {
 
   // ========== MÉTODOS ESPECÍFICOS PARA CRUD ==========
   
-  async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
-    const text = itemName 
-      ? `¿Estás seguro de eliminar "${itemName}"?` 
-      : `¿Estás seguro de eliminar este ${entityName}?`;
+async confirmDelete(entityName: string, itemName?: string): Promise<boolean> {
+  const html = itemName
+    ? `
+      <p>Estás a punto de <strong>desactivar</strong>:</p>
+      <h4 style="margin: 8px 0;">"${itemName}"</h4>
 
-    const result = await this.showConfirm({
-      swal: {
-        title: `Eliminar ${entityName}`,
-        text,
-        icon: 'warning',
-        confirmButtonText: 'Sí, eliminar'
+      <p style="margin-top: 12px;">
+        ⚠️ Esta acción <strong>no elimina los datos</strong>, pero el registro
+        quedará <strong>inactivo</strong> y:
+      </p>
+
+      <ul style="margin-left: 18px;">
+        <li>No podrá usarse en nuevas operaciones</li>
+        <li>No aparecerá en listados normales</li>
+        <li>Quedará disponible solo para auditoría</li>
+      </ul>
+
+      <p style="margin-top: 12px;">
+        Para confirmar la desactivación, escribí:<br>
+        <strong style="color:#dc3545">ELIMINAR</strong>
+      </p>
+    `
+    : `
+      <p>⚠️ Estás por <strong>desactivar</strong> este ${entityName}.</p>
+
+      <p>
+        El registro quedará <strong>inactivo</strong>, pero sus datos
+        <u>no se eliminarán físicamente</u>.
+      </p>
+
+      <p>
+        Escribí <strong style="color:#dc3545">ELIMINAR</strong> para confirmar.
+      </p>
+    `;
+
+  const result = await this.showConfirm({
+    swal: {
+      title: `Desactivar ${entityName}`,
+      html,
+      icon: 'warning',
+      iconColor: '#dc3545',
+      showCancelButton: true,
+      confirmButtonText: 'Desactivar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true,
+      focusCancel: true,
+
+      input: 'text',
+      inputPlaceholder: 'Escribí ELIMINAR para confirmar',
+      inputAttributes: {
+        autocapitalize: 'off'
+      },
+
+      preConfirm: (value) => {
+        if (value !== 'ELIMINAR') {
+          // @ts-ignore
+          Swal.showValidationMessage('Debés escribir ELIMINAR exactamente');
+          return false;
+        }
+        return true;
       }
-    });
+    }
+  });
 
-    return result.isConfirmed;
-  }
+  return result.isConfirmed;
+}
+
+
+
 
   showCreateSuccess(entityName: string, itemName?: string): void {
     const message = itemName 
@@ -153,9 +205,7 @@ export class AlertService {
     this.showError('Error', message);
   }
 
-  // ========== MÉTODOS ESPECÍFICOS POR COMPONENTE ==========
-
-  // Para ClientesComponent
+  // ====== MÉTODOS ESPECÍFICOS POR COMPONENTE ======
   async confirmDeleteCliente(clienteNombre: string): Promise<boolean> {
     return this.confirmDelete('cliente', clienteNombre);
   }
@@ -172,7 +222,6 @@ export class AlertService {
     this.showDeleteSuccess('Cliente', clienteNombre);
   }
 
-  // Para EquiposComponent
   async confirmDeleteEquipo(equipoDescripcion: string): Promise<boolean> {
     return this.confirmDelete('equipo', equipoDescripcion);
   }
@@ -189,7 +238,6 @@ export class AlertService {
     this.showDeleteSuccess('Equipo');
   }
 
-  // Para FacturasComponent
   async confirmDeleteFactura(numeroFactura: string): Promise<boolean> {
     return this.confirmDelete('factura', `Factura ${numeroFactura}`);
   }
@@ -206,7 +254,6 @@ export class AlertService {
     this.showDeleteSuccess('Factura');
   }
 
-  // Para PresupuestosComponent
   async confirmDeletePresupuesto(id: number): Promise<boolean> {
     return this.confirmDelete('presupuesto', `Presupuesto #${id}`);
   }
@@ -223,7 +270,6 @@ export class AlertService {
     this.showDeleteSuccess('Presupuesto');
   }
 
-  // Para ReparacionesComponent
   async confirmDeleteReparacion(descripcion: string): Promise<boolean> {
     return this.confirmDelete('reparación', descripcion);
   }
@@ -240,7 +286,6 @@ export class AlertService {
     this.showDeleteSuccess('Reparación');
   }
 
-  // Para RepuestosComponent
   async confirmDeleteRepuesto(repuestoNombre: string): Promise<boolean> {
     return this.confirmDelete('repuesto', repuestoNombre);
   }
@@ -257,7 +302,6 @@ export class AlertService {
     this.showDeleteSuccess('Repuesto', repuestoNombre);
   }
 
-  // Para ProveedoresComponent
   async confirmDeleteProveedor(razonSocial: string): Promise<boolean> {
     return this.confirmDelete('proveedor', razonSocial);
   }
@@ -274,7 +318,6 @@ export class AlertService {
     this.showDeleteSuccess('Proveedor', razonSocial);
   }
 
-  // Para MediosCobroComponent
   async confirmDeleteMedioCobro(medioNombre: string): Promise<boolean> {
     return this.confirmDelete('medio de cobro', medioNombre);
   }
@@ -291,7 +334,6 @@ export class AlertService {
     this.showDeleteSuccess('Medio de cobro', medioNombre);
   }
 
-  // Para ExportModalComponent
   showExportSuccess(archivoNombre: string): void {
     this.showToast(`Reporte "${archivoNombre}" generado exitosamente`, 'success');
   }
@@ -300,7 +342,6 @@ export class AlertService {
     this.showError('Error al exportar', 'No se pudo generar el reporte');
   }
 
-  // Para FacturaReportComponent
   showReportLoading(): void {
     this.showLoading('Generando reporte...');
   }
@@ -315,8 +356,7 @@ export class AlertService {
     this.showError('Error', 'No se pudo generar el reporte');
   }
 
-  // ========== MÉTODOS DE VALIDACIÓN ESPECÍFICOS ==========
-
+  // ====== MÉTODOS DE VALIDACIÓN ESPECÍFICOS ======
   showRequiredFieldError(fieldName: string): void {
     this.showValidationError(fieldName);
   }
@@ -329,8 +369,7 @@ export class AlertService {
     this.showError('Error de validación', 'El email ingresado no es válido');
   }
 
-  // ========== MÉTODOS DE NOTIFICACIÓN RÁPIDA ==========
-  
+  // ====== MÉTODOS DE NOTIFICACIÓN RÁPIDA ======
   success(message: string): void {
     this.showToast(message, 'success');
   }
@@ -346,4 +385,4 @@ export class AlertService {
   info(message: string): void {
     this.showToast(message, 'info');
   }
-} 
+}

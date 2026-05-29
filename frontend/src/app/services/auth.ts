@@ -2,7 +2,9 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+import { AlertService } from './alert.service';
 
+// ====== INTERFACES ======
 interface LoginResponse {
   message: string;
   user: any;
@@ -18,33 +20,40 @@ export class AuthService {
   public isLoggedIn = signal<boolean>(this.isAuthenticated());
   public currentUser = signal<any>(null);
 
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private alertService: AlertService
+  ) {
     this.loadUserFromStorage();
   }
 
+  // ====== CARGA INICIAL DESDE STORAGE ======
   private loadUserFromStorage(): void {
-    const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
 
-    if (userData && token) {
-      try {
-        const user = JSON.parse(userData);
-        // ✅ USAR LOS PERMISOS DIRECTAMENTE DEL BACKEND
-        this.currentUser.set(user);
-        this.isLoggedIn.set(true);
+    if (!token || !userData) {
+      this.clearAuthData();
+      return;
+    }
 
-        console.debug('AuthService: Usuario cargado desde storage', user);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        this.clearAuthData();
-      }
+    if (!this.isTokenValid(token)) {
+      this.clearAuthData();
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userData);
+      this.currentUser.set(user);
+      this.isLoggedIn.set(true);
+    } catch {
+      this.clearAuthData();
     }
   }
 
-  // ✅ MÉTODOS DE PERMISOS - COINCIDEN CON BACKEND
+  // ====== GESTIÓN DE PERMISOS ======
   getUserPermissions(): string[] {
     const user = this.currentUser();
-    // ✅ El backend ya envía los permisos en el atributo 'permissions'
     return user?.permissions || [];
   }
 
@@ -68,7 +77,7 @@ export class AuthService {
     return permissions.some(permission => this.hasPermission(permission));
   }
 
-  // ✅ MÉTODOS HELPER PARA ROLES - COINCIDEN CON BACKEND
+  // ====== GESTIÓN DE ROLES ======
   isAdmin(): boolean {
     const user = this.currentUser();
     return user?.tipo === 'administrador' || user?.isAdmin?.() === true;
@@ -84,9 +93,8 @@ export class AuthService {
     return user?.tipo === 'tecnico' || user?.isTecnico?.() === true;
   }
 
-  // ✅ MÉTODOS ESPECÍFICOS PARA ESPECIALIZACIONES
+  // ====== PERMISOS ESPECÍFICOS PARA ESPECIALIZACIONES ======
   canManageEspecializaciones(): boolean {
-    // ✅ Según tu backend: administradores y técnicos pueden gestionar
     return this.hasPermission('especializaciones.manage') ||
       this.hasPermission('especializaciones.create') ||
       this.isAdmin() ||
@@ -94,7 +102,6 @@ export class AuthService {
   }
 
   canViewEspecializaciones(): boolean {
-    // ✅ Todos los tipos de usuarios pueden ver especializaciones según tu backend
     return this.hasAnyPermission([
       'especializaciones.manage',
       'especializaciones.view',
@@ -104,90 +111,53 @@ export class AuthService {
   }
 
   canAssignEspecializaciones(): boolean {
-    // ✅ Solo administradores pueden asignar a otros usuarios
     return this.isAdmin();
   }
 
   canSelfAssignEspecializaciones(): boolean {
-    // ✅ Técnicos pueden auto-asignarse
     return this.hasPermission('especializaciones.self_assign') || this.isTecnico();
   }
 
-  // ====== LOGIN ======
+  // ====== AUTENTICACIÓN ======
   login(nombre: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { nombre, password }).pipe(
       tap((res) => {
         if (res && res.token) {
           const token = String(res.token).replace(/^Bearer\s+/i, '').trim();
-
-          // ✅ EL BACKEND YA ENVÍA LOS PERMISOS - NO NECESITAMOS MAPEAR
           const user = res.user;
 
-          // Guardar token y usuario
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(user));
 
           this.isLoggedIn.set(true);
           this.currentUser.set(user);
-
-          console.debug('AuthService.login: Usuario autenticado', {
-            user: user,
-            tipo: user.tipo,
-            permissions: user.permissions
-          });
-
         } else {
-          console.error('AuthService.login: No se encontró token en la respuesta', res);
+          this.alertService.showError('Error', 'Respuesta de login inválida');
           throw new Error('Invalid login response');
         }
       })
     );
   }
 
-  // ====== TOKEN MANAGEMENT ======
+  // ====== GESTIÓN DE TOKENS ======
   getToken(): string | null {
     return localStorage.getItem('token');
   }
 
   isAuthenticated(): boolean {
     const token = this.getToken();
-    if (!token) {
-      return false;
-    }
-
-    try {
-      // Verificar formato básico del token JWT
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        console.error('Token JWT inválido: formato incorrecto');
-        this.clearAuthData();
-        return false;
-      }
-
-      const payload = JSON.parse(atob(parts[1]));
-      const now = Math.floor(Date.now() / 1000);
-      // Verificar expiración
-      if (payload.exp && payload.exp < now) {
-        console.warn('Token expirado');
-        this.clearAuthData();
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error decodificando token:', error);
-      this.clearAuthData();
-      return false;
-    }
+    return !!token && this.isTokenValid(token);
   }
 
   // ====== LOGOUT ======
   logout(): void {
-    // Opcional: llamar al endpoint de logout del backend
-    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
-      next: () => console.log('Logged out successfully'),
-      error: (err) => console.error('Logout error:', err)
-    });
+    const token = this.getToken();
+
+    if (token && this.isTokenValid(token)) {
+      this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
+        error: () => this.alertService.showError('Error', 'No se pudo cerrar sesión en el servidor')
+      });
+    }
 
     this.clearAuthData();
   }
@@ -199,8 +169,22 @@ export class AuthService {
     this.currentUser.set(null);
   }
 
-  // ====== USER MANAGEMENT ======
+  // ====== GESTIÓN DE USUARIO ======
   getCurrentUser(): any {
     return this.currentUser();
+  }
+
+  private isTokenValid(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+
+      const payload = JSON.parse(atob(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+
+      return !(payload.exp && payload.exp < now);
+    } catch {
+      return false;
+    }
   }
 }

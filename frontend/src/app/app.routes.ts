@@ -1,9 +1,14 @@
 import { Routes } from '@angular/router';
-import { authMatchGuard, permissionGuard } from './services/auth-guard';
+import { authMatchGuard, permissionGuard, loginBlockGuard } from './services/auth-guard';
+import { HistorialStockComponent } from './components/historial-stock/historial-stock.component';
 
 export const routes: Routes = [
   // Públicas
-  { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
+  {
+    path: 'login',
+    loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent),
+    canMatch: [loginBlockGuard]
+  },
   
   // Privadas con permisos específicos
   {
@@ -70,6 +75,13 @@ export const routes: Routes = [
     canMatch: [permissionGuard],
     data: { permission: 'especializaciones.manage' }
   },
+{
+  path: 'historial-stock',
+  component: HistorialStockComponent,
+  canMatch: [permissionGuard],
+  data: { permission: 'historialstock.manage' }, // O 'historialstock.view'
+  title: 'Historial de Stock'
+},
 
   // Redirect raíz
   { path: '', pathMatch: 'full', redirectTo: 'login' },

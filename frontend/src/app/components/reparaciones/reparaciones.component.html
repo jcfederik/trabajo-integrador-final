@@ -4,8 +4,14 @@
     <button class="action-pill" (click)="seleccionarAccion('listar')" [class.active]="isListar()">
       <i class="bi bi-list"></i> Listar
     </button>
-    <button class="action-pill success" (click)="seleccionarAccion('crear')" [class.active]="isCrear()">
+    <button class="action-pill success" 
+            (click)="seleccionarAccion('crear')" 
+            [class.active]="isCrear()"
+            [disabled]="!canCreate()">
       <i class="bi bi-plus-circle"></i> Crear
+      <span *ngIf="!canCreate()" class="badge bg-secondary ms-1" title="Sin permisos">
+        <i class="bi bi-lock"></i>
+      </span>
     </button>
   </div>
 
@@ -70,6 +76,13 @@
                       <i class="bi bi-person me-2 text-primary"></i>
                       <span><strong>Cliente:</strong> {{ getClienteNombre(r) }}</span>
                     </div>
+
+                    <div class="d-flex align-items-center" *ngIf="r.fecha_estimada">
+                    <i class="bi bi-calendar-check me-2 text-success"></i>
+                    <span><strong>Estimada:</strong> {{ r.fecha_estimada | date:'dd/MM/yyyy' }}</span>
+                  </div>
+
+
                   </div>
                   <div class="col-sm-6 col-md-4">
                     <div class="d-flex align-items-center">
@@ -144,7 +157,7 @@
                       <div class="cliente-display-box" *ngIf="clienteEditSeleccionado">
                         <div class="selected-item-display">
                           <i class="bi bi-person-check text-success"></i>
-                          <span class="ms-2">{{ clienteEditSeleccionado.nombre }}</span>
+                          <span class="ms-2">{{ getNombreDisplayCliente(clienteEditSeleccionado) }}</span>
                         </div>
                         <small class="text-muted d-block mt-1">Cliente actual</small>
                       </div>
@@ -158,9 +171,9 @@
                     <div class="search-selector-column text-center">
                       <label class="form-label small fw-semibold">Equipo</label>
                       <div class="search-selector-container mx-auto" 
-                           [class.invalid]="clienteEditSeleccionado && !equipoEditSeleccionado"
-                           [class.valid]="equipoEditSeleccionado"
-                           style="max-width: 300px;">
+                          [class.invalid]="clienteEditSeleccionado && !equipoEditSeleccionado"
+                          [class.valid]="equipoEditSeleccionado"
+                          style="max-width: 300px;">
                         <app-search-selector
                           #equipoEditSelector
                           type="equipo"
@@ -182,7 +195,7 @@
                       </div>
                       
                       <div *ngIf="clienteEditSeleccionado && !equipoEditSeleccionado && hasEquipoEditSelectorMessage()" 
-                           class="no-equipos-message text-center">
+                          class="no-equipos-message text-center">
                         <i class="bi bi-search"></i>
                         {{ getEquipoEditSelectorMessage() }}
                       </div>
@@ -221,29 +234,40 @@
                     </div>
                   </div>
                 </div>
-
-                <!-- Fecha y Estado -->
-                <div class="col-12 col-md-6 mx-auto">
-                  <label class="form-label small fw-semibold">Fecha</label>
-                  <input 
-                    type="date" 
-                    class="form-control text-center" 
-                    [(ngModel)]="editBuffer.fecha"
-                  />
-                </div>
                 
-                <div class="col-12 col-md-6 mx-auto">
-                  <label class="form-label small fw-semibold">Estado</label>
-                  <select 
-                    class="form-control text-center" 
-                    [(ngModel)]="editBuffer.estado"
-                  >
-                    <option value="pendiente">Pendiente</option>
-                    <option value="en proceso">En proceso</option>
-                    <option value="finalizada">Finalizada</option>
-                    <option value="cancelada">Cancelada</option>  
-                  </select>
-                </div>
+              <!-- Fecha y Estado - CENTRADOS -->
+              <div class="col-12 col-md-6 mx-auto">
+                <label class="form-label small fw-semibold">Fecha</label>
+                <input 
+                  type="date" 
+                  class="form-control text-center" 
+                  [(ngModel)]="editBuffer.fecha"
+                  [min]="getToday()"
+                />
+              </div>
+
+              <div class="col-12 col-md-6 mx-auto">
+                <label class="form-label small fw-semibold">Fecha Estimada (opcional)</label>
+                <input 
+                  type="date" 
+                  class="form-control text-center" 
+                  [(ngModel)]="editBuffer.fecha_estimada"
+                  [min]="getToday()"
+                />
+              </div>
+
+              <div class="col-12 col-md-6 mx-auto">
+                <label class="form-label small fw-semibold">Estado</label>
+                <select 
+                  class="form-control text-center" 
+                  [(ngModel)]="editBuffer.estado"
+                >
+                  <option value="pendiente">Pendiente</option>
+                  <option value="en_proceso">En proceso</option>
+                  <option value="finalizada">Finalizada</option>
+                  <option value="cancelada">Cancelada</option>  
+                </select>
+              </div>
 
                 <!-- Información de ayuda -->
                 <div class="col-12">
@@ -259,7 +283,7 @@
           <!-- Botones de acción -->
           <div class="d-flex gap-2 align-self-start flex-shrink-0 mt-2 mt-md-0">
             <button 
-              *ngIf="editingId !== r.id" 
+              *ngIf="editingId !== r.id && canEdit()" 
               class="btn btn-sm btn-outline-warning" 
               (click)="startEdit(r)"
               title="Editar reparación"
@@ -268,12 +292,15 @@
             </button>
           
             <button 
-              *ngIf="editingId !== r.id" class="btn btn-sm btn-outline-info" 
-              (click)="abrirModalRepuestos(r)" title="Gestionar repuestos">
+              *ngIf="editingId !== r.id && canManageRepuestos()" 
+              class="btn btn-sm btn-outline-info" 
+              (click)="abrirModalRepuestos(r)" 
+              title="Gestionar repuestos"
+            >
               <i class="bi bi-tools"></i>
             </button>
 
-            <ng-container *ngIf="editingId === r.id">
+            <ng-container *ngIf="editingId === r.id && canEdit()">              
               <button 
                 class="btn btn-sm btn-success" 
                 (click)="saveEdit(r.id)"
@@ -292,12 +319,16 @@
             </ng-container>
             
             <button 
+              *ngIf="canDelete()"
               class="btn btn-sm btn-outline-danger" 
               (click)="eliminar(r.id)"
               title="Eliminar reparación"
             >
               <i class="bi bi-trash"></i>
             </button>
+              <span *ngIf="isUser() && !canEdit() && !canManageRepuestos() && !canDelete()" class="text-muted small align-self-center">
+                <i class="bi bi-eye"></i> Solo lectura
+              </span>
           </div>
         </div>
       </div>
@@ -315,7 +346,7 @@
     <h4 class="text-center mb-4">Registrar Reparación</h4>
     
     <!-- Grid de búsquedas -->
-    <div class="search-selectors-grid">
+<div class="search-selectors-grid justify-content-center">
       <!-- Cliente -->
       <div class="search-selector-column">
         <label class="form-label fw-semibold">Cliente</label>
@@ -402,8 +433,11 @@
 
     <!-- Detalles de la reparación -->
     <div class="reparacion-details">
-      <h5 class="mb-3">Detalles de la Reparación</h5>
-      
+    <hr class="my-4">
+
+    <h5 class="text-center mb-3">
+      Detalles de la reparación
+    </h5>      
       <form (ngSubmit)="crear()" class="row g-3">
         <!-- Descripción -->
         <div class="col-12">
@@ -419,31 +453,61 @@
           <small class="context-help">Describe claramente el problema a resolver</small>
         </div>
 
-        <!-- Fecha y Estado -->
-        <div class="col-12 col-md-6">
+        <!-- Fecha (no editable, ya que debe ser hoy) -->
+        <div class="col-12 col-md-6 mx-auto text-center">
           <label class="form-label fw-semibold">Fecha</label>
-          <input 
-            type="date" 
-            class="form-control" 
-            [(ngModel)]="nuevo.fecha" 
-            name="fecha" 
-            required 
-          />
+
+          <div class="date-input-wrapper mx-auto">
+            <i class="bi bi-calendar-event"></i>
+            <input 
+              type="date" 
+              class="form-control date-input date-input-compact" 
+              [(ngModel)]="nuevo.fecha" 
+              name="fecha" 
+              required 
+              [min]="getToday()"
+            />
+          </div>
         </div>
+
+
+
+        <div class="col-12 col-md-6 mx-auto text-center">
+          <label class="form-label fw-semibold">Fecha Estimada (opcional)</label>
+
+          <div class="date-input-wrapper">
+            <i class="bi bi-calendar-check"></i>
+            <input 
+              type="date" 
+              class="form-control date-input" 
+              [(ngModel)]="nuevo.fecha_estimada" 
+              name="fecha_estimada"
+              [min]="getToday()"
+            />
+          </div>
+
+          <small class="text-muted">
+            Esta fecha es opcional. No puede ser anterior a hoy.
+          </small>
+        </div>
+
         
-        <div class="col-12 col-md-6">
-          <label class="form-label fw-semibold">Estado</label>
-          <select 
-            class="form-control" 
-            [(ngModel)]="nuevo.estado" 
-            name="estado" 
-            required
-          >
-            <option value="pendiente">Pendiente</option>
-            <option value="en proceso">En proceso</option>
-            <option value="finalizada">Finalizada</option>
-            <option value="cancelada">Cancelada</option>
-          </select>
+        <div class="col-12 col-md-6 mx-auto">
+          <div class="form-control text-center fw-bold bg-light">
+            Pendiente
+          </div>
+
+          <!-- Input oculto para que el valor se envíe igual -->
+          <input 
+            type="hidden"
+            name="estado"
+            [(ngModel)]="nuevo.estado"
+          />
+
+
+          <small class="text-muted d-block mt-1 text-center">
+            El estado inicial de una reparación es siempre <strong>Pendiente</strong>.
+          </small>
         </div>
 
         <!-- Repuestos a asignar -->
@@ -485,11 +549,10 @@
                     type="repuesto"
                     placeholder="Buscar repuesto por nombre..."
                     [selectedItem]="null"
-                    [preloadOnFocus]="true"
+                    [preloadOnFocus]="false"
                     (search)="buscarRepuestosCrear($event)"
                     (selectItem)="seleccionarRepuestoCrear($event)"
                     (clearSelection)="limpiarRepuestoCrear()"
-                    (focus)="cargarRepuestosInicialesCrear()"
                     (loadInitialData)="cargarRepuestosInicialesCrear()"
                   ></app-search-selector>
                 </div>
@@ -530,21 +593,56 @@
           </div>
         </div>
 
-        <!-- Resumen de selección -->
+        <!-- Resumen de selección - CORREGIDO -->
         <div class="col-12" *ngIf="clienteSeleccionado || equipoSeleccionado || tecnicoSeleccionado || repuestosSeleccionadosCrear.length > 0">
           <div class="alert alert-info">
             <h6 class="alert-heading mb-2">
               <i class="bi bi-clipboard-check me-2"></i>Resumen de la reparación
             </h6>
             <div class="row small">
+              <!-- Cliente con manejo seguro -->
               <div class="col-md-4" *ngIf="clienteSeleccionado">
-                <strong>Cliente:</strong> {{ clienteSeleccionado.nombre }}
+                <strong>Cliente:</strong> 
+                <span *ngIf="clienteSeleccionado.nombre; else clienteSinNombrePropio">
+                  {{ clienteSeleccionado.nombre }}
+                </span>
+                <ng-template #clienteSinNombrePropio>
+                  <span *ngIf="clienteSeleccionado.name">{{ clienteSeleccionado.name }}</span>
+                  <span *ngIf="!clienteSeleccionado.name && clienteSeleccionado.email">{{ clienteSeleccionado.email }}</span>
+                  <span *ngIf="!clienteSeleccionado.nombre && !clienteSeleccionado.name && !clienteSeleccionado.email">
+                    Cliente #{{ clienteSeleccionado.id || 'No identificado' }}
+                  </span>
+                </ng-template>
               </div>
+              
+              <!-- Equipo con manejo seguro -->
               <div class="col-md-4" *ngIf="equipoSeleccionado">
-                <strong>Equipo:</strong> {{ equipoSeleccionado.descripcion }}
+                <strong>Equipo:</strong> 
+                <span *ngIf="equipoSeleccionado.descripcion; else equipoSinDescripcionPropia">
+                  {{ equipoSeleccionado.descripcion }}
+                </span>
+                <ng-template #equipoSinDescripcionPropia>
+                  <span *ngIf="equipoSeleccionado.nombre">{{ equipoSeleccionado.nombre }}</span>
+                  <span *ngIf="equipoSeleccionado.modelo">{{ equipoSeleccionado.modelo }}</span>
+                  <span *ngIf="!equipoSeleccionado.descripcion && !equipoSeleccionado.nombre && !equipoSeleccionado.modelo">
+                    Equipo #{{ equipoSeleccionado.id || 'No identificado' }}
+                  </span>
+                </ng-template>
               </div>
+              
+              <!-- Técnico con manejo seguro -->
               <div class="col-md-4" *ngIf="tecnicoSeleccionado">
-                <strong>Técnico:</strong> {{ tecnicoSeleccionado.nombre }}
+                <strong>Técnico:</strong> 
+                <span *ngIf="tecnicoSeleccionado.nombre; else tecnicoSinNombrePropio">
+                  {{ tecnicoSeleccionado.nombre }}
+                </span>
+                <ng-template #tecnicoSinNombrePropio>
+                  <span *ngIf="tecnicoSeleccionado.name">{{ tecnicoSeleccionado.name }}</span>
+                  <span *ngIf="tecnicoSeleccionado.email">{{ tecnicoSeleccionado.email }}</span>
+                  <span *ngIf="!tecnicoSeleccionado.nombre && !tecnicoSeleccionado.name && !tecnicoSeleccionado.email">
+                    Técnico #{{ tecnicoSeleccionado.id || 'No identificado' }}
+                  </span>
+                </ng-template>
               </div>
             </div>
             
@@ -552,7 +650,7 @@
             <div *ngIf="repuestosSeleccionadosCrear.length > 0" class="mt-2">
               <strong>Repuestos:</strong>
               <div *ngFor="let repuesto of repuestosSeleccionadosCrear" class="ms-2">
-                • {{ repuesto.nombre }} ({{ repuesto.cantidad }} unidades)
+                • {{ repuesto.nombre || 'Repuesto sin nombre' }} ({{ repuesto.cantidad || 0 }} unidades)
               </div>
             </div>
           </div>

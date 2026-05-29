@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->foreignId('usuario_id')->constrained('usuario')->onDelete('cascade'); // técnico
             $table->text('descripcion');
             $table->timestamp('fecha');
+            $table->date('fecha_estimada')->nullable();
             $table->string('estado', 50)->default('pendiente');
             $table->timestamps();
         });

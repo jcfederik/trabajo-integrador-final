@@ -1,0 +1,317 @@
+<div class="container py-4">
+  
+  <!-- Título y botonera -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h3 class="mb-0">Historial de Stock</h3>
+      <p class="text-muted small mb-0">Registro de movimientos de inventario</p>
+    </div>
+    
+    <!-- Botones de acción -->
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="action-pill" (click)="aplicarFiltros()" [disabled]="loading">
+        <i class="bi bi-funnel me-1"></i>
+        Aplicar filtros
+      </button>
+      <button class="action-pill warning" (click)="limpiarFiltros()" [disabled]="loading">
+        <i class="bi bi-x-circle me-1"></i>
+        Limpiar filtros
+      </button>
+      <button class="action-pill" (click)="resetBusqueda()" [disabled]="loading">
+        <i class="bi bi-arrow-clockwise me-1"></i>
+        Actualizar
+      </button>
+    </div>
+  </div>
+  
+  <!-- Panel de filtros -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body p-3">
+      <h6 class="card-title mb-3">
+        <i class="bi bi-funnel me-2 text-primary"></i>
+        Filtros de búsqueda
+      </h6>
+      
+      <div class="row g-3">
+        <!-- Búsqueda por repuesto -->
+        <div class="col-12 col-md-6">
+          <label class="form-label small">Repuesto</label>
+          <div class="search-container">
+            <input type="text" 
+                   class="form-control search-input" 
+                   [(ngModel)]="filtros.busqueda"
+                   (input)="onBuscarRepuesto(filtros.busqueda || '')"
+                   (focus)="mostrandoRepuestos = true"
+                   (blur)="ocultarRepuestos()"
+                   placeholder="Buscar repuesto por nombre o código..."
+                   autocomplete="off" />
+            
+            <!-- Limpiar selección -->
+            <button *ngIf="filtros.repuesto_id" 
+                    type="button" 
+                    class="btn-clear"
+                    (click)="limpiarRepuesto()" 
+                    title="Limpiar selección">
+              <i class="bi bi-x"></i>
+            </button>
+            
+            <!-- Dropdown de sugerencias -->
+            <div *ngIf="mostrandoRepuestos && repuestosSugeridos.length > 0" 
+                 class="sugerencias-menu">
+              <div class="sugerencias-header">
+                <i class="bi bi-search"></i>
+                Repuestos encontrados
+                <span class="sugerencias-count">{{ repuestosSugeridos.length }}</span>
+              </div>
+              <div *ngFor="let repuesto of repuestosSugeridos" 
+                   class="sugerencia-item"
+                   (mousedown)="seleccionarRepuesto(repuesto)">
+                <div class="sugerencia-content">
+                  <div class="sugerencia-titulo">
+                    <strong>{{ repuesto.nombre }}</strong>
+                    <span class="sugerencia-id">{{ repuesto.codigo }}</span>
+                  </div>
+                  <div class="sugerencia-details">
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-box"></i>
+                      Stock: {{ repuesto.stock_actual || 0 }}
+                    </span>
+                    <span class="sugerencia-info-item">
+                      <i class="bi bi-currency-dollar"></i>
+                      {{ repuesto.precio_venta | number:'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </div>
+            
+            <!-- Estado de carga -->
+            <div *ngIf="buscandoRepuestos" class="position-absolute end-0 top-50 translate-middle-y me-2">
+              <div class="spinner-border spinner-border-sm text-primary loading-small" role="status"></div>
+            </div>
+          </div>
+          
+          <!-- Badge de selección -->
+          <div *ngIf="filtros.repuesto_id" class="selection-badge mt-2">
+            <i class="bi bi-check-circle"></i>
+            Repuesto seleccionado: {{ getRepuestoNombre(filtros.repuesto_id) }}
+            <small class="ms-2">({{ getRepuestoCodigo(filtros.repuesto_id) }})</small>
+          </div>
+        </div>
+        
+        <!-- Tipo de movimiento -->
+        <div class="col-12 col-md-3">
+          <label class="form-label small">Tipo de movimiento</label>
+          <select class="form-select" [(ngModel)]="filtros.tipo_mov">
+            <option value="">Todos los tipos</option>
+            <option *ngFor="let tipo of tiposMovimiento" [value]="tipo">
+              {{ tipo }}
+            </option>
+          </select>
+        </div>
+        
+        <!-- Fecha desde -->
+        <div class="col-12 col-md-3">
+          <label class="form-label small">Fecha desde</label>
+          <input type="date" class="form-control" [(ngModel)]="filtros.desde" />
+        </div>
+        
+        <!-- Fecha hasta -->
+        <div class="col-12 col-md-3">
+          <label class="form-label small">Fecha hasta</label>
+          <input type="date" class="form-control" [(ngModel)]="filtros.hasta" />
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- =============== LISTADO =============== -->
+  <div *ngIf="selectedAction==='listar'">
+    <!-- Pantalla de carga durante búsqueda -->
+    <div *ngIf="buscandoHistorial && items.length === 0" class="search-loading">
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Buscando...</span>
+        </div>
+        <h5 class="text-muted">Buscando movimientos...</h5>
+        <p class="text-muted small" *ngIf="searchTerm">Buscando "{{ searchTerm }}"</p>
+      </div>
+    </div>
+    
+    <!-- Skeleton primera carga -->
+    <div *ngIf="loading && items.length === 0 && !buscandoHistorial" class="list-group">
+      <div class="list-group-item" *ngFor="let s of [1,2,3,4,5]">
+        <div class="placeholder-glow">
+          <span class="placeholder col-4 me-2"></span>
+          <span class="placeholder col-2 me-2"></span>
+          <span class="placeholder col-3"></span>
+        </div>
+        <div class="placeholder-glow mt-2">
+          <span class="placeholder col-8"></span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Estado vacío -->
+    <ng-container *ngIf="!loading && items.length === 0 && !buscandoHistorial; else listContent">
+      <div class="empty-state">
+        <div class="icon-wrap">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <h5 class="mb-1" *ngIf="!searchTerm && !filtros.repuesto_id && !filtros.tipo_mov">
+          No hay movimientos registrados
+        </h5>
+        <h5 class="mb-1" *ngIf="searchTerm">
+          No se encontraron resultados
+        </h5>
+        <h5 class="mb-1" *ngIf="!searchTerm && (filtros.repuesto_id || filtros.tipo_mov)">
+          No hay movimientos con los filtros aplicados
+        </h5>
+        
+        <p class="text-muted mb-3" *ngIf="searchTerm">
+          No hay movimientos que coincidan con "{{ searchTerm }}"
+        </p>
+        <p class="text-muted mb-3" *ngIf="!searchTerm && (filtros.repuesto_id || filtros.tipo_mov)">
+          Intenta con otros filtros
+        </p>
+        
+        <div class="d-flex justify-content-center gap-2">
+          <button class="action-pill" (click)="limpiarFiltros()" *ngIf="filtros.repuesto_id || filtros.tipo_mov">
+            <i class="bi bi-x-circle me-1"></i>
+            Limpiar filtros
+          </button>
+          <button class="action-pill" (click)="resetBusqueda()">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Actualizar
+          </button>
+        </div>
+      </div>
+    </ng-container>
+    
+    <!-- Contenido listado -->
+    <ng-template #listContent>
+      <div *ngIf="searchTerm && items.length === 0 && !loading && !buscandoHistorial" class="empty-state">
+        <div class="icon-wrap">
+          <i class="bi bi-search"></i>
+        </div>
+        <h5 class="mb-1">No se encontraron resultados</h5>
+        <p class="text-muted mb-3">
+          No hay movimientos que coincidan con "{{ searchTerm }}"
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          <button class="action-pill" (click)="resetBusqueda()">
+            <i class="bi bi-x-circle me-1"></i>
+            Limpiar búsqueda
+          </button>
+        </div>
+      </div>
+      
+      <div class="list-group" *ngIf="items.length > 0">
+        <div *ngFor="let item of items" class="list-group-item">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            
+            <!-- Izquierda: información del movimiento -->
+            <div class="flex-grow-1">
+              <!-- Cabecera con tipo de movimiento -->
+              <div class="d-flex align-items-center mb-2">
+                <div class="me-2">
+                  <span class="badge bg-{{ getTipoColor(item.tipo_mov) }} px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi {{ getTipoIcono(item.tipo_mov) }}"></i>
+                    {{ item.tipo_mov }}
+                  </span>
+                </div>
+                <div class="ms-auto text-muted small">
+                  <i class="bi bi-clock me-1"></i>
+                  {{ formatFecha(item.created_at) }}
+                </div>
+              </div>
+              
+              <!-- Información principal -->
+              <div class="historial-info">
+                <!-- Repuesto -->
+                <div class="info-line principal">
+                  <i class="bi bi-box"></i>
+                  <span class="info-label">Repuesto:</span>
+                  <span class="info-value destacado">{{ getRepuestoNombre(item.repuesto_id) }}</span>
+                  <span class="info-separator">|</span>
+                  <span class="info-value small">{{ getRepuestoCodigo(item.repuesto_id) }}</span>
+                </div>
+                
+                <!-- Cantidad y stock -->
+                <div class="info-line datos-stock">
+                  <i class="bi {{ getCantidadIcono(item.cantidad) }}"></i>
+                  <span class="info-label">Cantidad:</span>
+                  <span class="info-value" [class.text-success]="item.cantidad >= 0" [class.text-danger]="item.cantidad < 0">
+                    {{ getCantidadTexto(item.cantidad) }}
+                  </span>
+                  <span class="info-separator">|</span>
+                  <i class="bi bi-arrow-left-right"></i>
+                  <span class="info-label">Stock:</span>
+                  <span class="info-value">
+                    {{ item.stock_anterior }} → 
+                    <strong>{{ item.stock_nuevo }}</strong>
+                  </span>
+                </div>
+                
+                <!-- Descripción si existe -->
+                <div class="info-line" *ngIf="item.descripcion">
+                  <i class="bi bi-chat-text"></i>
+                  <span class="info-label">Detalle:</span>
+                  <span class="info-value text-muted">{{ item.descripcion }}</span>
+                </div>
+                
+                <!-- ID y referencia -->
+                <div class="info-line detalles-adicionales">
+                  <i class="bi bi-hash"></i>
+                  <span class="info-label">ID:</span>
+                  <span class="info-value small">{{ item.id }}</span>
+                  
+                  <span class="info-separator" *ngIf="item.referencia_id">|</span>
+                  <i class="bi bi-link-45deg" *ngIf="item.referencia_id"></i>
+                  <span class="info-label" *ngIf="item.referencia_id">Ref:</span>
+                  <span class="info-value small" *ngIf="item.referencia_id">
+                    {{ item.referencia_type }} #{{ item.referencia_id }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Derecha: acciones (opcional) (click)="verDetalles(item)"-->
+            <div class="d-flex gap-2" *ngIf="item.descripcion || item.referencia_id">
+              <button class="btn btn-sm btn-outline-info btn-action" 
+                      title="Ver detalles"
+                      
+                      *ngIf="item.descripcion">
+                <i class="bi bi-info-circle"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Loader incremental -->
+      <div class="text-center mt-3" *ngIf="loading && items.length > 0">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2 text-muted small">
+          {{ isServerSearch && searchTerm ? 'Cargando más resultados...' : 'Cargando más movimientos...' }}
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</div>
+
+<!-- Modal para detalles (opcional, agregar al final del template) -->
+<div class="modal fade" id="detallesModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalles del movimiento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Los detalles se pueden mostrar aquí si se implementa -->
+      </div>
+    </div>
+  </div>
+</div>

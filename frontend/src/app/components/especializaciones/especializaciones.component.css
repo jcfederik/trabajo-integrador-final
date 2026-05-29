@@ -6,12 +6,12 @@
 
 .especializaciones-header {
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f8f9fa;
 }
+
 
 .especializaciones-title {
   font-size: 2rem;
@@ -29,6 +29,7 @@
   border-radius: var(--border-radius-lg);
   margin-bottom: 2rem;
   animation: slideDown 0.3s ease-out;
+  
 }
 
 .crear-especializacion-header {
@@ -229,6 +230,7 @@
   color: #2c3e50;
   margin-bottom: 0.5rem;
   display: block;
+  text-align: center;
 }
 
 .form-control-enhanced {

@@ -9,7 +9,6 @@ use App\Models\Factura;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
 
 /**
  * @OA\Tag(
@@ -70,25 +69,15 @@ class ClienteController extends Controller
     public function index(Request $request)
     {
         try {
-            Log::info('📥 Solicitud de listado de clientes recibida', [
-                'params' => $request->all(),
-                'ip' => $request->ip()
-            ]);
+
 
             $perPage = (int) $request->get('per_page', 15);
             $page = (int) $request->get('page', 1);
             $search = $request->get('search', '');
             
-            Log::info('🔍 Parámetros de búsqueda', [
-                'per_page' => $perPage,
-                'page' => $page,
-                'search' => $search
-            ]);
-
             $query = Cliente::query();
 
             if (!empty($search)) {
-                Log::info('🎯 Aplicando filtro de búsqueda', ['search' => $search]);
                 
                 $query->where(function($q) use ($search) {
                     $q->where('nombre', 'LIKE', "%{$search}%")
@@ -97,24 +86,13 @@ class ClienteController extends Controller
                 });
             }
 
-            Log::info('📊 Ejecutando consulta de clientes');
             $clientes = $query->orderBy('created_at', 'desc')
                             ->paginate($perPage, ['*'], 'page', $page);
-
-            Log::info('✅ Clientes obtenidos correctamente', [
-                'total' => $clientes->total(),
-                'current_page' => $clientes->currentPage(),
-                'last_page' => $clientes->lastPage()
-            ]);
 
             return response()->json($clientes, 200);
             
         } catch (\Throwable $e) {
-            Log::error('💥 Error listando clientes', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'params' => $request->all()
-            ]);
+
             return response()->json([
                 'error' => 'Error al obtener los clientes',
                 'detalle' => env('APP_DEBUG') ? $e->getMessage() : 'Error interno del servidor'
@@ -362,21 +340,17 @@ class ClienteController extends Controller
      */
     public function buscar(Request $request)
     {
-        Log::info('🔍 Búsqueda específica de clientes iniciada', ['termino' => $request->q]);
         
         $validator = Validator::make($request->all(), [
             'q' => 'required|string|min:2'
         ]);
 
         if ($validator->fails()) {
-            Log::warning('❌ Validación fallida en búsqueda específica', ['errors' => $validator->errors()]);
             return response()->json(['error' => 'Término de búsqueda inválido'], 400);
         }
 
         $termino = $request->q;
-        
-        Log::info('🔎 Buscando clientes con término específico', ['termino' => $termino]);
-        
+                
         try {
             $clientes = Cliente::where('nombre', 'LIKE', "%{$termino}%")
                 ->orWhere('email', 'LIKE', "%{$termino}%")
@@ -384,16 +358,10 @@ class ClienteController extends Controller
                 ->limit(10)
                 ->get();
 
-            Log::info('✅ Resultados de búsqueda específica encontrados', ['count' => $clientes->count()]);
             
             return response()->json($clientes);
             
         } catch (\Exception $e) {
-            Log::error('💥 Error en búsqueda específica de clientes', [
-                'termino' => $termino,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             
             return response()->json([
                 'error' => 'Error interno del servidor',
@@ -454,13 +422,12 @@ class ClienteController extends Controller
             $perPage = $request->get('per_page', 15);
             $page = $request->get('page', 1);
 
-            // Obtener facturas del cliente usando las relaciones
             $facturas = Factura::whereHas('presupuesto.reparacion.equipo', function($query) use ($id) {
                 $query->where('cliente_id', $id);
             })
             ->with([
                 'presupuesto.reparacion.equipo.cliente',
-                'presupuesto.reparacion' // Cargar relaciones para mostrar info
+                'presupuesto.reparacion'
             ])
             ->orderBy('fecha', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -470,7 +437,6 @@ class ClienteController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['error' => 'Cliente no encontrado'], 404);
         } catch (\Exception $e) {
-            \Log::error('Error obteniendo facturas del cliente', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Error al obtener facturas del cliente', 'message' => $e->getMessage()], 500);
         }
     }
@@ -507,7 +473,6 @@ class ClienteController extends Controller
         try {
             $cliente = Cliente::findOrFail($id);
 
-            // Obtener TODAS las facturas del cliente sin paginación
             $facturas = Factura::whereHas('presupuesto.reparacion.equipo', function($query) use ($id) {
                 $query->where('cliente_id', $id);
             })
@@ -523,7 +488,6 @@ class ClienteController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['error' => 'Cliente no encontrado'], 404);
         } catch (\Exception $e) {
-            \Log::error('Error obteniendo todas las facturas del cliente', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Error al obtener facturas del cliente', 'message' => $e->getMessage()], 500);
         }
     }

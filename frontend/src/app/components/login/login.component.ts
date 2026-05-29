@@ -12,8 +12,6 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
-
-  // =============== ESTADOS DEL COMPONENTE ===============
   loading = false;
   error: string | null = null;
   showPassword = false;
@@ -27,7 +25,7 @@ export class LoginComponent {
     this.checkRememberedUser();
   }
 
-  // =============== MÉTODO PRINCIPAL ===============
+  // MÉTODO PRINCIPAL
   login(form: NgForm) {
     form.form.markAllAsTouched();
 
@@ -51,15 +49,9 @@ export class LoginComponent {
 
     this.auth.login(nombre, password).subscribe({
       next: (res) => {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
-
         this.loading = false;
         this.cdr.markForCheck();
-        
-        setTimeout(() => {
-          this.router.navigate(['/dashboard']);
-        }, 500);
+        this.router.navigate(['/dashboard']);
       },
       error: (error) => {
         this.loading = false;
@@ -69,7 +61,7 @@ export class LoginComponent {
     });
   }
 
-  // =============== MANEJO DE ERRORES ===============
+  // MANEJO DE ERRORES
   private handleError(error: any) {
     if (error.status === 401) {
       this.error = 'Credenciales inválidas. Verificá tu usuario y contraseña.';
@@ -84,7 +76,7 @@ export class LoginComponent {
     }
   }
 
-  // =============== RECORDAR USUARIO ===============
+  // RECORDAR USUARIO
   private checkRememberedUser() {
     const rememberedUser = localStorage.getItem('rememberedUser');
     if (rememberedUser) {
@@ -92,7 +84,7 @@ export class LoginComponent {
     }
   }
 
-  // =============== UTILIDADES ===============
+  // UTILIDADES
   togglePassword() {
     this.showPassword = !this.showPassword;
   }

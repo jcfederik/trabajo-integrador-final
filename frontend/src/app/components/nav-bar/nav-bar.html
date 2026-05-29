@@ -4,7 +4,6 @@
     <!-- Layout principal -->
     <div class="navbar-layout">
       
-      <!-- 🔥 EN DASHBOARD: Logo centrado + Buscador centrado -->
       @if (isDashboard) {
         <div class="navbar-center">
           <div class="d-flex align-items-center justify-content-center w-100">
@@ -22,11 +21,12 @@
                 type="search"
                 [(ngModel)]="searchTerm"
                 [placeholder]="placeholder"
+                [disabled]="searchDisabled"
                 (keydown)="bloquearBackspaceHold($event)"
                 (input)="onSearch()"
                 aria-label="Buscar"
               />
-              @if (searchTerm) {
+              @if (searchTerm && !searchDisabled) {
                 <button class="search-clear" (click)="clearSearch()" title="Limpiar búsqueda">
                   <i class="bi bi-x-lg"></i>
                 </button>
@@ -36,7 +36,6 @@
         </div>
       }
 
-      <!-- 🔥 EN OTRAS RUTAS: Layout normal -->
       @else {
         <!-- Logo a la izquierda -->
         <div class="navbar-left">
@@ -55,11 +54,12 @@
               type="search"
               [(ngModel)]="searchTerm"
               [placeholder]="placeholder"
+              [disabled]="searchDisabled"
               (keydown)="bloquearBackspaceHold($event)"
               (input)="onSearch()"
               aria-label="Buscar"
             />
-            @if (searchTerm) {
+            @if (searchTerm && !searchDisabled) { 
               <button class="search-clear" (click)="clearSearch()" title="Limpiar búsqueda">
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -68,13 +68,11 @@
         </div>
       }
 
-      <!-- 🔥 USUARIO DERECHA - BOTÓN DIRECTO AL MODAL -->
       <div class="navbar-right">
         <div class="user-info">
           <div class="user-avatar">
             <i class="bi bi-person-fill"></i>
           </div>
-          <!-- ✅ MODIFICADO: Botón directo al modal sin dropdown -->
           <button class="user-link" (click)="abrirModalPerfil()">
             {{ usuarioActual }}
             <span class="badge bg-primary ms-2">{{ getUserTipo() }}</span>

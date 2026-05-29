@@ -45,11 +45,9 @@ class Factura extends Model
 
     public function cobros()
     {
-        // Una factura puede tener muchos cobros (para el caso de pagos en cuotas)
         return $this->hasMany(Cobro::class, 'factura_id');
     }
 
-    // ✅ IMPORTANTE: Método para calcular el saldo
     public function getSaldoPendienteAttribute(): float
     {
         $montoCobrado = $this->cobros()->sum('monto');

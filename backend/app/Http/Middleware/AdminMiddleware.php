@@ -12,7 +12,6 @@ class AdminMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         try {
-            // Verificar si el token es válido y obtener el usuario
             $user = JWTAuth::parseToken()->authenticate();
             
             if (!$user) {
@@ -21,7 +20,6 @@ class AdminMiddleware
                 ], 401);
             }
 
-            // Verificar si es administrador
             if ($user->tipo !== 'administrador') {
                 return response()->json([
                     'error' => 'No tienes permisos de administrador'

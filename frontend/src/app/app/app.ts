@@ -13,45 +13,36 @@ import { filter } from 'rxjs/operators';
   styleUrls: ['./app.css']
 })
 export class App {
-  sidebarCollapsed = false;
-  showSidebar = false;
   showNavbar = false;
-  currentRoute = '';
+  showSidebar = false;
+  sidebarCollapsed = false;
 
   constructor(private router: Router) {
-    // Escuchar cambios de ruta
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe((event: any) => {
-        this.currentRoute = event.url;
-        this.updateComponentVisibility();
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(event => {
+        let url = event.urlAfterRedirects || '';
+        // quitar querystring y hash -> quedamos solo con el pathname
+        const pathname = url.split('?')[0].split('#')[0];
+
+        const rutasSinLayout = ['/login'];
+
+        // Si la ruta empieza con /login (ej: /login?returnUrl=...), la consideramos ruta sin layout
+        if (rutasSinLayout.some(r => pathname === r || pathname.startsWith(r + '/'))) {
+          this.showNavbar = false;
+          this.showSidebar = false;
+        } else if (pathname === '/dashboard' || pathname === '/') {
+          this.showNavbar = true;
+          this.showSidebar = false;
+        } else {
+          this.showNavbar = true;
+          this.showSidebar = true;
+        }
       });
   }
 
-  ngOnInit() {
-    this.updateComponentVisibility();
-  }
 
-  private updateComponentVisibility() {
-    const route = this.currentRoute || this.router.url;
-    
-    // Ocultar sidebar y navbar en login
-    if (route.includes('/login')) {
-      this.showSidebar = false;
-      this.showNavbar = false;
-    }
-    // En dashboard: mostrar solo navbar, ocultar sidebar
-    else if (route === '/dashboard' || route === '/') {
-      this.showSidebar = false;
-      this.showNavbar = true;
-    }
-    // En otras rutas: mostrar ambos
-    else {
-      this.showSidebar = true;
-      this.showNavbar = true;
-    }
-  }
-
+  // 🔧 Necesario para tu app.html
   onSidebarStateChange(collapsed: boolean) {
     this.sidebarCollapsed = collapsed;
   }

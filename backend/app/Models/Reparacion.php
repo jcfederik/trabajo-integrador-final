@@ -16,8 +16,10 @@ class Reparacion extends Model
         'usuario_id',
         'descripcion',
         'fecha',
-        'estado'
+        'estado',
+        'fecha_estimada', 
     ];
+
 
     public function equipo()
     {

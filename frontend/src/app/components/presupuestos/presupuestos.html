@@ -13,13 +13,17 @@
     <button class="action-pill success"
             (click)="seleccionarAccion('crear')"
             [class.active]="selectedAction==='crear'"
+            [disabled]="!canCreate()"
             aria-label="Crear">
       <i class="bi bi-clipboard-plus"></i>
       Crear
+      <span *ngIf="!canCreate()" class="badge bg-secondary ms-1" title="Sin permisos">
+        <i class="bi bi-lock"></i>
+      </span>
     </button>
   </div>
 
-  <!-- =============== LISTAR =============== -->
+  <!-- LISTAR -->
   <div *ngIf="selectedAction==='listar'">
     <h4 class="text-center mb-3">Presupuestos</h4>
 
@@ -230,7 +234,12 @@
 
                   <div class="col-6 col-md-3">
                     <label class="form-label small">Fecha</label>
-                    <input type="date" class="form-control" [(ngModel)]="editBuffer.fecha" />
+                    <input 
+                      type="date" 
+                      class="form-control" 
+                      [(ngModel)]="editBuffer.fecha" 
+                      [min]="getToday()"
+                    />
                   </div>
                   <div class="col-6 col-md-3">
                     <label class="form-label small">Monto total</label>
@@ -249,7 +258,10 @@
 
             <!-- Derecha: acciones -->
             <div class="d-flex gap-2">
-              <button *ngIf="editingId !== p.id" class="btn btn-sm btn-outline-warning btn-action" (click)="startEdit(p)" title="Editar">
+              <button *ngIf="editingId !== p.id && canEdit()" 
+                      class="btn btn-sm btn-outline-warning btn-action" 
+                      (click)="startEdit(p)" 
+                      title="Editar">
                 <i class="bi bi-pencil-square"></i>
               </button>
 
@@ -262,9 +274,17 @@
                 </button>
               </ng-container>
 
-              <button class="btn btn-sm btn-outline-danger btn-action" (click)="eliminar(p.id)" title="Eliminar">
+              <button *ngIf="canDelete()"
+                      class="btn btn-sm btn-outline-danger btn-action" 
+                      (click)="eliminar(p.id)" 
+                      title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
+
+                <span *ngIf="isUser() && !canEdit() && !canDelete()" 
+                      class="text-muted small align-self-center">
+                  <i class="bi bi-eye"></i> Solo lectura
+                </span>
             </div>
 
           </div>
@@ -288,7 +308,7 @@
     </ng-template>
   </div>
 
-  <!-- =============== CREAR =============== -->
+  <!-- Crear -->
   <div *ngIf="selectedAction==='crear'">
     <h4 class="text-center mb-3">Registrar Presupuesto</h4>
 
@@ -402,7 +422,14 @@
 
         <div class="col-12 col-md-4">
           <label class="form-label">Fecha <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" [(ngModel)]="nuevo.fecha" name="fecha" required />
+          <input 
+            type="date" 
+            class="form-control" 
+            [(ngModel)]="nuevo.fecha" 
+            name="fecha" 
+            required 
+            [min]="getToday()"
+          />
         </div>
         
         <div class="col-12 col-md-4">

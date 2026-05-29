@@ -17,19 +17,15 @@ type ClienteUI = Cliente;
   styleUrls: ['./clientes.component.css']
 })
 export class ClientesComponent implements OnInit, OnDestroy {
-
-  // =============== ESTADOS DEL COMPONENTE ===============
   selectedAction: Accion = 'listar';
   clientesAll: ClienteUI[] = [];
   clientes: ClienteUI[] = [];
 
-  // =============== PAGINACIÓN ===============
   page = 1;
   perPage = 10;
   lastPage = false;
   loading = false;
 
-  // =============== EDICIÓN ===============
   editingId: number | null = null;
   editBuffer: Partial<Cliente> = {
     nombre: '',
@@ -37,14 +33,12 @@ export class ClientesComponent implements OnInit, OnDestroy {
     telefono: ''
   };
 
-  // =============== CREACIÓN ===============
   nuevo: Partial<Cliente> = {
     nombre: '',
     email: '',
     telefono: ''
   };
 
-  // =============== BÚSQUEDA GLOBAL ===============
   private searchSub?: Subscription;
   searchTerm = '';
   private isServerSearch = false;
@@ -60,7 +54,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     private alertService: AlertService
   ) {}
 
-  // =============== LIFECYCLE ===============
+  // LIFECYCLE
   ngOnInit(): void {
     this.cargar();
     window.addEventListener('scroll', this.onScroll, { passive: true });
@@ -68,6 +62,16 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.searchService.setCurrentComponent('clientes');
     this.searchSub = this.searchService.searchTerm$.subscribe(term => {
       this.searchTerm = (term || '').trim();
+
+      if (!this.searchTerm) {
+      this.clientesAll = [];
+      this.clientes = [];
+      this.page = 1;
+      this.lastPage = false;
+      this.serverSearchPage = 1;
+      this.serverSearchLastPage = false;
+      this.isServerSearch = false;
+    }
       this.applyFilter();
     });
   }
@@ -78,16 +82,16 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.searchService.clearSearch();
   }
 
-  // =============== NAVEGACIÓN ===============
+  // NAVEGACIÓN
   seleccionarAccion(a: Accion) {
     this.selectedAction = a;
   }
 
   limpiarBusqueda() {
-    this.searchService.clearSearch();
+    this.searchService.setSearchTerm(''); 
   }
 
-  // =============== CARGA Y PAGINACIÓN ===============
+  // CARGA Y PAGINACIÓN
   cargar(): void {
     if (this.loading || this.lastPage) return;
     this.loading = true;
@@ -133,7 +137,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     this.searchTerm ? this.applyFilter() : this.cargar();
   }
 
-  // =============== BÚSQUEDA Y FILTRADO ===============
+  // BÚSQUEDA Y FILTRADO
   applyFilter(): void {
     const term = this.searchTerm.toLowerCase();
 
@@ -143,6 +147,10 @@ export class ClientesComponent implements OnInit, OnDestroy {
       this.serverSearchPage = 1;
       this.serverSearchLastPage = false;
       this.mostrandoSugerencias = false;
+
+      if (this.clientesAll.length === 0) {
+      this.cargar();
+      }
       return;
     }
 
@@ -189,17 +197,24 @@ export class ClientesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== CREACIÓN ===============
+  // CREACIÓN
   async crear(): Promise<void> {
     const payload = this.limpiar(this.nuevo);
-    if (!this.valida(payload)) return;
+
+    if (!this.valida(payload)) {
+      return;
+    }
 
     this.alertService.showLoading('Creando cliente...');
 
     this.clienteService.createCliente(payload).subscribe({
       next: (nuevoCliente: any) => {
         this.alertService.closeLoading();
-        const clienteCompleto = { ...payload, id: nuevoCliente.id } as Cliente;
+
+        const clienteCompleto = { 
+          ...payload, 
+          id: nuevoCliente.id 
+        } as Cliente;
 
         this.clientesAll.unshift(clienteCompleto);
         this.applyFilter();
@@ -207,7 +222,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
 
         this.nuevo = { nombre: '', email: '', telefono: '' };
         this.selectedAction = 'listar';
-        
+
         this.alertService.showClienteCreado(payload.nombre!);
       },
       error: (e) => {
@@ -217,7 +232,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== ELIMINACIÓN ===============
+  // ELIMINACIÓN
   async eliminar(id: number): Promise<void> {
     const cliente = this.clientesAll.find(c => c.id === id);
     const confirmed = await this.alertService.confirmDeleteCliente(cliente?.nombre || 'este cliente');
@@ -240,7 +255,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== EDICIÓN INLINE ===============
+  // EDICIÓN INLINE
   startEdit(item: Cliente): void {
     this.editingId = item.id;
     this.editBuffer = {
@@ -284,12 +299,12 @@ export class ClientesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== VALIDACIÓN Y UTILIDADES ===============
+  // VALIDACIÓN Y UTILIDADES
   private limpiar(obj: Partial<Cliente>): Partial<Cliente> {
     return {
       nombre: (obj.nombre ?? '').trim(),
       email: (obj.email ?? '').trim(),
-      telefono: (obj.telefono ?? '').trim()
+      telefono: (obj.telefono ?? '').trim(),
     };
   }
 
@@ -306,6 +321,7 @@ export class ClientesComponent implements OnInit, OnDestroy {
       this.alertService.showRequiredFieldError('teléfono');
       return false; 
     }
+
     return true;
   }
 }

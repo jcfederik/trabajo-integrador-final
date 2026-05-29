@@ -45,7 +45,7 @@ class AdminUserController extends Controller
             $validator = Validator::make($request->all(), [
                 'nombre' => 'required|string|max:255',
                 'tipo' => 'required|string|in:administrador,tecnico,usuario',
-                'password' => 'required|string|min:8', // ← REQUERIDA para crear
+                'password' => 'required|string|min:8', 
                 'especializaciones' => 'array',
                 'especializaciones.*' => 'exists:especializacion,id'
             ]);
@@ -93,7 +93,7 @@ class AdminUserController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|string|in:administrador,tecnico,usuario',
-            'password' => 'sometimes|string|min:8', // ← CAMBIADO: 'required' por 'sometimes' (opcional)
+            'password' => 'sometimes|string|min:8',
             'especializaciones' => 'array',
             'especializaciones.*' => 'exists:especializacion,id'
         ]);
@@ -108,14 +108,12 @@ class AdminUserController extends Controller
         $user->nombre = $request->nombre;
         $user->tipo = $request->tipo;
 
-        // ✅ SOLO ACTUALIZAR CONTRASEÑA SI SE ENVÍA
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
 
         $user->save();
 
-        // Actualizar especializaciones solo si aplica
         if (in_array($user->tipo, ['tecnico', 'administrador']) && $request->has('especializaciones')) {
             $user->especializaciones()->sync($request->especializaciones);
         }
@@ -147,7 +145,6 @@ class AdminUserController extends Controller
     {
         $user = JWTAuth::user();
 
-        // ✅ ACTUALIZADO: Permitir a técnicos y administradores
         if (!$user->isTecnico() && !$user->isAdmin()) {
             return response()->json([
                 'error' => 'Solo técnicos o administradores pueden modificar especializaciones'
@@ -188,15 +185,12 @@ class AdminUserController extends Controller
         try {
             $currentUser = JWTAuth::user();
 
-            // Verificar que el usuario actual es administrador
             if (!$currentUser->isAdmin()) {
                 return response()->json(['error' => 'No autorizado. Solo administradores pueden asignar especializaciones.'], 403);
             }
 
-            // Buscar el usuario objetivo
             $user = User::findOrFail($id);
 
-            // Validar que sea un técnico o administrador (no secretarios)
             if (!in_array($user->tipo, ['tecnico', 'administrador'])) {
                 return response()->json(['error' => 'Solo se pueden asignar especializaciones a técnicos o administradores'], 422);
             }
@@ -206,7 +200,6 @@ class AdminUserController extends Controller
                 'especializaciones.*' => 'exists:especializacion,id'
             ]);
 
-            // Sincronizar especializaciones
             $user->especializaciones()->sync($request->especializaciones);
 
             return response()->json([
@@ -247,15 +240,12 @@ class AdminUserController extends Controller
         try {
             $currentUser = JWTAuth::user();
             
-            // Verificar que el usuario está intentando auto-asignarse
             if ($currentUser->id != $id) {
                 return response()->json(['error' => 'Solo puedes auto-asignarte especializaciones a ti mismo'], 403);
             }
 
-            // Buscar el usuario
             $user = User::findOrFail($id);
 
-            // Verificar que sea un técnico
             if ($user->tipo !== 'tecnico') {
                 return response()->json(['error' => 'Solo los técnicos pueden auto-asignarse especializaciones'], 422);
             }
@@ -265,7 +255,6 @@ class AdminUserController extends Controller
                 'especializaciones.*' => 'exists:especializacion,id'
             ]);
 
-            // Sincronizar especializaciones (agregar sin eliminar las existentes)
             $user->especializaciones()->syncWithoutDetaching($request->especializaciones);
 
             return response()->json([

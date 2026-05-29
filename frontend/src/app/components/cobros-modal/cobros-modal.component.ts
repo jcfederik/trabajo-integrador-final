@@ -45,9 +45,14 @@ export class CobrosModalComponent implements OnInit {
     this.cargarMediosCobro();
   }
 
+  // ABRIR MODAL
   abrirModal(facturaId: number, facturaNumero: string, montoTotal: number): void {
-    if (facturaId <= 0) {
-      this.alertService.showGenericError('ID de factura no válido');
+    if (!facturaId || facturaId <= 0 || isNaN(facturaId)) {
+      this.alertService.showError('Error', 'No se puede abrir el modal: ID de factura inválido');
+      return;
+    }
+    
+    if (this.facturaActual === facturaId && this.mostrarModal) {
       return;
     }
     
@@ -65,6 +70,7 @@ export class CobrosModalComponent implements OnInit {
     this.cargarDatosFactura();
   }
 
+  // CERRAR MODAL
   cerrarModal(): void {
     this.mostrarModal = false;
     this.mostrarFormulario = false;
@@ -72,15 +78,18 @@ export class CobrosModalComponent implements OnInit {
     this.cerrar.emit();
   }
 
+  // LIMPIAR DATOS FACTURA
   private limpiarDatosFactura(): void {
     this.cobros = [];
     this.saldoInfo = null;
     this.loading = false;
     this.procesando = false;
     this.mostrarFormulario = false;
+    
     this.limpiarFormulario();
   }
 
+  // CARGAR DATOS FACTURA
   private cargarDatosFactura(): void {
     if (this.facturaId <= 0) return;
     
@@ -88,6 +97,7 @@ export class CobrosModalComponent implements OnInit {
     this.cargarSaldoFactura();
   }
 
+  // CARGAR COBROS
   cargarCobros(): void {
     if (this.facturaId <= 0) return;
     
@@ -105,19 +115,54 @@ export class CobrosModalComponent implements OnInit {
     });
   }
 
+  // CARGAR SALDO FACTURA
   cargarSaldoFactura(): void {
-    if (this.facturaId <= 0) return;
+    if (this.facturaId <= 0) {
+      return;
+    }
     
     this.facturaService.getSaldoPendiente(this.facturaId).subscribe({
       next: (saldo) => {
         this.saldoInfo = saldo;
       },
       error: (error) => {
-        this.saldoInfo = null;
+        if (error.status === 404) {
+          this.alertService.showError(
+            'Endpoint no encontrado', 
+            `No se pudo cargar el saldo. El endpoint /api/facturas/${this.facturaId}/saldo no existe.`
+          );
+        } else if (error.status === 500) {
+          this.alertService.showError(
+            'Error del servidor',
+            'El servidor tuvo un error interno al calcular el saldo.'
+          );
+        } else if (error.status === 403) {
+          this.alertService.showError(
+            'Sin permisos',
+            'No tienes permisos para ver el saldo de esta factura.'
+          );
+        } else {
+          this.alertService.showError(
+            'Error cargando saldo',
+            `Error ${error.status}: ${error.message || 'No se pudo cargar el saldo pendiente'}`
+          );
+        }
+        
+        this.calcularSaldoLocal();
       }
     });
   }
 
+  // CALCULAR SALDO LOCAL
+  private calcularSaldoLocal(): void {
+    const totalCobrado = this.cobros.reduce((total, cobro) => total + (cobro.monto || 0), 0);
+    this.saldoInfo = {
+      monto_total: this.montoTotal,
+      saldo_pendiente: Math.max(0, this.montoTotal - totalCobrado)
+    };
+  }
+
+  // CARGAR MEDIOS DE COBRO
   private cargarMediosCobro(): void {
     this.cargandoMedios = true;
     
@@ -133,15 +178,18 @@ export class CobrosModalComponent implements OnInit {
     });
   }
 
+  // MOSTRAR FORMULARIO PAGO
   mostrarFormularioPago(): void {
     this.mostrarFormulario = true;
   }
 
+  // CANCELAR FORMULARIO
   cancelarFormulario(): void {
     this.mostrarFormulario = false;
     this.limpiarFormulario();
   }
 
+  // REGISTRAR COBRO
   registrarCobro(): void {
     if (!this.validarFormulario()) {
       return;
@@ -167,6 +215,7 @@ export class CobrosModalComponent implements OnInit {
     });
   }
 
+  // VALIDAR FORMULARIO
   private validarFormulario(): boolean {
     if (!this.nuevoCobro.factura_id || this.nuevoCobro.factura_id <= 0) {
       this.alertService.showGenericError('ID de factura no válido');
@@ -191,6 +240,7 @@ export class CobrosModalComponent implements OnInit {
     return true;
   }
 
+  // LIMPIAR FORMULARIO
   private limpiarFormulario(): void {
     this.nuevoCobro = {
       factura_id: this.facturaId,
@@ -199,6 +249,7 @@ export class CobrosModalComponent implements OnInit {
     };
   }
 
+  // GETTERS
   get totalCobrado(): number {
     return this.cobros.reduce((total, cobro) => total + (cobro.monto || 0), 0);
   }

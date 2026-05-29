@@ -17,12 +17,9 @@ export type ModalView = 'options' | 'clientes' | 'facturas-cliente';
   styleUrls: ['./export-modal.css']
 })
 export class ExportModalComponent implements OnInit, OnDestroy {
-  
-  // =============== OUTPUTS ===============
   @Output() cerrar = new EventEmitter<void>();
   @Output() exportarTodas = new EventEmitter<void>();
   
-  // =============== ESTADOS DEL MODAL ===============
   vistaActual: ModalView = 'options';
   todosLosClientes: Cliente[] = [];
   clientes: Cliente[] = [];
@@ -39,14 +36,14 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     private searchService: SearchService
   ) {}
 
-  // =============== LIFECYCLE ===============
+  // LIFECYCLE
   ngOnInit(): void {
     this.cargarClientes();
   }
 
   ngOnDestroy(): void {}
 
-  // =============== CARGA DE DATOS ===============
+  // CARGA DE DATOS
   cargarClientes(): void {
     this.cargandoClientes = true;
     this.clienteService.getClientes(1, 100).subscribe({
@@ -64,7 +61,7 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     });
   }
 
-  // =============== BÚSQUEDA Y FILTRADO ===============
+  // BÚSQUEDA Y FILTRADO
   onBuscarCliente(): void {
     this.aplicarFiltroClientes();
   }
@@ -89,7 +86,7 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     this.aplicarFiltroClientes();
   }
 
-  // =============== NAVEGACIÓN Y SELECCIÓN ===============
+  // NAVEGACIÓN Y SELECCIÓN
   seleccionarTodasFacturas(): void {
     this.exportarTodas.emit();
     this.cerrarModal();
@@ -139,7 +136,7 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     }
   }
 
-  // =============== GENERACIÓN DE REPORTES ===============
+  // GENERACIÓN DE REPORTES
   private generarReporteCliente(): void {
     const reportComponent = new FacturaReportComponent(this.alertService);
     reportComponent.facturas = this.facturasCliente;
@@ -173,7 +170,7 @@ export class ExportModalComponent implements OnInit, OnDestroy {
     this.generarReporteCliente();
   }
 
-  // =============== UTILIDADES ===============
+  // UTILIDADES
   cerrarModal(): void {
     this.cerrar.emit();
   }

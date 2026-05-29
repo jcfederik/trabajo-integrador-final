@@ -24,4 +24,16 @@ class Proveedor extends Model
     {
         return $this->hasMany(CompraRepuesto::class, 'proveedor_id');
     }
+
+
+
+
+     public function repuestos()
+    {
+        return $this->belongsToMany(Repuesto::class, 'proveedor_repuesto')
+                    ->withPivot('precio', 'activo');
+    }
+
+
+    
 }
